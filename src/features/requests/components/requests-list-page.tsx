@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Download, FileSearch, Filter, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, Download, FileSearch, Filter, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FilterSelect } from "@/components/shared/filter-select";
@@ -315,7 +315,10 @@ export default function RequestsListPage() {
                   <TableHead>Submitted</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Reviewer</TableHead>
-                  <TableHead className="pr-4">Deposit / refund</TableHead>
+                  <TableHead>Deposit / refund</TableHead>
+                  <TableHead className="w-10 pr-4">
+                    <span className="sr-only">Open</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -324,7 +327,7 @@ export default function RequestsListPage() {
                   const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
                   const category = categoryById.get(req.categoryId);
                   return (
-                    <TableRow key={req.id} onClick={() => router.push(`/requests/${req.id}`)} className="cursor-pointer">
+                    <TableRow key={req.id} onClick={() => router.push(`/requests/${req.id}`)} className="group cursor-pointer">
                       <TableCell className="pl-4">
                         <Link
                           href={`/requests/${req.id}`}
@@ -366,11 +369,14 @@ export default function RequestsListPage() {
                           <span className="text-xs text-muted-foreground italic">Unassigned</span>
                         )}
                       </TableCell>
-                      <TableCell className="pr-4">
+                      <TableCell>
                         <div className="flex flex-col items-start gap-1">
                           <DepositChip deposit={req.deposit} />
                           {req.refund && <RefundChip refund={req.refund} />}
                         </div>
+                      </TableCell>
+                      <TableCell className="pr-4">
+                        <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                       </TableCell>
                     </TableRow>
                   );

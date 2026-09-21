@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { ArrowRight, History, Inbox, ListChecks, Route, UserRoundCheck, UserRoundPlus, Users } from "lucide-react";
+import { ArrowRight, ChevronRight, History, Inbox, ListChecks, Route, UserRoundCheck, UserRoundPlus, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Pagination } from "@/components/shared/pagination";
@@ -124,12 +124,15 @@ export default function AssignmentsPage() {
                     <TableHead>Action</TableHead>
                     <TableHead>Reviewer change</TableHead>
                     <TableHead>Done by</TableHead>
-                    <TableHead className="pr-4">When</TableHead>
+                    <TableHead>When</TableHead>
+                    <TableHead className="w-10 pr-4">
+                      <span className="sr-only">Open</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {visibleActivity.map(({ event, request }) => (
-                    <TableRow key={`${request.id}-${event.id}`} className="cursor-pointer" onClick={() => router.push(`/requests/${request.id}`)}>
+                    <TableRow key={`${request.id}-${event.id}`} className="group cursor-pointer" onClick={() => router.push(`/requests/${request.id}`)}>
                       <TableCell className="pl-4">
                         <Link href={`/requests/${request.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300">
                           {request.code}
@@ -169,9 +172,12 @@ export default function AssignmentsPage() {
                         <span className="block text-sm whitespace-nowrap">{event.actor.name}</span>
                         <span className="block text-[11px] text-muted-foreground">{event.actor.role === "super_admin" ? "Super Admin" : "Reviewer"}</span>
                       </TableCell>
-                      <TableCell className="pr-4 whitespace-nowrap">
+                      <TableCell className="whitespace-nowrap">
                         <span className="block text-sm">{formatRelative(event.createdAt)}</span>
                         <span className="block text-[11px] text-muted-foreground">{formatDateTime(event.createdAt)}</span>
+                      </TableCell>
+                      <TableCell className="pr-4">
+                        <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -208,8 +214,11 @@ export default function AssignmentsPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Submitted</TableHead>
                   <TableHead>{tab === "intake" ? "Owner" : "Assigned reviewer"}</TableHead>
-                  <TableHead className="pr-4 text-right">
+                  <TableHead className="text-right">
                     <span className="sr-only">Action</span>
+                  </TableHead>
+                  <TableHead className="w-10 pr-4">
+                    <span className="sr-only">Open</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -249,11 +258,14 @@ export default function AssignmentsPage() {
                           <span className="text-xs text-muted-foreground italic">Default reviewers&apos; intake</span>
                         )}
                       </TableCell>
-                      <TableCell className="pr-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <Button size="sm" variant={tab === "intake" ? "default" : "outline"} onClick={() => setTarget(req)}>
                           <UserRoundPlus />
                           {tab === "intake" ? "Assign" : "Reassign"}
                         </Button>
+                      </TableCell>
+                      <TableCell className="pr-4">
+                        <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                       </TableCell>
                     </TableRow>
                   );

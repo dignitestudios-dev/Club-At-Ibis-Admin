@@ -274,7 +274,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
           <TabsTrigger value="overview">Details</TabsTrigger>
           <TabsTrigger value="documents">Documents{docCount > 0 ? ` (${docCount})` : ""}</TabsTrigger>
           <TabsTrigger value="decisions">Decisions &amp; deposit</TabsTrigger>
-          <TabsTrigger value="history">History{req.history.length > 0 ? ` (${req.history.length})` : ""}</TabsTrigger>
+          <TabsTrigger value="history">Activity timeline{req.history.length > 0 ? ` (${req.history.length})` : ""}</TabsTrigger>
         </TabsList>
 
         {/* Information */}
@@ -526,6 +526,14 @@ export default function RequestDetailPage({ id }: { id: string }) {
                       </p>
                     )}
                     <InfoRow label="Recorded by">{req.refund.recordedBy}</InfoRow>
+                    {req.refund.proof && (
+                      <InfoRow label="Proof">
+                        <button type="button" onClick={() => setPreview(req.refund!.proof!)} className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300">
+                          <ReceiptText className="size-3.5" />
+                          {req.refund.proof.name}
+                        </button>
+                      </InfoRow>
+                    )}
                     <InfoRow label={req.refund.outcome === "refunded" ? "Refund date" : "Recorded on"}>{formatDateTime(req.refund.date)}</InfoRow>
                     <p className="text-[11px] text-muted-foreground">
                       Residents see this as read-only. {REFUND_LABEL[req.refund.outcome]} · partial-refund amounts are out of scope.
@@ -574,7 +582,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
         <TabsContent value="history" className="pt-4">
           <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
             <CardHeader className="border-b border-border/70 pb-3">
-              <CardTitle className="font-heading text-lg font-medium">Request history</CardTitle>
+              <CardTitle className="font-heading text-lg font-medium">Activity timeline</CardTitle>
               <p className="text-xs text-muted-foreground">
                 Oldest to newest. Every event records the action, the actual person, the date and time, and relevant details.
                 Staff-only records are hidden from the resident.

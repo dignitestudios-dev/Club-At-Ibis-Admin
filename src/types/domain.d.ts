@@ -239,6 +239,8 @@ interface DepositRecord {
 
 interface RefundRecord {
   outcome: RefundOutcome;
+  /** Optional proof of refund / supporting document uploaded by the reviewer. */
+  proof?: AttachedFile;
   recordedBy: string;
   date: string;
 }
