@@ -16,6 +16,8 @@ export const baseProjectFields: CategoryField[] = [
 
 export const BASE_FIELD_IDS = new Set(baseProjectFields.map((f) => f.id));
 
+const ADMIN_NAME = "Morgan Ellis";
+
 type FieldSpec = [
   id: string,
   label: string,
@@ -38,21 +40,36 @@ function fields(specs: FieldSpec[]): CategoryField[] {
 function category(
   id: string,
   name: string,
-  icon: string,
   description: string,
   specs: FieldSpec[],
   createdDaysAgo: number,
   version = 1
 ): Category {
+  const current = fields(specs);
+  const createdAt = daysAgo(createdDaysAgo);
+  const versions: CategoryVersion[] = [];
+  for (let v = 1; v <= version; v++) {
+    const isLatest = v === version;
+    versions.push({
+      version: v,
+      name,
+      description,
+      // Earlier versions of the Generator form predate the sound-rating requirement.
+      fields: isLatest ? current : current.filter((f) => f.id !== "soundRating"),
+      createdAt: v === 1 ? createdAt : daysAgo(24),
+      createdBy: ADMIN_NAME,
+      changes: v === 1 ? ["Initial form"] : ["Added document “Sound rating certificate (dBA)” (required)"],
+    });
+  }
   return {
     id,
     name,
     description,
-    icon,
     status: "active",
-    fields: fields(specs),
+    fields: current,
     version,
-    createdAt: daysAgo(createdDaysAgo),
+    versions,
+    createdAt,
     updatedAt: daysAgo(version > 1 ? 24 : 60 + ((name.length * 17) % 150)),
   };
 }
@@ -61,7 +78,6 @@ export const seedCategories: Category[] = [
   category(
     "new-dwelling",
     "New Dwelling",
-    "Home",
     "Construction of a new single-family residence.",
     [
       ["builderName", "Builder / Architect of Record", "text", true, "Company or individual responsible for the plans."],
@@ -75,7 +91,6 @@ export const seedCategories: Category[] = [
   category(
     "addition-to-dwelling",
     "Addition to Dwelling",
-    "Building2",
     "Room additions, second-story additions, or garage conversions.",
     [
       ["additionType", "Type of addition", "text", true, "Room, second story, garage conversion, etc."],
@@ -89,7 +104,6 @@ export const seedCategories: Category[] = [
   category(
     "demolition",
     "Demolition",
-    "Hammer",
     "Full or partial demolition of a structure or outbuilding.",
     [
       ["demolitionScope", "Scope of demolition", "textarea", true, "Describe exactly what will be removed."],
@@ -101,7 +115,6 @@ export const seedCategories: Category[] = [
   category(
     "windows-doors",
     "Windows/Doors",
-    "DoorOpen",
     "Replacement or modification of exterior windows and doors.",
     [
       ["unitCount", "Number of units", "text", true],
@@ -114,7 +127,6 @@ export const seedCategories: Category[] = [
   category(
     "generator",
     "Generator",
-    "Zap",
     "Permanent standby generator installation.",
     [
       ["fuelType", "Fuel type", "text", true, "Natural gas, propane, or diesel."],
@@ -129,7 +141,6 @@ export const seedCategories: Category[] = [
   category(
     "screen-enclosure",
     "Screen Enclosure",
-    "Grid3x3",
     "Pool cages, lanai screen rooms, and patio enclosures.",
     [
       ["enclosureType", "Enclosure type", "text", true, "Pool cage, lanai, or patio room."],
@@ -142,7 +153,6 @@ export const seedCategories: Category[] = [
   category(
     "pool-deck-driveway",
     "Pool Deck/Driveway Replacement",
-    "Layers",
     "Replacement or resurfacing of pool decks, driveways, and walkways.",
     [
       ["surfaceMaterial", "New surface material", "text", true, "Pavers, concrete, travertine, etc."],
@@ -155,7 +165,6 @@ export const seedCategories: Category[] = [
   category(
     "hurricane-shutters",
     "Hurricane Shutters",
-    "Shield",
     "Accordion, roll-down, panel, and impact-rated shutter systems.",
     [
       ["shutterType", "Shutter type", "text", true, "Accordion, roll-down, panel, or impact glass."],
@@ -168,7 +177,6 @@ export const seedCategories: Category[] = [
   category(
     "pool-installation",
     "Pool Installation",
-    "Waves",
     "New pool, spa, or water-feature installation.",
     [
       ["poolDimensions", "Pool dimensions", "text", true, "Length × width × depth."],
@@ -182,7 +190,6 @@ export const seedCategories: Category[] = [
   category(
     "roof-replacement",
     "Roof Replacement",
-    "Warehouse",
     "Re-roofing with a new material, color, or profile.",
     [
       ["roofMaterial", "Roofing material", "text", true, "Barrel tile, flat tile, shingle, or metal."],
@@ -194,7 +201,6 @@ export const seedCategories: Category[] = [
   ),
   category(
     "fence",
-    "Fence",
     "Fence",
     "New or replacement fencing, gates, and privacy walls.",
     [
@@ -208,7 +214,6 @@ export const seedCategories: Category[] = [
   category(
     "paint-color-change",
     "Paint Color Change",
-    "PaintBucket",
     "Exterior paint color changes for body, trim, doors, and accents.",
     [
       ["surfaces", "Surfaces to be painted", "text", true, "Body, trim, front door, garage door, etc."],
@@ -221,7 +226,6 @@ export const seedCategories: Category[] = [
   category(
     "landscaping",
     "Landscaping",
-    "Trees",
     "Landscape design changes, tree removal, and irrigation modifications.",
     [
       ["landscapeScope", "Scope of landscape changes", "textarea", true],

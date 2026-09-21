@@ -26,9 +26,8 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { data: notifications } = useNotifications();
   const buckets = requests ? attentionBuckets(requests) : null;
   const counts = {
-    attention: buckets
-      ? buckets.unassigned.length + buckets.resubmitted.length + buckets.refundsAwaiting.length
-      : 0,
+    attention: buckets ? buckets.unassigned.length + buckets.resubmitted.length + buckets.refundsAwaiting.length : 0,
+    intake: buckets ? buckets.unassigned.length : 0,
     notifications: notifications?.filter((n) => !n.read).length ?? 0,
   };
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Archive,
   ArchiveRestore,
+  History,
   FileUp,
   LayoutTemplate,
   MoreHorizontal,
@@ -21,7 +22,6 @@ import { SearchInput } from "@/components/shared/search-input";
 import { SegmentedTabs } from "@/components/shared/pill-tabs";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCategoryIcon } from "@/features/categories/components/category-icons";
 import { useArchiveCategory, useCategories, useRequests, useRestoreCategory } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
 import { IN_FLIGHT } from "@/lib/domain";
@@ -107,7 +107,6 @@ export default function CategoriesPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map((cat, i) => {
-            const Icon = getCategoryIcon(cat.icon);
             const u = usage.get(cat.id) ?? { total: 0, active: 0 };
             const docs = cat.fields.filter((f) => f.type === "file");
             const info = cat.fields.filter((f) => f.type !== "file");
@@ -130,15 +129,7 @@ export default function CategoriesPage() {
                   )}
                 />
                 <div className="flex items-start justify-between gap-3">
-                  <span
-                    className={cn(
-                      "flex size-11 shrink-0 items-center justify-center rounded-xl border transition-transform duration-300 group-hover:scale-110",
-                      archived ? "border-border bg-muted text-muted-foreground" : "border-primary/20 bg-primary/10 text-primary dark:text-amber-300"
-                    )}
-                  >
-                    <Icon className="size-5" aria-hidden="true" />
-                  </span>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex w-full items-center justify-between gap-1.5">
                     <span
                       className={cn(
                         "rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase",
@@ -157,6 +148,10 @@ export default function CategoriesPage() {
                         <DropdownMenuItem render={<Link href={`/categories/${cat.id}/edit`} />}>
                           <Pencil />
                           Edit form
+                        </DropdownMenuItem>
+                        <DropdownMenuItem render={<Link href={`/categories/${cat.id}/versions`} />}>
+                          <History />
+                          Version history ({cat.versions.length})
                         </DropdownMenuItem>
                         <DropdownMenuItem render={<Link href={`/requests?category=${cat.id}`} />}>
                           <LayoutTemplate />
@@ -191,7 +186,9 @@ export default function CategoriesPage() {
                   <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
                     <FileUp className="size-3" /> {docs.length} document{docs.length === 1 ? "" : "s"}
                   </span>
-                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 font-mono text-[11px] text-muted-foreground">v{cat.version}</span>
+                  <Link href={`/categories/${cat.id}/versions`} title="View version history" className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
+                    <History className="size-3" aria-hidden="true" />v{cat.version}
+                  </Link>
                 </div>
 
                 <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground">

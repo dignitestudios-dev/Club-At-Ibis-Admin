@@ -15,8 +15,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/spinner";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
+import { InvitationSentDialog } from "@/features/reviewers/components/reviewer-form-sheet";
 import { SendResetDialog, type ResetTarget } from "@/features/password-reset/components/send-reset-dialog";
-import { useReviewers, useSetLoginEnabled, useSetReceiveNewRequests } from "@/hooks/use-admin-data";
+import { useResendInvitation, useReviewers, useSetLoginEnabled, useSetReceiveNewRequests } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/utils/cn";
 
@@ -32,6 +34,9 @@ export function useReviewerActions() {
   const { data: reviewers } = useReviewers();
   const setReceive = useSetReceiveNewRequests();
   const setLogin = useSetLoginEnabled();
+  const resend = useResendInvitation();
+  const [passwordTarget, setPasswordTarget] = useState<ResetTarget | null>(null);
+  const [resentTo, setResentTo] = useState<{ name: string; email: string } | null>(null);
 
   const [replace, setReplace] = useState<Pending | null>(null);
   const [replacementId, setReplacementId] = useState<string>("");
@@ -113,6 +118,17 @@ export function useReviewerActions() {
     }
   }
 
+  function changePassword(rev: PublicReviewer) {
+    setPasswordTarget({ kind: "reviewer", id: rev.id, name: rev.name, email: rev.email });
+  }
+
+  function resendInvite(rev: PublicReviewer) {
+    resend.mutate(rev.id, {
+      onSuccess: () => setResentTo({ name: rev.name, email: rev.email }),
+      onError: (e: Error) => toast.error("Could not resend invitation", e.message),
+    });
+  }
+
   function sendReset(rev: PublicReviewer) {
     setResetTarget({ kind: "reviewer", id: rev.id, name: rev.name, email: rev.email });
   }
@@ -182,6 +198,8 @@ export function useReviewerActions() {
       />
 
       <SendResetDialog target={resetTarget} onOpenChange={(o) => !o && setResetTarget(null)} />
+      <SetPasswordDialog target={passwordTarget} onOpenChange={(o) => !o && setPasswordTarget(null)} />
+      <InvitationSentDialog target={resentTo} resent onOpenChange={(o) => !o && setResentTo(null)} />
     </>
   );
 
@@ -189,6 +207,8 @@ export function useReviewerActions() {
     toggleReceive,
     requestLoginChange,
     sendReset,
+    changePassword,
+    resendInvite,
     isLastDefault,
     pendingReceiveId: setReceive.isPending ? setReceive.variables?.id : undefined,
     dialogs,

@@ -14,7 +14,6 @@ import {
   Pencil,
   Plus,
   Save,
-  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -28,7 +27,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { RequiredMark } from "@/components/shared/required-mark";
-import { ICON_LIBRARY, SUGGESTED_ICON_NAMES, getCategoryIcon } from "@/features/categories/components/category-icons";
 import { FIELD_TYPES, FIELD_TYPE_BY_ID, FILE_GROUPS, describeAccept, isChoiceType } from "@/features/categories/components/field-types";
 import { useCategories, useCreateCategory, useRequests, useUpdateCategory } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
@@ -51,11 +49,10 @@ function toDraft(fields: CategoryField[]): DraftField[] {
 }
 
 /** Stable string of everything the user can edit — used to detect unsaved changes. */
-function snapshot(name: string, description: string, icon: string, fields: DraftField[]) {
+function snapshot(name: string, description: string, fields: DraftField[]) {
   return JSON.stringify({
     name: name.trim(),
     description: description.trim(),
-    icon,
     fields: fields.map(({ key: _key, order: _order, ...f }) => ({
       ...f,
       label: f.label.trim(),
@@ -100,69 +97,6 @@ export default function CategoryBuilder({ categoryId }: { categoryId?: string })
       onDone={() => router.push("/categories")}
       allNames={(categories ?? []).filter((c) => c.id !== categoryId).map((c) => c.name.toLowerCase())}
     />
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Icon picker — tiles look exactly like the icon on a category card    */
-/* ------------------------------------------------------------------ */
-
-function IconPicker({ value, onChange }: { value: string; onChange: (name: string) => void }) {
-  const [query, setQuery] = useState("");
-  const q = query.trim().toLowerCase();
-  const suggested = SUGGESTED_ICON_NAMES.map((n) => ICON_LIBRARY.find((e) => e.name === n)!).filter(Boolean);
-  const results = q ? ICON_LIBRARY.filter((e) => `${e.name} ${e.keywords}`.toLowerCase().includes(q)) : suggested;
-
-  return (
-    <div className="space-y-3 rounded-2xl border border-border bg-muted/30 p-3.5">
-      <div className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={`Search ${ICON_LIBRARY.length} icons — e.g. “pool”, “solar”, “roof”`}
-          className="bg-card pl-9"
-          aria-label="Search icons"
-        />
-      </div>
-      <div className="max-h-72 overflow-y-auto pr-1 custom-scrollbar">
-        <p className="pb-2 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-          {q ? `${results.length} result${results.length === 1 ? "" : "s"}` : "Suggested · search to see more"}
-        </p>
-        {results.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">No icons match “{query}”.</p>
-        ) : (
-          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6" role="radiogroup" aria-label="Category icon">
-            {results.map(({ name, icon: Icon }) => {
-              const selected = value === name;
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => onChange(name)}
-                  className={cn(
-                    "group flex flex-col items-center gap-2 rounded-2xl border bg-card p-3 text-center outline-none transition-all hover:-translate-y-0.5 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring/50",
-                    selected ? "border-primary ring-2 ring-primary/25 dark:border-amber-400 dark:ring-amber-400/25" : "border-border"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex size-11 items-center justify-center rounded-xl border transition-transform duration-300 group-hover:scale-110",
-                      selected ? "border-primary bg-primary text-primary-foreground dark:border-amber-400 dark:bg-amber-400 dark:text-[#0d1522]" : "border-primary/20 bg-primary/10 text-primary dark:text-amber-300"
-                    )}
-                  >
-                    <Icon className="size-5" aria-hidden="true" />
-                  </span>
-                  <span className="w-full truncate text-[11px] text-muted-foreground">{name}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -489,16 +423,15 @@ function BuilderForm({
   const editing = !!existing;
   const [name, setName] = useState(existing?.name ?? "");
   const [description, setDescription] = useState(existing?.description ?? "");
-  const [icon, setIcon] = useState(existing?.icon ?? "");
-  const [pickingIcon, setPickingIcon] = useState(false);
+  const [note, setNote] = useState("");
   const [fields, setFields] = useState<DraftField[]>(() => toDraft(existing?.fields ?? []));
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ name?: string; fields: Record<string, string> }>({ fields: {} });
   const dragKey = useRef<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
 
-  const initial = useRef(snapshot(existing?.name ?? "", existing?.description ?? "", existing?.icon ?? "", toDraft(existing?.fields ?? [])));
-  const dirty = useMemo(() => snapshot(name, description, icon, fields) !== initial.current, [name, description, icon, fields]);
+  const initial = useRef(snapshot(existing?.name ?? "", existing?.description ?? "", toDraft(existing?.fields ?? [])));
+  const dirty = useMemo(() => snapshot(name, description, fields) !== initial.current, [name, description, fields]);
   const guard = useUnsavedChanges(dirty);
   const saving = create.isPending || update.isPending;
 
@@ -618,7 +551,7 @@ function BuilderForm({
     const payload: CategoryDraftPayload = {
       name,
       description,
-      icon,
+      note,
       fields: fields.map(({ key: _key, ...f }, i) => ({
         ...f,
         order: i + 1,
@@ -653,8 +586,6 @@ function BuilderForm({
     }
   }
 
-  const HeaderIcon = getCategoryIcon(icon);
-
   return (
     <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in duration-500">
       <Link href="/categories" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
@@ -667,7 +598,7 @@ function BuilderForm({
         <div className="min-w-0">
           <h1 className="font-heading text-xl font-medium text-foreground">{editing ? `Edit ${existing?.name}` : "Add category"}</h1>
           <p className="text-xs text-muted-foreground">
-            {editing ? `Form v${existing?.version} → v${(existing?.version ?? 0) + 1} on save` : "Configure the resident form, then save."}
+            {editing ? `Saving creates form v${(existing?.version ?? 0) + 1} — v${existing?.version} is kept` : "Configure the resident form, then save."}
             {dirty && <span className="ml-2 font-medium text-amber-700 dark:text-amber-300">· Unsaved changes</span>}
           </p>
         </div>
@@ -689,7 +620,7 @@ function BuilderForm({
           <Button variant="outline" nativeButton={false} render={<Link href="/categories" />}>
             Cancel
           </Button>
-          <Button onClick={save} disabled={saving}>
+          <Button onClick={save} disabled={saving || !dirty}>
             {saving ? <Spinner className="size-4" /> : <Save className="size-4" />}
             {editing ? "Save changes" : "Save category"}
           </Button>
@@ -715,20 +646,7 @@ function BuilderForm({
           <CardTitle className="font-heading text-lg font-medium">Category details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5 pt-5">
-          <div className="flex items-start gap-4">
-            <button
-              type="button"
-              onClick={() => setPickingIcon((p) => !p)}
-              aria-expanded={pickingIcon}
-              aria-label="Change icon"
-              title="Change icon"
-              className="group relative flex size-16 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary outline-none transition-all hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring/50 dark:text-amber-300"
-            >
-              <HeaderIcon className="size-7" aria-hidden="true" />
-              <span className="absolute -right-1.5 -bottom-1.5 flex size-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs group-hover:text-foreground">
-                <Pencil className="size-3" aria-hidden="true" />
-              </span>
-            </button>
+          <div className="space-y-1.5">
             <div className="min-w-0 flex-1 space-y-1.5">
               <label htmlFor="cat-name" className="flex items-center text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
                 Category name
@@ -763,23 +681,21 @@ function BuilderForm({
             />
           </div>
 
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 px-3.5 py-2.5">
-            <p className="text-sm text-foreground">
-              <span className="font-medium">Icon:</span> <span className="text-muted-foreground">{icon || "Default"}</span>
-            </p>
-            <div className="flex items-center gap-1">
-              {icon && (
-                <Button variant="ghost" size="sm" onClick={() => setIcon("")}>
-                  <X />
-                  Use default
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={() => setPickingIcon((p) => !p)}>
-                {pickingIcon ? "Done" : "Change icon"}
-              </Button>
+          {editing && (
+            <div className="space-y-1.5">
+              <label htmlFor="cat-note" className="block text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                Version note <span className="font-normal tracking-normal normal-case">(optional — saved with v{(existing?.version ?? 0) + 1})</span>
+              </label>
+              <Input
+                id="cat-note"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="e.g. Added sound rating requirement per Board decision"
+                className="rounded-none border-0 border-b border-border bg-transparent px-1 shadow-none focus-visible:border-primary focus-visible:ring-0"
+              />
             </div>
-          </div>
-          {pickingIcon && <IconPicker value={icon} onChange={setIcon} />}
+          )}
+
         </CardContent>
       </Card>
 

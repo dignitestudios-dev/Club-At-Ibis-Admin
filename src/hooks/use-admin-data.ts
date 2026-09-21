@@ -1,13 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getReviewers, createReviewer, updateReviewer, setReceiveNewRequests, setLoginEnabled } from "@/features/reviewers/api/reviewers.service";
+import { getReviewers, createReviewer, updateReviewer, setReceiveNewRequests, setLoginEnabled, resendInvitation } from "@/features/reviewers/api/reviewers.service";
 import { getResidents, setResidentActive } from "@/features/residents/api/residents.service";
-import { getCategories, createCategory, updateCategory, archiveCategory, restoreCategory } from "@/features/categories/api/categories.service";
+import { getCategories, createCategory, updateCategory, archiveCategory, restoreCategory, restoreCategoryVersion } from "@/features/categories/api/categories.service";
 import { getRequests, recordExport } from "@/features/requests/api/requests.service";
+import { assignRequest, type AssignPayload } from "@/features/requests/api/assignments.service";
 import { getActivity } from "@/features/activity/api/activity.service";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "@/features/notifications/api/notifications.service";
-import { getResets, sendPasswordReset, type SendResetPayload } from "@/features/password-reset/api/password-reset.service";
+import { getResets, sendPasswordReset, setUserPassword, type SendResetPayload, type SetPasswordPayload } from "@/features/password-reset/api/password-reset.service";
 
 export const keys = {
   reviewers: ["reviewers"] as const,
@@ -141,5 +142,37 @@ export function useSetResidentActive() {
   return useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) => setResidentActive(id, active),
     onSuccess: () => invalidate(keys.residents, keys.activity),
+  });
+}
+
+export function useAssignRequest() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (payload: AssignPayload) => assignRequest(payload),
+    onSuccess: () => invalidate(keys.requests, keys.activity, keys.notifications),
+  });
+}
+
+export function useResendInvitation() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: resendInvitation,
+    onSuccess: () => invalidate(keys.activity),
+  });
+}
+
+export function useSetUserPassword() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (payload: SetPasswordPayload) => setUserPassword(payload),
+    onSuccess: () => invalidate(keys.activity, keys.reviewers),
+  });
+}
+
+export function useRestoreCategoryVersion() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({ id, version }: { id: string; version: number }) => restoreCategoryVersion(id, version),
+    onSuccess: () => invalidate(keys.categories, keys.activity),
   });
 }

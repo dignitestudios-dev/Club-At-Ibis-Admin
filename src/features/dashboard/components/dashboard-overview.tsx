@@ -151,7 +151,7 @@ export default function DashboardOverview() {
       count: stats.buckets.unassigned.length,
       icon: Inbox,
       hint: "Not yet taken or assigned by a default reviewer",
-      href: "/requests?status=submitted&reviewer=unassigned",
+      href: "/assignments",
       bar: "bg-sky-500",
       tile: "bg-sky-50 text-sky-700 border-sky-200/80 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800",
     },

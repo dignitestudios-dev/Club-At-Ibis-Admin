@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Clock, KeyRound, Mail, Pencil, Route, ScrollText, UserCog } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, KeyRound, LockKeyhole, Mail, MailPlus, Pencil, Route, ScrollText, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -87,15 +87,30 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => actions.sendReset(reviewer)} disabled={!reviewer.loginEnabled}>
-              <KeyRound className="size-4" />
-              Send password reset
-            </Button>
+            {reviewer.inviteStatus === "invited" ? (
+              <Button onClick={() => actions.resendInvite(reviewer)} disabled={!reviewer.loginEnabled}>
+                <MailPlus className="size-4" />
+                Resend invitation
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => actions.sendReset(reviewer)} disabled={!reviewer.loginEnabled}>
+                  <KeyRound className="size-4" />
+                  Send reset link
+                </Button>
+                <Button onClick={() => actions.changePassword(reviewer)} disabled={!reviewer.loginEnabled}>
+                  <LockKeyhole className="size-4" />
+                  Change password
+                </Button>
+              </>
+            )}
             <ReviewerRowMenu
               reviewer={reviewer}
               showDetails={false}
               onEdit={() => setEditing(true)}
               onReset={() => actions.sendReset(reviewer)}
+              onChangePassword={() => actions.changePassword(reviewer)}
+              onResendInvite={() => actions.resendInvite(reviewer)}
               onToggleLogin={() => actions.requestLoginChange(reviewer)}
             />
           </div>

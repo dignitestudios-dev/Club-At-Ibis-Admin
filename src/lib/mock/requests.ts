@@ -179,7 +179,7 @@ function ev(
   actor: HistoryEvent["actor"],
   message: string,
   createdAt: string,
-  extra: Partial<Pick<HistoryEvent, "detail" | "staffOnly">> = {}
+  extra: Partial<Pick<HistoryEvent, "detail" | "staffOnly" | "assignment">> = {}
 ): HistoryEvent {
   return { id: `evt-${seq}-${type}-${createdAt}`, type, actor, message, createdAt, ...extra };
 }
@@ -331,13 +331,14 @@ function buildRequest(spec: Spec, index: number): RequestRecord {
         const first = spec.firstRev ? seedReviewers[spec.firstRev - 1] : reviewer;
         history.push(
           first.id === defaultReviewer.id
-            ? ev(index, "assigned", defaultActor, `${defaultReviewer.name} took ownership of this request.`, at)
-            : ev(index, "assigned", defaultActor, `${defaultReviewer.name} assigned this request to ${first.name}.`, at)
+            ? ev(index, "assigned", defaultActor, `${defaultReviewer.name} took ownership of this request.`, at, { assignment: { to: first.name } })
+            : ev(index, "assigned", defaultActor, `${defaultReviewer.name} assigned this request to ${first.name}.`, at, { assignment: { to: first.name } })
         );
         if (spec.firstRev) {
           history.push(
             ev(index, "reassigned", defaultActor, `Reassigned from ${first.name} to ${reviewer.name}.`, addMinutes(at, 25), {
               detail: `${first.name} no longer has authority to act on this request.`,
+              assignment: { from: first.name, to: reviewer.name },
             })
           );
         }

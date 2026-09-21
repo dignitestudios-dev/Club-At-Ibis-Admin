@@ -5,7 +5,7 @@ import { seedActivity, seedNotifications, seedResets } from "./system";
 
 // Bump whenever the seed data shape changes so stale localStorage from a
 // previous schema gets replaced instead of causing runtime errors.
-const SCHEMA_VERSION = "5";
+const SCHEMA_VERSION = "7";
 
 const KEYS = {
   version: "caia.schema-version",

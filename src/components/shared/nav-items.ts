@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   ListChecks,
+  UserRoundCheck,
   UserCog,
   Users,
   KeyRound,
@@ -16,7 +17,7 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   /** Key of a live counter to show as a badge. */
-  badge?: "attention" | "notifications";
+  badge?: "attention" | "notifications" | "intake";
 }
 
 export interface NavGroup {
@@ -29,7 +30,8 @@ export const navGroups: NavGroup[] = [
     label: "Oversight",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/requests", label: "All Requests", icon: ListChecks, badge: "attention" },
+      { href: "/requests", label: "All Requests", icon: ListChecks },
+      { href: "/assignments", label: "Assignments", icon: UserRoundCheck, badge: "intake" },
     ],
   },
   {

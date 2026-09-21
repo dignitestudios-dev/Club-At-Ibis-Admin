@@ -40,22 +40,18 @@ export async function createReviewer(payload: ReviewerFormPayload): Promise<Publ
     employeeNumber: payload.employeeNumber.trim(),
     designation: payload.designation.trim(),
     email: payload.email.trim(),
-    password:
-      payload.loginMode === "temporary" && payload.temporaryPassword
-        ? payload.temporaryPassword
-        : crypto.randomUUID().slice(0, 12),
+    // No password yet — the reviewer creates their own from the emailed invitation link.
+    password: "",
     receiveNewRequests: isFirst ? true : payload.receiveNewRequests,
     loginEnabled: true,
-    inviteStatus: payload.loginMode === "invite" ? "invited" : "active",
+    inviteStatus: "invited",
     createdAt: new Date().toISOString(),
   };
   db.setReviewers([...reviewers, reviewer]);
   logActivity({
     category: "account",
     type: "reviewer_created",
-    message:
-      `Created reviewer account for ${reviewer.name} (${reviewer.employeeNumber}). ` +
-      (payload.loginMode === "invite" ? "Invitation email sent." : "Temporary password set."),
+    message: `Created reviewer account for ${reviewer.name} (${reviewer.employeeNumber}). Invitation link sent to ${reviewer.email}.`,
     target: { kind: "reviewer", id: reviewer.id, label: reviewer.name },
   });
   if (reviewer.receiveNewRequests) {
@@ -185,4 +181,19 @@ export async function setLoginEnabled(
     target: { kind: "reviewer", id, label: target.name },
   });
   return delay(toPublic(next.find((r) => r.id === id)!), 140);
+}
+
+export async function resendInvitation(id: string): Promise<PublicReviewer> {
+  const reviewers = db.getReviewers();
+  const target = reviewers.find((r) => r.id === id);
+  if (!target) throw new Error("Reviewer not found.");
+  if (target.inviteStatus !== "invited") throw new Error("This reviewer has already set a password.");
+  if (!target.loginEnabled) throw new Error("This reviewer account is inactive.");
+  logActivity({
+    category: "account",
+    type: "reviewer_invitation_resent",
+    message: `Resent the invitation link to ${target.name} (${target.email}).`,
+    target: { kind: "reviewer", id, label: target.name },
+  });
+  return delay(toPublic(target), 200);
 }

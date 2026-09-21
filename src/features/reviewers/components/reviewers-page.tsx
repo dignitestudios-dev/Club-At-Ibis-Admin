@@ -144,6 +144,8 @@ export default function ReviewersPage() {
                         reviewer={rev}
                         onEdit={() => setSheet({ open: true, reviewer: rev })}
                         onReset={() => actions.sendReset(rev)}
+                        onChangePassword={() => actions.changePassword(rev)}
+                        onResendInvite={() => actions.resendInvite(rev)}
                         onToggleLogin={() => actions.requestLoginChange(rev)}
                       />
                     </TableCell>

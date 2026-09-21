@@ -1,5 +1,6 @@
 import { db, delay } from "@/lib/mock/store";
-import { logActivity } from "@/lib/mock/activity";
+import { logActivity, currentAdminActor } from "@/lib/mock/activity";
+import { describeChanges } from "@/lib/category-diff";
 
 function slugify(name: string) {
   return name
@@ -37,14 +38,26 @@ export async function createCategory(payload: CategoryDraftPayload): Promise<Cat
   const now = new Date().toISOString();
   let id = slugify(payload.name);
   if (categories.some((c) => c.id === id)) id = `${id}-${Date.now().toString(36)}`;
+  const fields = normaliseFields(payload.fields);
   const category: Category = {
     id,
     name: payload.name.trim(),
     description: payload.description.trim(),
-    icon: payload.icon,
     status: "active",
-    fields: normaliseFields(payload.fields),
+    fields,
     version: 1,
+    versions: [
+      {
+        version: 1,
+        name: payload.name.trim(),
+        description: payload.description.trim(),
+        fields,
+        createdAt: now,
+        createdBy: currentAdminActor().name,
+        changes: ["Initial form"],
+        note: payload.note?.trim() || undefined,
+      },
+    ],
     createdAt: now,
     updatedAt: now,
   };
@@ -52,10 +65,32 @@ export async function createCategory(payload: CategoryDraftPayload): Promise<Cat
   logActivity({
     category: "category",
     type: "category_created",
-    message: `Created category “${category.name}” with ${category.fields.length} configured field${category.fields.length === 1 ? "" : "s"}. Now available to residents.`,
+    message: `Created category “${category.name}” (form v1) with ${category.fields.length} configured field${category.fields.length === 1 ? "" : "s"}. Now available to residents.`,
     target: { kind: "category", id, label: category.name },
   });
   return delay(category, 220);
+}
+
+/** Saves a new immutable version of the category form. */
+function pushVersion(previous: Category, next: CategoryDraftPayload, extraChanges: string[] = []): Category {
+  const fields = normaliseFields(next.fields);
+  const draft = { name: next.name.trim(), description: next.description.trim(), fields };
+  const changes = [...extraChanges, ...describeChanges(previous, draft)];
+  if (changes.length === 0) {
+    throw new Error("No changes to save — the form is identical to the current version.");
+  }
+  const version = previous.version + 1;
+  const now = new Date().toISOString();
+  return {
+    ...previous,
+    ...draft,
+    version,
+    versions: [
+      ...previous.versions,
+      { version, ...draft, createdAt: now, createdBy: currentAdminActor().name, changes, note: next.note?.trim() || undefined },
+    ],
+    updatedAt: now,
+  };
 }
 
 export async function updateCategory(id: string, payload: CategoryDraftPayload): Promise<Category> {
@@ -63,23 +98,40 @@ export async function updateCategory(id: string, payload: CategoryDraftPayload):
   const idx = categories.findIndex((c) => c.id === id);
   if (idx === -1) throw new Error("Category not found.");
   assertUniqueName(categories, payload.name, id);
-  const previous = categories[idx];
-  const updated: Category = {
-    ...previous,
-    name: payload.name.trim(),
-    description: payload.description.trim(),
-    icon: payload.icon,
-    fields: normaliseFields(payload.fields),
-    version: previous.version + 1,
-    updatedAt: new Date().toISOString(),
-  };
+  const updated = pushVersion(categories[idx], payload);
   const next = [...categories];
   next[idx] = updated;
   db.setCategories(next);
   logActivity({
     category: "category",
     type: "category_updated",
-    message: `Updated category “${updated.name}” to form v${updated.version}. Applies to new requests only.`,
+    message: `Saved “${updated.name}” as form v${updated.version} (${updated.versions[updated.versions.length - 1].changes.length} change${updated.versions[updated.versions.length - 1].changes.length === 1 ? "" : "s"}). Applies to new requests only; earlier versions are kept.`,
+    target: { kind: "category", id, label: updated.name },
+  });
+  return delay(updated, 220);
+}
+
+/** Re-applies an old version's form as a brand-new version (history is never rewritten). */
+export async function restoreCategoryVersion(id: string, version: number): Promise<Category> {
+  const categories = db.getCategories();
+  const idx = categories.findIndex((c) => c.id === id);
+  if (idx === -1) throw new Error("Category not found.");
+  const source = categories[idx].versions.find((v) => v.version === version);
+  if (!source) throw new Error("Version not found.");
+  if (source.version === categories[idx].version) throw new Error("That is already the current version.");
+  assertUniqueName(categories, source.name, id);
+  const updated = pushVersion(
+    categories[idx],
+    { name: source.name, description: source.description, fields: source.fields, note: `Restored from v${version}` },
+    [`Restored from v${version}`]
+  );
+  const next = [...categories];
+  next[idx] = updated;
+  db.setCategories(next);
+  logActivity({
+    category: "category",
+    type: "category_version_restored",
+    message: `Restored “${updated.name}” v${version} as new form v${updated.version}.`,
     target: { kind: "category", id, label: updated.name },
   });
   return delay(updated, 220);

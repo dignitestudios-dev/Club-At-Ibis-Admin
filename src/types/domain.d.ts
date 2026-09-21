@@ -84,8 +84,6 @@ interface ReviewerFormPayload {
   designation: string;
   email: string;
   receiveNewRequests: boolean;
-  loginMode: "invite" | "temporary";
-  temporaryPassword?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -123,15 +121,28 @@ interface CategoryField {
 
 type CategoryStatus = "active" | "archived";
 
+interface CategoryVersion {
+  version: number;
+  name: string;
+  description: string;
+  fields: CategoryField[];
+  createdAt: string;
+  createdBy: string;
+  /** Human-readable summary of what changed from the previous version. */
+  changes: string[];
+  note?: string;
+}
+
 interface Category {
   id: string;
   name: string;
   description: string;
-  icon: string;
   status: CategoryStatus;
   fields: CategoryField[];
   /** Incremented on every saved edit. New requests snapshot the version. */
   version: number;
+  /** Every version ever saved, oldest first. The last entry is the current one. */
+  versions: CategoryVersion[];
   createdAt: string;
   updatedAt: string;
   archivedAt?: string;
@@ -140,8 +151,9 @@ interface Category {
 interface CategoryDraftPayload {
   name: string;
   description: string;
-  icon: string;
   fields: CategoryField[];
+  /** Optional note stored with the new version. */
+  note?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -194,6 +206,8 @@ interface HistoryEvent {
   message: string;
   detail?: string;
   createdAt: string;
+  /** Set on assigned / reassigned events so the assignment log can show from → to. */
+  assignment?: { from?: string; to: string };
   /** Staff-only records are not shown to the resident. */
   staffOnly?: boolean;
 }

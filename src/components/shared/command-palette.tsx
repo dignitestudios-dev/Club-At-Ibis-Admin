@@ -14,6 +14,7 @@ import {
   Search,
   UserCog,
   UserRound,
+  UserRoundCheck,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -34,6 +35,7 @@ interface PaletteItem {
 const PAGES: PaletteItem[] = [
   { id: "p-dashboard", group: "Go to", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { id: "p-requests", group: "Go to", label: "All Requests", href: "/requests", icon: ListChecks },
+  { id: "p-assign", group: "Go to", label: "Assignments", href: "/assignments", icon: UserRoundCheck },
   { id: "p-reviewers", group: "Go to", label: "Reviewers", href: "/reviewers", icon: UserCog },
   { id: "p-residents", group: "Go to", label: "Residents", href: "/residents", icon: Users },
   { id: "p-reset", group: "Go to", label: "Password Reset", href: "/password-reset", icon: KeyRound },

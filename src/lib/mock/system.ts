@@ -200,7 +200,7 @@ const res = (id: string) => residentName(id);
 const extraRows: Extra[] = [
   ["reviewer_created", "account", "reviewer", rv(1).id, `Created reviewer account for ${rv(1).name} (${rv(1).employeeNumber}). Invitation email sent.`, 312],
   ["default_reviewer_enabled", "routing", "reviewer", rv(1).id, `Made ${rv(1).name} a default reviewer (Receive New Requests on).`, 312, 1],
-  ["reviewer_created", "account", "reviewer", rv(2).id, `Created reviewer account for ${rv(2).name} (${rv(2).employeeNumber}). Temporary password set.`, 242],
+  ["reviewer_created", "account", "reviewer", rv(2).id, `Created reviewer account for ${rv(2).name} (${rv(2).employeeNumber}). Invitation email sent.`, 242],
   ["reviewer_created", "account", "reviewer", rv(3).id, `Created reviewer account for ${rv(3).name} (${rv(3).employeeNumber}). Invitation email sent.`, 181],
   ["reviewer_created", "account", "reviewer", rv(4).id, `Created reviewer account for ${rv(4).name} (${rv(4).employeeNumber}). Invitation email sent.`, 121],
   ["reviewer_updated", "account", "reviewer", rv(2).id, `Updated reviewer account details for ${rv(2).name}.`, 205],
@@ -221,6 +221,9 @@ const extraRows: Extra[] = [
   ["password_reset_sent", "security", "resident", "res-8", `Sent password-reset link to resident ${res("res-8")}.`, 27],
   ["password_reset_sent", "security", "resident", "res-1", `Sent password-reset link to resident ${res("res-1")}.`, 9, 3],
   ["password_reset_sent", "security", "reviewer", rv(2).id, `Sent password-reset link to reviewer ${rv(2).name}.`, 36],
+  ["password_changed", "security", "resident", "res-5", `Changed the password for resident ${res("res-5")}.`, 21],
+  ["password_changed", "security", "reviewer", rv(3).id, `Changed the password for reviewer ${rv(3).name}.`, 16],
+  ["request_assigned", "routing", "reviewer", rv(2).id, `Assigned ARB-${new Date().getFullYear()}-1024 to ${rv(2).name}.`, 11],
   ["password_reset_sent", "security", "reviewer", rv(4).id, `Sent password-reset link to reviewer ${rv(4).name}.`, 14],
   ["resident_deactivated", "account", "resident", "res-7", `Deactivated resident account for ${res("res-7")}.`, 6],
   ["resident_activated", "account", "resident", "res-7", `Activated resident account for ${res("res-7")}.`, 5],

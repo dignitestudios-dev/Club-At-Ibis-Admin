@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, KeyRound, Mail, Search, Send, ShieldCheck, UserCog, Users } from "lucide-react";
+import { CheckCircle2, KeyRound, LockKeyhole, Mail, Search, Send, ShieldCheck, UserCog, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { SegmentedTabs } from "@/components/shared/pill-tabs";
 import { Pagination } from "@/components/shared/pagination";
 import { usePageSize } from "@/hooks/use-page-size";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
 import { SendResetDialog, type ResetTarget } from "@/features/password-reset/components/send-reset-dialog";
 import { useResets, useResidents, useReviewers } from "@/hooks/use-admin-data";
 import { residentFullName } from "@/lib/domain";
@@ -41,6 +42,7 @@ export default function PasswordResetPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<ResetTarget | null>(null);
   const [dialogTarget, setDialogTarget] = useState<ResetTarget | null>(null);
+  const [passwordTarget, setPasswordTarget] = useState<ResetTarget | null>(null);
   const [pageSize, setPageSize] = usePageSize();
   const [histPage, setHistPage] = useState(1);
   const historyPages = Math.max(1, Math.ceil((resets ?? []).length / pageSize));
@@ -56,14 +58,16 @@ export default function PasswordResetPage() {
     return list.filter((c) => !q || `${c.name} ${c.email}`.toLowerCase().includes(q)).slice(0, 7);
   }, [kind, search, residents, reviewers]);
 
+  const invitePending = selected?.kind === "reviewer" && reviewers?.find((r) => r.id === selected.id)?.inviteStatus === "invited";
+
   const meta = (id: string) =>
     kind === "resident" ? residents?.find((r) => r.id === id)?.residentIdNumber : reviewers?.find((r) => r.id === id)?.employeeNumber;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
-        title="Password Reset"
-        description="Send a password-reset link to a resident or reviewer. They set their own new password — you never see or choose it."
+        title="Password Reset & Change"
+        description="Email a password-reset link so the user chooses a new password, or set a new password for an active account directly."
       />
 
       {/* Flow strip */}
@@ -136,10 +140,17 @@ export default function PasswordResetPage() {
               })}
             </ul>
 
-            <Button className="w-full" disabled={!selected} onClick={() => setDialogTarget(selected)}>
-              <Mail className="size-4" />
-              {selected ? `Send link to ${selected.name.split(" ")[0]}` : "Send password-reset link"}
-            </Button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button disabled={!selected} onClick={() => setDialogTarget(selected)}>
+                <Mail className="size-4" />
+                Send reset link
+              </Button>
+              <Button variant="outline" disabled={!selected || invitePending} onClick={() => setPasswordTarget(selected)}>
+                <LockKeyhole className="size-4" />
+                Set new password
+              </Button>
+            </div>
+            {invitePending && <p className="text-xs text-muted-foreground">This reviewer hasn&apos;t accepted their invitation yet, so a password can&apos;t be set.</p>}
           </CardContent>
         </Card>
 
@@ -207,6 +218,16 @@ export default function PasswordResetPage() {
           </CardContent>
         </Card>
       </div>
+
+      <SetPasswordDialog
+        target={passwordTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPasswordTarget(null);
+            setSelected(null);
+          }
+        }}
+      />
 
       <SendResetDialog
         target={dialogTarget}

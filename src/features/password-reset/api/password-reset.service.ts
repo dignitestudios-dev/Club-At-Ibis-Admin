@@ -52,3 +52,39 @@ export async function sendPasswordReset({
   });
   return delay(record, 250);
 }
+
+export interface SetPasswordPayload {
+  userKind: "resident" | "reviewer";
+  userId: string;
+  password: string;
+}
+
+/** Super Admin sets a new password directly. Only active accounts qualify. */
+export async function setUserPassword({ userKind, userId, password }: SetPasswordPayload): Promise<void> {
+  if (password.length < 8) throw new Error("Password must be at least 8 characters.");
+  let name = "";
+  if (userKind === "resident") {
+    const resident = db.getResidents().find((r) => r.id === userId);
+    if (!resident) throw new Error("Resident not found.");
+    if (!resident.active) throw new Error("Only active resident accounts can have their password changed.");
+    name = `${resident.firstName} ${resident.lastName}`;
+  } else {
+    const reviewers = db.getReviewers();
+    const idx = reviewers.findIndex((r) => r.id === userId);
+    if (idx === -1) throw new Error("Reviewer not found.");
+    const reviewer = reviewers[idx];
+    if (!reviewer.loginEnabled) throw new Error("Only active reviewer accounts can have their password changed.");
+    if (reviewer.inviteStatus === "invited") throw new Error("This reviewer has not accepted their invitation yet.");
+    const next = [...reviewers];
+    next[idx] = { ...reviewer, password };
+    db.setReviewers(next);
+    name = reviewer.name;
+  }
+  logActivity({
+    category: "security",
+    type: "password_changed",
+    message: `Changed the password for ${userKind} ${name}.`,
+    target: { kind: userKind, id: userId, label: name },
+  });
+  return delay(undefined, 250);
+}

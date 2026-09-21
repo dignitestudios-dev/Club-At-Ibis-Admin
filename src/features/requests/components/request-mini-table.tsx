@@ -8,8 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { StatusBadge } from "@/components/shared/status-badge";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { Pagination } from "@/components/shared/pagination";
-import { getCategoryIcon } from "@/features/categories/components/category-icons";
-import { useCategories } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
 import { residentFullName } from "@/lib/domain";
 import { formatRelative } from "@/utils/format";
@@ -36,13 +34,11 @@ export function RequestMiniTable({
   empty?: string;
 }) {
   const router = useRouter();
-  const { data: categories } = useCategories();
   const [pageSize, setPageSize] = usePageSize();
   const [page, setPage] = useState(1);
 
   const residentById = new Map(residents.map((r) => [r.id, r]));
   const reviewerById = new Map((reviewers ?? []).map((r) => [r.id, r]));
-  const categoryById = new Map((categories ?? []).map((c) => [c.id, c]));
 
   if (requests.length === 0) {
     return <p className="px-4 py-12 text-center text-sm text-muted-foreground">{empty}</p>;
@@ -68,16 +64,12 @@ export function RequestMiniTable({
         </TableHeader>
         <TableBody>
           {rows.map((req) => {
-            const Icon = getCategoryIcon(categoryById.get(req.categoryId)?.icon ?? "");
             const resident = residentById.get(req.residentId);
             const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
             return (
               <TableRow key={req.id} className="group cursor-pointer" onClick={() => router.push(`/requests/${req.id}`)}>
                 <TableCell className="pl-5">
                   <div className="flex items-center gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-105 dark:text-amber-300">
-                      <Icon className="size-4.5" aria-hidden="true" />
-                    </span>
                     <span className="min-w-0">
                       <span className="block font-mono text-xs font-semibold text-primary group-hover:underline dark:text-amber-300">{req.code}</span>
                       <span className="block truncate text-sm font-medium text-foreground">{req.categoryName}</span>

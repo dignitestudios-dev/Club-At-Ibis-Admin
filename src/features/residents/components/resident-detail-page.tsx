@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ArrowLeft, CheckCircle2, Clock, FileText, KeyRound, Mail, MapPin, Phone, Power, ScrollText, Users } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, FileText, KeyRound, LockKeyhole, Mail, MapPin, Phone, Power, ScrollText, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +16,7 @@ import { RequestMiniTable } from "@/features/requests/components/request-mini-ta
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { ResidentStatusChip } from "@/features/residents/components/resident-status-chip";
 import { useToast } from "@/hooks/use-toast";
+import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
 import { SendResetDialog } from "@/features/password-reset/components/send-reset-dialog";
 import { useActivity, useRequests, useResidents, useReviewers, useSetResidentActive } from "@/hooks/use-admin-data";
 import { IN_FLIGHT, residentFullName } from "@/lib/domain";
@@ -30,6 +31,7 @@ export default function ResidentDetailPage({ id }: { id: string }) {
   const tab: "requests" | "activity" = values.tab === "activity" ? "activity" : "requests";
   const [resetOpen, setResetOpen] = useState(false);
   const [toggleOpen, setToggleOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const toast = useToast();
   const setActive = useSetResidentActive();
 
@@ -118,9 +120,13 @@ export default function ResidentDetailPage({ id }: { id: string }) {
               <Power className="size-4" />
               {resident.active ? "Deactivate account" : "Activate account"}
             </Button>
-            <Button onClick={() => setResetOpen(true)} disabled={!resident.active}>
+            <Button variant="outline" onClick={() => setResetOpen(true)} disabled={!resident.active}>
               <KeyRound className="size-4" />
-              Send password reset
+              Send reset link
+            </Button>
+            <Button onClick={() => setPasswordOpen(true)} disabled={!resident.active}>
+              <LockKeyhole className="size-4" />
+              Change password
             </Button>
           </div>
         </div>
@@ -231,6 +237,11 @@ export default function ResidentDetailPage({ id }: { id: string }) {
             }
           )
         }
+      />
+
+      <SetPasswordDialog
+        target={passwordOpen ? { kind: "resident", id: resident.id, name, email: resident.email } : null}
+        onOpenChange={(o) => !o && setPasswordOpen(false)}
       />
 
       <SendResetDialog

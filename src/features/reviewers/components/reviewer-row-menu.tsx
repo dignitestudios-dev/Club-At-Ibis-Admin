@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { KeyRound, MoreHorizontal, Pencil, Power, UserCog } from "lucide-react";
+import { KeyRound, LockKeyhole, MailPlus, MoreHorizontal, Pencil, Power, UserCog } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,12 +15,16 @@ export function ReviewerRowMenu({
   reviewer,
   onEdit,
   onReset,
+  onChangePassword,
+  onResendInvite,
   onToggleLogin,
   showDetails = true,
 }: {
   reviewer: PublicReviewer;
   onEdit: () => void;
   onReset: () => void;
+  onChangePassword: () => void;
+  onResendInvite: () => void;
   onToggleLogin: () => void;
   showDetails?: boolean;
 }) {
@@ -42,10 +46,23 @@ export function ReviewerRowMenu({
           <Pencil />
           Edit account details
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onReset} disabled={!reviewer.loginEnabled}>
-          <KeyRound />
-          Send password reset
-        </DropdownMenuItem>
+        {reviewer.inviteStatus === "invited" ? (
+          <DropdownMenuItem onClick={onResendInvite} disabled={!reviewer.loginEnabled}>
+            <MailPlus />
+            Resend invitation
+          </DropdownMenuItem>
+        ) : (
+          <>
+            <DropdownMenuItem onClick={onReset} disabled={!reviewer.loginEnabled}>
+              <KeyRound />
+              Send password reset
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onChangePassword} disabled={!reviewer.loginEnabled}>
+              <LockKeyhole />
+              Change password
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem variant={reviewer.loginEnabled ? "destructive" : "default"} onClick={onToggleLogin}>
           <Power />

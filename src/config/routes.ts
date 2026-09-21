@@ -8,6 +8,7 @@ export const PUBLIC_ROUTES = [
 export const PROTECTED_ROUTES = [
   "/dashboard",
   "/requests",
+  "/assignments",
   "/reviewers",
   "/residents",
   "/categories",

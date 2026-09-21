@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, MoreHorizontal, Power, Users } from "lucide-react";
+import { KeyRound, LockKeyhole, MoreHorizontal, Power, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ResidentStatusChip } from "@/features/residents/components/resident-status-chip";
+import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
 import { SendResetDialog, type ResetTarget } from "@/features/password-reset/components/send-reset-dialog";
 import { useRequests, useResidents, useSetResidentActive } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
@@ -33,6 +34,7 @@ export default function ResidentsPage() {
   const [pageSize, setPageSize] = usePageSize();
   const [resetTarget, setResetTarget] = useState<ResetTarget | null>(null);
   const [toggling, setToggling] = useState<Resident | null>(null);
+  const [passwordTarget, setPasswordTarget] = useState<ResetTarget | null>(null);
 
   const stats = useMemo(() => {
     const map = new Map<string, { total: number; active: number }>();
@@ -144,6 +146,10 @@ export default function ResidentsPage() {
                               <KeyRound />
                               Send password reset
                             </DropdownMenuItem>
+                            <DropdownMenuItem disabled={!res.active} onClick={() => setPasswordTarget({ kind: "resident", id: res.id, name, email: res.email })}>
+                              <LockKeyhole />
+                              Change password
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem variant={res.active ? "destructive" : "default"} onClick={() => setToggling(res)}>
                               <Power />
@@ -172,6 +178,7 @@ export default function ResidentsPage() {
       )}
 
       <SendResetDialog target={resetTarget} onOpenChange={(o) => !o && setResetTarget(null)} />
+      <SetPasswordDialog target={passwordTarget} onOpenChange={(o) => !o && setPasswordTarget(null)} />
       <ConfirmDialog
         open={!!toggling}
         onOpenChange={(o) => !o && setToggling(null)}

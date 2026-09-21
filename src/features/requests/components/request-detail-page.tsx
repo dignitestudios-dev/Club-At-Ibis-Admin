@@ -18,6 +18,7 @@ import {
   Lock,
   Mail,
   ReceiptText,
+  UserRoundPlus,
   XCircle,
   FileEdit,
 } from "lucide-react";
@@ -29,11 +30,12 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { FilePreviewDialog, type PreviewableFile } from "@/components/shared/file-preview-dialog";
+import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
 import { HistoryTimeline } from "@/features/requests/components/history-timeline";
 import { RequestJourney } from "@/features/requests/components/request-journey";
 import { DepositChip, RefundChip } from "@/features/requests/components/request-chips";
 import { useCategories, useRequests, useResidents, useReviewers } from "@/hooks/use-admin-data";
-import { REFUND_LABEL, residentFullName } from "@/lib/domain";
+import { IN_FLIGHT, REFUND_LABEL, residentFullName } from "@/lib/domain";
 import { formatDate, formatDateTime, formatFileSize } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
@@ -74,6 +76,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const { data: reviewers } = useReviewers();
   const { data: categories } = useCategories();
   const [preview, setPreview] = useState<PreviewableFile | null>(null);
+  const [assigning, setAssigning] = useState<RequestRecord | null>(null);
 
   if (isLoading) {
     return (
@@ -215,6 +218,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 </p>
               </div>
             )}
+            {IN_FLIGHT.includes(req.status) && (
+              <Button variant={reviewer ? "outline" : "default"} size="sm" className="w-full" onClick={() => setAssigning(req)}>
+                <UserRoundPlus />
+                {reviewer ? "Reassign reviewer" : "Assign reviewer"}
+              </Button>
+            )}
           </CardContent>
         </Card>
 
@@ -250,6 +259,9 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 This request keeps the form and data it was submitted with; later edits only apply to new requests.
               </p>
             )}
+            <Link href={`/categories/${req.categoryId}/versions?v=${req.formVersion}`} className="inline-block text-xs font-medium text-primary hover:underline dark:text-amber-300">
+              View version history
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -577,6 +589,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
         </CardContent>
       </Card>
 
+      <AssignReviewerDialog request={assigning} onOpenChange={(o) => !o && setAssigning(null)} />
       <FilePreviewDialog file={preview} open={!!preview} onOpenChange={(o) => !o && setPreview(null)} />
     </div>
   );
