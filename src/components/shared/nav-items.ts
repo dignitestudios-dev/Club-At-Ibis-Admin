@@ -1,0 +1,55 @@
+import {
+  LayoutDashboard,
+  ListChecks,
+  UserCog,
+  Users,
+  KeyRound,
+  LayoutTemplate,
+  ScrollText,
+  Bell,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
+
+export interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  /** Key of a live counter to show as a badge. */
+  badge?: "attention" | "notifications";
+}
+
+export interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+export const navGroups: NavGroup[] = [
+  {
+    label: "Oversight",
+    items: [
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/requests", label: "All Requests", icon: ListChecks, badge: "attention" },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { href: "/reviewers", label: "Reviewers", icon: UserCog },
+      { href: "/residents", label: "Residents", icon: Users },
+      { href: "/password-reset", label: "Password Reset", icon: KeyRound },
+    ],
+  },
+  {
+    label: "Configuration",
+    items: [{ href: "/categories", label: "Categories & Forms", icon: LayoutTemplate }],
+  },
+  {
+    label: "System",
+    items: [
+      { href: "/activity", label: "Activity Log", icon: ScrollText },
+      { href: "/notifications", label: "Notifications", icon: Bell, badge: "notifications" },
+      { href: "/profile", label: "My Profile", icon: UserRound },
+    ],
+  },
+];

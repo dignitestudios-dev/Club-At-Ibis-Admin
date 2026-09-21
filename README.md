@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Club At Ibis — Super Admin Console (UI prototype)
 
-## Getting Started
+Front-end-only prototype of the Super Admin interface for the Club At Ibis
+Architectural Review Board. It shares the theme, typography and component kit
+of the resident portal (`Club-At-Ibis-User`). All data is mock data kept in the
+browser's `localStorage`; there is no backend.
 
-First, run the development server:
+## Run
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sign in with the pre-filled credentials (`morgan.ellis@clubatibis.com` / `admin123`).
+To restore the original sample data, clear this site's local storage in the browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## What's in it
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Area | Route | Notes |
+| --- | --- | --- |
+| Dashboard | `/dashboard` | Status totals, "needs attention" queue, pipeline donut, 6-month trend, reviewer workload |
+| Requests | `/requests`, `/requests/[id]` | Search, filters (Apply / Clear), CSV export of all matching rows, oversight-only detail with locked decision actions |
+| Reviewers | `/reviewers`, `/reviewers/[id]` | Create / edit, "Receive New Requests" toggle (last default reviewer needs a replacement), login enable/disable |
+| Residents | `/residents`, `/residents/[id]` | Search, related requests and history |
+| Password reset | `/password-reset` | Send reset link to a resident or reviewer; initiation recorded in activity |
+| Categories & forms | `/categories`, `/categories/new`, `/categories/[id]/edit` | Form builder (short text / long text / document upload, required, help text, drag-to-order) with live preview; archive / restore |
+| Activity log | `/activity` | Audit trail of admin actions |
+| Notifications | `/notifications` | Oversight alerts |
 
-## Learn More
+Extras: `Ctrl/⌘ K` command palette, animated dashboard charts, URL-persisted filters, unsaved-changes guard in the form builder, light/dark theme, responsive layout.
 
-To learn more about Next.js, take a look at the following resources:
+## Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/features/*` — feature folders (`api/` mock services, `components/`)
+- `src/hooks/use-admin-data.ts` — React Query hooks for every resource
+- `src/lib/mock/*` — seed data and the `localStorage` store
+- `src/lib/domain.ts` — status metadata, request filtering, CSV builder
+- `src/types/domain.d.ts` — shared domain types
