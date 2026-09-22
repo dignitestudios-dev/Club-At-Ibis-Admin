@@ -16,15 +16,19 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { useCreateReviewer, useReviewers, useUpdateReviewer } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
 
-const schema = z.object({
+const baseSchema = {
   name: z.string().trim().min(2, "Enter the reviewer's full name"),
-  employeeNumber: z.string().trim().min(1, "Employee number is required"),
   designation: z.string().trim().min(2, "Designation is required"),
   email: z.string().trim().min(1, "Email is required").email("Enter a valid email address"),
   receiveNewRequests: z.boolean(),
-});
+};
+// The invite endpoint requires an employee number; the update endpoint accepts
+// it being left blank (omitted entirely rather than sent empty — see
+// reviewers.service.ts), so it's only required on the create form.
+const createSchema = z.object({ ...baseSchema, employeeNumber: z.string().trim().min(1, "Employee number is required") });
+const editSchema = z.object({ ...baseSchema, employeeNumber: z.string().trim() });
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<typeof createSchema>;
 
 /** Email preview of the invitation the reviewer receives. Shared with "Resend invitation". */
 export function InvitationSentDialog({
@@ -97,7 +101,7 @@ export function ReviewerFormSheet({
     watch,
     formState: { errors, isDirty },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(editing ? editSchema : createSchema),
     defaultValues: { name: "", employeeNumber: "", designation: "", email: "", receiveNewRequests: false },
   });
 
@@ -166,7 +170,7 @@ export function ReviewerFormSheet({
                 </Field>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field data-invalid={!!errors.employeeNumber}>
-                    <FieldLabel htmlFor="rev-emp">Employee number<RequiredMark /></FieldLabel>
+                    <FieldLabel htmlFor="rev-emp">Employee number{!editing && <RequiredMark />}</FieldLabel>
                     <FieldContent>
                       <Input id="rev-emp" placeholder="EMP-1050" aria-invalid={!!errors.employeeNumber} {...register("employeeNumber")} />
                       <FieldError errors={errors.employeeNumber ? [errors.employeeNumber] : []} />

@@ -30,19 +30,18 @@ export default function LoginForm() {
   } = useForm<LoginCredentials>({
     mode: "onChange",
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "morgan.ellis@clubatibis.com", password: "admin123" },
+    defaultValues: { email: "", password: "" },
   });
 
   function onSubmit(data: LoginCredentials) {
     login(data, {
-      onSuccess: (user) => {
-        const token = crypto.randomUUID();
+      onSuccess: ({ token, admin }) => {
         localStorage.removeItem("caia.logged-out");
         localStorage.setItem("auth-token", token);
-        localStorage.setItem("auth-user", JSON.stringify(user));
+        localStorage.setItem("auth-user", JSON.stringify(admin));
         document.cookie = `auth-token=${token}; path=/; max-age=1209600; SameSite=Lax`;
-        dispatch(setUser(user));
-        toast.success(`Welcome back, ${user.firstName}.`);
+        dispatch(setUser(admin));
+        toast.success(`Welcome back, ${admin.firstName}.`);
         window.location.href = DEFAULT_REDIRECT;
       },
       onError: (error: Error) => toast.error(error.message || "Unable to sign in."),
@@ -61,7 +60,7 @@ export default function LoginForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate autoComplete="off">
         <FieldGroup>
           <div className="auth-field-enter auth-stagger-2">
             <Field data-invalid={!!errors.email}>

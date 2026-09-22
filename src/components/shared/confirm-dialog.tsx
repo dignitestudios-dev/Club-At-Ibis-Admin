@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Spinner } from "@/components/ui/spinner";
 
 export function ConfirmDialog({
   open,
@@ -46,6 +47,7 @@ export function ConfirmDialog({
             disabled={loading}
             onClick={onConfirm}
           >
+            {loading && <Spinner className="size-4" />}
             {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>

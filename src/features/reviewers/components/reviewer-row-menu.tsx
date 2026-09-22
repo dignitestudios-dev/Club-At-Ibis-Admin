@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 export function ReviewerRowMenu({
   reviewer,
@@ -19,6 +20,9 @@ export function ReviewerRowMenu({
   onResendInvite,
   onToggleLogin,
   showDetails = true,
+  resendPending = false,
+  loginPending = false,
+  routingLocked = false,
 }: {
   reviewer: PublicReviewer;
   onEdit: () => void;
@@ -27,6 +31,10 @@ export function ReviewerRowMenu({
   onResendInvite: () => void;
   onToggleLogin: () => void;
   showDetails?: boolean;
+  resendPending?: boolean;
+  loginPending?: boolean;
+  /** Another reviewer's routing/login change is in flight — block this one until it settles. */
+  routingLocked?: boolean;
 }) {
   return (
     <DropdownMenu>
@@ -47,8 +55,8 @@ export function ReviewerRowMenu({
           Edit account details
         </DropdownMenuItem>
         {reviewer.inviteStatus === "invited" ? (
-          <DropdownMenuItem onClick={onResendInvite} disabled={!reviewer.loginEnabled}>
-            <MailPlus />
+          <DropdownMenuItem onClick={onResendInvite} disabled={!reviewer.loginEnabled || resendPending}>
+            {resendPending ? <Spinner className="size-4" /> : <MailPlus />}
             Resend invitation
           </DropdownMenuItem>
         ) : (
@@ -64,8 +72,12 @@ export function ReviewerRowMenu({
           </>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant={reviewer.loginEnabled ? "destructive" : "default"} onClick={onToggleLogin}>
-          <Power />
+        <DropdownMenuItem
+          variant={reviewer.loginEnabled ? "destructive" : "default"}
+          onClick={onToggleLogin}
+          disabled={loginPending || routingLocked}
+        >
+          {loginPending ? <Spinner className="size-4" /> : <Power />}
           {reviewer.loginEnabled ? "Deactivate account" : "Activate account"}
         </DropdownMenuItem>
       </DropdownMenuContent>

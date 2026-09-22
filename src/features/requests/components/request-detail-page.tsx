@@ -34,7 +34,7 @@ import { AssignReviewerDialog } from "@/features/requests/components/assign-revi
 import { HistoryTimeline } from "@/features/requests/components/history-timeline";
 import { RequestJourney } from "@/features/requests/components/request-journey";
 import { DepositChip, RefundChip } from "@/features/requests/components/request-chips";
-import { useCategories, useRequests, useResidents, useReviewers } from "@/hooks/use-admin-data";
+import { useCategories, useRequests, useMockResidents, useMockReviewers } from "@/hooks/use-admin-data";
 import { IN_FLIGHT, REFUND_LABEL, residentFullName } from "@/lib/domain";
 import { formatDate, formatDateTime, formatFileSize } from "@/utils/format";
 import { cn } from "@/utils/cn";
@@ -72,8 +72,8 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 
 export default function RequestDetailPage({ id }: { id: string }) {
   const { data: requests, isLoading } = useRequests();
-  const { data: residents } = useResidents();
-  const { data: reviewers } = useReviewers();
+  const { data: residents } = useMockResidents();
+  const { data: reviewers } = useMockReviewers();
   const { data: categories } = useCategories();
   const [preview, setPreview] = useState<PreviewableFile | null>(null);
   const [assigning, setAssigning] = useState<RequestRecord | null>(null);

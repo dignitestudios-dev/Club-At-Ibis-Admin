@@ -9,9 +9,18 @@ export const forgotPasswordSchema = z.object({
   email: z.string().min(1, "Email is required").email("Enter a valid email address"),
 });
 
+const strongAdminPassword = z
+  .string()
+  .min(8, "Password must contain at least 8 characters")
+  .max(128)
+  .regex(/[a-z]/, "Password must contain a lowercase letter")
+  .regex(/[A-Z]/, "Password must contain an uppercase letter")
+  .regex(/\d/, "Password must contain a number")
+  .regex(/[^A-Za-z0-9]/, "Password must contain a symbol");
+
 export const resetPasswordSchema = z
   .object({
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: strongAdminPassword,
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -22,7 +31,7 @@ export const resetPasswordSchema = z
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, "Enter your current password"),
-    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+    newPassword: strongAdminPassword,
     confirmNewPassword: z.string().min(1, "Please confirm your new password"),
   })
   .refine((d) => d.newPassword === d.confirmNewPassword, {

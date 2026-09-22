@@ -44,9 +44,13 @@ export function useReviewerActions() {
   const [confirmLogin, setConfirmLogin] = useState<PublicReviewer | null>(null);
 
   const list = reviewers ?? [];
+  // A reviewer who's still "invited" hasn't set a password yet and genuinely
+  // cannot sign in or act on anything — `loginEnabled` alone doesn't capture
+  // that (it only tracks whether the account is administratively disabled).
+  const canActNow = (r: PublicReviewer) => r.loginEnabled && r.inviteStatus === "active";
   const isLastDefault = (rev: PublicReviewer) =>
-    rev.receiveNewRequests && rev.loginEnabled && !list.some((r) => r.id !== rev.id && r.receiveNewRequests && r.loginEnabled);
-  const replacements = (rev: PublicReviewer) => list.filter((r) => r.id !== rev.id && r.loginEnabled && !r.receiveNewRequests);
+    rev.receiveNewRequests && canActNow(rev) && !list.some((r) => r.id !== rev.id && r.receiveNewRequests && canActNow(r));
+  const replacements = (rev: PublicReviewer) => list.filter((r) => r.id !== rev.id && canActNow(r) && !r.receiveNewRequests);
 
   function toggleReceive(rev: PublicReviewer, enabled: boolean) {
     if (!enabled && isLastDefault(rev)) {
@@ -73,11 +77,10 @@ export function useReviewerActions() {
       setReplace({ reviewer: rev, kind: "login" });
       return;
     }
-    if (rev.loginEnabled) {
-      setConfirmLogin(rev);
-      return;
-    }
-    runLogin(rev, true);
+    // Both directions get a confirmation — activating restores sign-in access
+    // and (if a Default Reviewer) routing, which is just as worth a second
+    // look as deactivating.
+    setConfirmLogin(rev);
   }
 
   function runLogin(rev: PublicReviewer, enabled: boolean, replacement?: string) {
@@ -187,12 +190,17 @@ export function useReviewerActions() {
       <ConfirmDialog
         open={!!confirmLogin}
         onOpenChange={(o) => !o && setConfirmLogin(null)}
-        title={`Deactivate ${confirmLogin?.name}?`}
-        description="The account becomes inactive: they can no longer sign in and stop receiving new requests. Assigned requests and history are preserved, and you can reactivate the account at any time."
-        confirmLabel="Deactivate"
-        destructive
+        title={confirmLogin?.loginEnabled ? `Deactivate ${confirmLogin?.name}?` : `Activate ${confirmLogin?.name}?`}
+        description={
+          confirmLogin?.loginEnabled
+            ? "The account becomes inactive: they can no longer sign in and stop receiving new requests. Assigned requests and history are preserved, and you can reactivate the account at any time."
+            : "The reviewer will be able to sign in again and, if they're a Default Reviewer, resume receiving new requests."
+        }
+        confirmLabel={confirmLogin?.loginEnabled ? "Deactivate" : "Activate"}
+        destructive={!!confirmLogin?.loginEnabled}
+        loading={setLogin.isPending}
         onConfirm={() => {
-          if (confirmLogin) runLogin(confirmLogin, false);
+          if (confirmLogin) runLogin(confirmLogin, !confirmLogin.loginEnabled);
           setConfirmLogin(null);
         }}
       />
@@ -211,6 +219,13 @@ export function useReviewerActions() {
     resendInvite,
     isLastDefault,
     pendingReceiveId: setReceive.isPending ? setReceive.variables?.id : undefined,
+    pendingLoginId: setLogin.isPending ? setLogin.variables?.id : undefined,
+    pendingResendId: resend.isPending ? resend.variables : undefined,
+    // While one reviewer's routing/login state is being changed, the "at
+    // least one Default Reviewer" check (`list` above) is based on data that
+    // may be about to go stale — so no *other* reviewer's routing/login
+    // toggle should be actionable until this one settles.
+    routingLocked: setReceive.isPending || setLogin.isPending,
     dialogs,
   };
 }

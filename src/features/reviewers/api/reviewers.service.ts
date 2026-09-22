@@ -1,94 +1,159 @@
-import { db, delay } from "@/lib/mock/store";
-import { logActivity, pushAdminNotification } from "@/lib/mock/activity";
+import axiosInstance from "@/lib/axios";
 
-function toPublic(reviewer: Reviewer): PublicReviewer {
-  const { password: _password, ...rest } = reviewer;
-  return rest;
+/** Shape the backend's `adminAccountUser` presenter returns for a REVIEWER account. */
+interface ReviewerApiUser {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  employeeNumber: string;
+  designation?: string | null;
+  email: string;
+  accountStatus: string;
+  credentialStatus: string;
+  isDefaultReviewer: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
 }
 
-/** Reviewers that will actually receive new requests. */
-function activeDefaults(reviewers: Reviewer[]) {
-  return reviewers.filter((r) => r.receiveNewRequests && r.loginEnabled);
+function toPublicReviewer(u: ReviewerApiUser): PublicReviewer {
+  return {
+    id: u._id,
+    name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(),
+    employeeNumber: u.employeeNumber ?? "",
+    designation: u.designation ?? "",
+    email: u.email,
+    receiveNewRequests: !!u.isDefaultReviewer,
+    loginEnabled: u.accountStatus !== "DISABLED" && u.accountStatus !== "DELETED",
+    // "active" here specifically means "has accepted the invitation and set a
+    // password" (credentialStatus === SET) — an INVITED reviewer can't sign in
+    // yet, so they're not truly active even though their account isn't disabled.
+    inviteStatus: u.credentialStatus === "SET" ? "active" : "invited",
+    createdAt: u.createdAt,
+    lastLoginAt: u.lastLoginAt ?? undefined,
+  };
 }
 
-export async function getReviewers(): Promise<PublicReviewer[]> {
-  return delay(db.getReviewers().map(toPublic), 60);
+/**
+ * The backend stores first/last name separately; the builder form still collects one
+ * "full name" field, so split it here. First word = first name, remainder = last name
+ * (falls back to reusing the first word if there's no second word, since the backend
+ * requires both to be non-empty).
+ */
+function splitName(name: string): { firstName: string; lastName: string } {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const firstName = parts[0] ?? name.trim();
+  const lastName = parts.slice(1).join(" ") || firstName;
+  return { firstName, lastName };
 }
 
-function assertUnique(reviewers: Reviewer[], email: string, employeeNumber: string, ignoreId?: string) {
-  if (reviewers.some((r) => r.id !== ignoreId && r.email.toLowerCase() === email.toLowerCase())) {
-    throw new Error("A reviewer with this email already exists.");
-  }
-  if (
-    reviewers.some(
-      (r) => r.id !== ignoreId && r.employeeNumber.toLowerCase() === employeeNumber.toLowerCase()
-    )
-  ) {
-    throw new Error("That employee number is already assigned to another reviewer.");
-  }
+/**
+ * `limit` defaults to a generous batch for callers that need the whole roster
+ * (assign/replace-default logic, the "first reviewer" check, search pickers).
+ * The Reviewer Accounts table uses `getReviewersPage` below instead, which
+ * genuinely paginates server-side rather than truncating to one page's worth.
+ */
+export async function getReviewers(limit = 100): Promise<PublicReviewer[]> {
+  const { data } = await axiosInstance.get("/admin/reviewers", { params: { limit } });
+  return (data.data.reviewers as ReviewerApiUser[]).map(toPublicReviewer);
+}
+
+export interface ApiPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ReviewersPageResult {
+  reviewers: PublicReviewer[];
+  pagination: ApiPagination;
+}
+
+/** Real server-side pagination — the request's `page`/`limit`/`search` match what the table actually shows. */
+export async function getReviewersPage({
+  page = 1,
+  limit = 50,
+  search = "",
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}): Promise<ReviewersPageResult> {
+  const { data } = await axiosInstance.get("/admin/reviewers", {
+    params: { page, limit, search: search.trim() || undefined },
+  });
+  return {
+    reviewers: (data.data.reviewers as ReviewerApiUser[]).map(toPublicReviewer),
+    pagination: data.pagination,
+  };
+}
+
+export interface ReviewerActivityEntry {
+  id: string;
+  category: string;
+  message: string;
+  actorName: string;
+  occurredAt: string;
+}
+
+export interface ReviewerDetail {
+  reviewer: PublicReviewer;
+  /** Up to the 5 most recent admin-visible account events for this reviewer — the backend doesn't expose more. */
+  activities: ReviewerActivityEntry[];
+}
+
+interface ReviewerActivityApiEntry {
+  _id: string;
+  category: string;
+  message: string;
+  actor: { displayName?: string } | null;
+  occurredAt: string;
+}
+
+/** The single-reviewer endpoint — used by the reviewer detail page instead of fetching everyone and filtering. */
+export async function getReviewer(id: string): Promise<ReviewerDetail> {
+  const { data } = await axiosInstance.get(`/admin/reviewers/${id}`);
+  return {
+    reviewer: toPublicReviewer(data.data.reviewer),
+    activities: (data.data.activities as ReviewerActivityApiEntry[]).map((a) => ({
+      id: a._id,
+      category: a.category,
+      message: a.message,
+      actorName: a.actor?.displayName ?? "Unknown",
+      occurredAt: a.occurredAt,
+    })),
+  };
 }
 
 export async function createReviewer(payload: ReviewerFormPayload): Promise<PublicReviewer> {
-  const reviewers = db.getReviewers();
-  assertUnique(reviewers, payload.email.trim(), payload.employeeNumber.trim());
-
-  // The first reviewer always becomes the initial default recipient.
-  const isFirst = activeDefaults(reviewers).length === 0;
-  const reviewer: Reviewer = {
-    id: crypto.randomUUID(),
-    name: payload.name.trim(),
+  const { firstName, lastName } = splitName(payload.name);
+  const { data } = await axiosInstance.post("/admin/reviewer-invitations", {
     employeeNumber: payload.employeeNumber.trim(),
-    designation: payload.designation.trim(),
+    firstName,
+    lastName,
     email: payload.email.trim(),
-    // No password yet — the reviewer creates their own from the emailed invitation link.
-    password: "",
-    receiveNewRequests: isFirst ? true : payload.receiveNewRequests,
-    loginEnabled: true,
-    inviteStatus: "invited",
-    createdAt: new Date().toISOString(),
-  };
-  db.setReviewers([...reviewers, reviewer]);
-  logActivity({
-    category: "account",
-    type: "reviewer_created",
-    message: `Created reviewer account for ${reviewer.name} (${reviewer.employeeNumber}). Invitation link sent to ${reviewer.email}.`,
-    target: { kind: "reviewer", id: reviewer.id, label: reviewer.name },
+    designation: payload.designation?.trim() || undefined,
+    isDefaultReviewer: payload.receiveNewRequests,
   });
-  if (reviewer.receiveNewRequests) {
-    logActivity({
-      category: "routing",
-      type: "default_reviewer_enabled",
-      message: `Made ${reviewer.name} a default reviewer (Receive New Requests on).`,
-      target: { kind: "reviewer", id: reviewer.id, label: reviewer.name },
-    });
-  }
-  return delay(toPublic(reviewer), 200);
+  return toPublicReviewer(data.data.user);
 }
 
 export async function updateReviewer(
   id: string,
   updates: Pick<ReviewerFormPayload, "name" | "employeeNumber" | "designation" | "email">
 ): Promise<PublicReviewer> {
-  const reviewers = db.getReviewers();
-  const idx = reviewers.findIndex((r) => r.id === id);
-  if (idx === -1) throw new Error("Reviewer not found.");
-  assertUnique(reviewers, updates.email.trim(), updates.employeeNumber.trim(), id);
-  const next = [...reviewers];
-  next[idx] = {
-    ...next[idx],
-    name: updates.name.trim(),
-    employeeNumber: updates.employeeNumber.trim(),
-    designation: updates.designation.trim(),
+  const { firstName, lastName } = splitName(updates.name);
+  const employeeNumber = updates.employeeNumber.trim();
+  const { data } = await axiosInstance.patch(`/admin/reviewers/${id}`, {
+    firstName,
+    lastName,
+    // Employee number is optional on this endpoint — omitted entirely when
+    // blank rather than sent as an empty string, which the backend rejects.
+    ...(employeeNumber ? { employeeNumber } : {}),
     email: updates.email.trim(),
-  };
-  db.setReviewers(next);
-  logActivity({
-    category: "account",
-    type: "reviewer_updated",
-    message: `Updated reviewer account details for ${next[idx].name}.`,
-    target: { kind: "reviewer", id, label: next[idx].name },
+    designation: updates.designation !== undefined ? (updates.designation.trim() || null) : undefined,
   });
-  return delay(toPublic(next[idx]), 160);
+  return toPublicReviewer(data.data.reviewer);
 }
 
 interface ReceiveToggle {
@@ -98,102 +163,33 @@ interface ReceiveToggle {
   replacementId?: string;
 }
 
-export async function setReceiveNewRequests({
-  id,
-  enabled,
-  replacementId,
-}: ReceiveToggle): Promise<PublicReviewer> {
-  let reviewers = db.getReviewers();
-  const target = reviewers.find((r) => r.id === id);
-  if (!target) throw new Error("Reviewer not found.");
-
-  if (!enabled && target.receiveNewRequests) {
-    const remaining = activeDefaults(reviewers).filter((r) => r.id !== id);
-    if (remaining.length === 0) {
-      if (!replacementId) {
-        throw new Error("At least one Default Reviewer must remain. Select a replacement first.");
-      }
-      const replacement = reviewers.find((r) => r.id === replacementId && r.loginEnabled);
-      if (!replacement) throw new Error("The selected replacement cannot receive requests.");
-      reviewers = reviewers.map((r) =>
-        r.id === replacementId ? { ...r, receiveNewRequests: true } : r
-      );
-      logActivity({
-        category: "routing",
-        type: "default_reviewer_replaced",
-        message: `Replaced ${target.name} with ${replacement.name} as default reviewer.`,
-        target: { kind: "reviewer", id: replacement.id, label: replacement.name },
-      });
-      pushAdminNotification({
-        type: "request_update",
-        title: "Default reviewer changed",
-        message: `${replacement.name} is now the default recipient for new requests.`,
-        requestId: null,
-      });
-    }
+/**
+ * Toggling a reviewer's Default status is one PATCH — except turning off the
+ * *last* Default Reviewer, which the backend refuses outright (409
+ * LAST_DEFAULT_REVIEWER) unless another reviewer is promoted first. The
+ * caller (use-reviewer-actions.tsx) is responsible for getting a
+ * `replacementId` via its own confirmation dialog before calling this with
+ * `enabled: false` — this function does not skip that step or guess a
+ * replacement on its own.
+ */
+export async function setReceiveNewRequests({ id, enabled, replacementId }: ReceiveToggle): Promise<PublicReviewer> {
+  if (!enabled && replacementId) {
+    await axiosInstance.patch(`/admin/reviewers/${replacementId}`, { isDefaultReviewer: true });
   }
-
-  const next = reviewers.map((r) => (r.id === id ? { ...r, receiveNewRequests: enabled } : r));
-  db.setReviewers(next);
-  if (!replacementId || enabled) {
-    logActivity({
-      category: "routing",
-      type: enabled ? "default_reviewer_enabled" : "default_reviewer_disabled",
-      message: enabled
-        ? `Made ${target.name} a default reviewer (Receive New Requests on).`
-        : `Removed ${target.name} from default reviewers (Receive New Requests off).`,
-      target: { kind: "reviewer", id, label: target.name },
-    });
-  }
-  return delay(toPublic(next.find((r) => r.id === id)!), 140);
+  const { data } = await axiosInstance.patch(`/admin/reviewers/${id}`, { isDefaultReviewer: enabled });
+  return toPublicReviewer(data.data.reviewer);
 }
 
-export async function setLoginEnabled(
-  id: string,
-  enabled: boolean,
-  replacementId?: string
-): Promise<PublicReviewer> {
-  let reviewers = db.getReviewers();
-  const target = reviewers.find((r) => r.id === id);
-  if (!target) throw new Error("Reviewer not found.");
-
-  if (!enabled && target.receiveNewRequests) {
-    const remaining = activeDefaults(reviewers).filter((r) => r.id !== id);
-    if (remaining.length === 0) {
-      if (!replacementId) {
-        throw new Error("At least one Default Reviewer must remain. Select a replacement first.");
-      }
-      reviewers = reviewers.map((r) =>
-        r.id === replacementId ? { ...r, receiveNewRequests: true } : r
-      );
-    }
+export async function setLoginEnabled(id: string, enabled: boolean, replacementId?: string): Promise<PublicReviewer> {
+  if (!enabled && replacementId) {
+    await axiosInstance.patch(`/admin/reviewers/${replacementId}`, { isDefaultReviewer: true });
   }
-  const next = reviewers.map((r) =>
-    r.id === id
-      ? { ...r, loginEnabled: enabled, receiveNewRequests: enabled ? r.receiveNewRequests : false }
-      : r
-  );
-  db.setReviewers(next);
-  logActivity({
-    category: "account",
-    type: enabled ? "reviewer_login_enabled" : "reviewer_login_disabled",
-    message: `${enabled ? "Activated" : "Deactivated"} reviewer account for ${target.name}.`,
-    target: { kind: "reviewer", id, label: target.name },
+  const { data } = await axiosInstance.patch(`/admin/accounts/${id}/status`, {
+    status: enabled ? "ACTIVE" : "DISABLED",
   });
-  return delay(toPublic(next.find((r) => r.id === id)!), 140);
+  return toPublicReviewer(data.data.user);
 }
 
-export async function resendInvitation(id: string): Promise<PublicReviewer> {
-  const reviewers = db.getReviewers();
-  const target = reviewers.find((r) => r.id === id);
-  if (!target) throw new Error("Reviewer not found.");
-  if (target.inviteStatus !== "invited") throw new Error("This reviewer has already set a password.");
-  if (!target.loginEnabled) throw new Error("This reviewer account is inactive.");
-  logActivity({
-    category: "account",
-    type: "reviewer_invitation_resent",
-    message: `Resent the invitation link to ${target.name} (${target.email}).`,
-    target: { kind: "reviewer", id, label: target.name },
-  });
-  return delay(toPublic(target), 200);
+export async function resendInvitation(id: string): Promise<void> {
+  await axiosInstance.post(`/admin/reviewer-invitations/${id}/resend`);
 }

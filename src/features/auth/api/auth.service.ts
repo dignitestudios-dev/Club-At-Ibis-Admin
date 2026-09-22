@@ -1,82 +1,75 @@
-import { db, delay } from "@/lib/mock/store";
+import axiosInstance from "@/lib/axios";
 
-function toPublic(admin: AdminUser): PublicAdmin {
-  const { password: _password, ...rest } = admin;
-  return rest;
+/** Shape the backend's `publicAdmin` presenter returns (Admin model, minus password fields). */
+interface AdminApiUser {
+  _id: string;
+  role: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  accountStatus: string;
+  credentialStatus: string;
+  createdAt: string;
+}
+
+function toPublicAdmin(u: AdminApiUser): PublicAdmin {
+  return {
+    id: u._id,
+    firstName: u.firstName,
+    lastName: u.lastName,
+    email: u.email,
+    // The backend's Admin model doesn't track these yet.
+    employeeNumber: "",
+    designation: "Super Administrator",
+    createdAt: u.createdAt,
+  };
 }
 
 export async function getCurrentUser(): Promise<PublicAdmin | null> {
   if (typeof window === "undefined") return null;
-  if (localStorage.getItem("caia.logged-out") === "true") return null;
-
-  const stored = localStorage.getItem("auth-user");
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored) as PublicAdmin;
-      const found = db.getAdmins().find((a) => a.id === parsed?.id);
-      if (found) return delay(toPublic(found), 40);
-    } catch {
-      // fall through to default demo admin
-    }
+  if (!localStorage.getItem("auth-token")) return null;
+  try {
+    const { data } = await axiosInstance.get("/admin/me");
+    return toPublicAdmin(data.data.admin);
+  } catch {
+    return null;
   }
-  const admin = db.getAdmins()[0];
-  return delay(admin ? toPublic(admin) : null, 40);
 }
 
-export async function loginUser(credentials: LoginCredentials): Promise<PublicAdmin> {
-  const match = db
-    .getAdmins()
-    .find(
-      (a) =>
-        a.email.toLowerCase() === credentials.email.toLowerCase() &&
-        a.password === credentials.password
-    );
-  if (!match) {
-    await delay(null, 150);
-    throw new Error("Invalid email or password.");
+/** Real login. Callers store `token` (as `auth-token`) themselves — see login-form.tsx. */
+export async function loginUser(credentials: LoginCredentials): Promise<{ token: string; admin: PublicAdmin }> {
+  const { data } = await axiosInstance.post("/admin/login", credentials);
+  return { token: data.data.token, admin: toPublicAdmin(data.data.admin) };
+}
+
+export async function logoutUser(): Promise<void> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
+  if (!token) return;
+  try {
+    await axiosInstance.post("/admin/logout", null, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    // Best-effort — the caller clears the local session regardless.
   }
-  return delay(toPublic(match), 180);
 }
 
 export async function requestPasswordReset({ email }: ForgotPasswordPayload): Promise<void> {
-  const match = db.getAdmins().find((a) => a.email.toLowerCase() === email.toLowerCase());
-  // Always resolve the same way so the form never reveals which emails exist.
-  if (match) {
-    console.info(`[mock email] Password reset link: /auth/reset-password?token=${btoa(match.id)}`);
-  }
-  return delay(undefined, 200);
+  await axiosInstance.post("/admin/password-reset-requests", {
+    email: email.trim().toLowerCase(),
+  });
 }
 
 export async function resetPassword({ token, password }: ResetPasswordPayload): Promise<void> {
-  let adminId: string;
-  try {
-    adminId = atob(token);
-  } catch {
-    await delay(null, 150);
-    throw new Error("This reset link is invalid or has expired.");
-  }
-  const admins = db.getAdmins();
-  const idx = admins.findIndex((a) => a.id === adminId);
-  if (idx === -1) {
-    await delay(null, 150);
-    throw new Error("This reset link is invalid or has expired.");
-  }
-  const next = [...admins];
-  next[idx] = { ...next[idx], password };
-  db.setAdmins(next);
-  return delay(undefined, 180);
+  await axiosInstance.post("/admin/password-resets", {
+    token,
+    newPassword: password,
+  });
 }
 
-export async function changeAdminPassword(id: string, payload: ChangePasswordPayload): Promise<void> {
-  const admins = db.getAdmins();
-  const idx = admins.findIndex((a) => a.id === id);
-  if (idx === -1) throw new Error("Account not found.");
-  if (admins[idx].password !== payload.currentPassword) {
-    await delay(null, 150);
-    throw new Error("The current password you entered is incorrect.");
-  }
-  const next = [...admins];
-  next[idx] = { ...next[idx], password: payload.newPassword };
-  db.setAdmins(next);
-  return delay(undefined, 180);
+export async function changeAdminPassword(_id: string, payload: ChangePasswordPayload): Promise<void> {
+  await axiosInstance.post("/admin/password-changes", {
+    currentPassword: payload.currentPassword,
+    newPassword: payload.newPassword,
+  });
 }

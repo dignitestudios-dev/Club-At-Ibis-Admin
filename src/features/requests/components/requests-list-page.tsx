@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DepositChip, RefundChip } from "@/features/requests/components/request-chips";
 import { ExportDialog } from "@/features/requests/components/export-dialog";
-import { useCategories, useRequests, useResidents, useReviewers } from "@/hooks/use-admin-data";
+import { useCategories, useRequests, useMockResidents, useMockReviewers } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
 import {
@@ -54,9 +54,9 @@ export default function RequestsListPage() {
   const [pageSize, setPageSize] = usePageSize();
 
   const { data: requests, isLoading } = useRequests();
-  const { data: residents } = useResidents();
+  const { data: residents } = useMockResidents();
   const { data: categories } = useCategories();
-  const { data: reviewers } = useReviewers();
+  const { data: reviewers } = useMockReviewers();
 
   const applied = useMemo<RequestFilters>(
     () => ({

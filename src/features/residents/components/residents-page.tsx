@@ -1,14 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, LockKeyhole, MoreHorizontal, Power, Users } from "lucide-react";
+import { KeyRound, LockKeyhole, MoreHorizontal, Power, UserCheck, UserX, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Pagination } from "@/components/shared/pagination";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { SearchInput } from "@/components/shared/search-input";
+import { StatCard } from "@/components/shared/stat-card";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,44 +17,31 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ResidentStatusChip } from "@/features/residents/components/resident-status-chip";
 import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
 import { SendResetDialog, type ResetTarget } from "@/features/password-reset/components/send-reset-dialog";
-import { useRequests, useResidents, useSetResidentActive } from "@/hooks/use-admin-data";
+import { useResidentsPage, useSetResidentActive } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
-import { IN_FLIGHT, residentFullName } from "@/lib/domain";
+import { residentFullName } from "@/lib/domain";
 import { formatDate, formatRelative } from "@/utils/format";
 
 export default function ResidentsPage() {
   const router = useRouter();
   const toast = useToast();
-  const { data: residents, isLoading } = useResidents();
-  const { data: requests } = useRequests();
-  const setActive = useSetResidentActive();
   const [search, setSearch] = useUrlSearch("q");
   const { values, set } = useUrlParams({ page: "1" });
   const [pageSize, setPageSize] = usePageSize();
+  const page = Math.max(1, Number(values.page) || 1);
+
+  // Genuinely server-paginated: page/limit/search go to the API as-is, so
+  // what's requested always matches what's on screen.
+  const { data: pageResult, isLoading } = useResidentsPage({ page, limit: pageSize, search });
+  const visible = pageResult?.residents ?? [];
+  const total = pageResult?.pagination.total ?? 0;
+
+  const setActive = useSetResidentActive();
   const [resetTarget, setResetTarget] = useState<ResetTarget | null>(null);
   const [toggling, setToggling] = useState<Resident | null>(null);
   const [passwordTarget, setPasswordTarget] = useState<ResetTarget | null>(null);
-
-  const stats = useMemo(() => {
-    const map = new Map<string, { total: number; active: number }>();
-    (requests ?? []).forEach((r) => {
-      const s = map.get(r.residentId) ?? { total: 0, active: 0 };
-      s.total += 1;
-      if (IN_FLIGHT.includes(r.status)) s.active += 1;
-      map.set(r.residentId, s);
-    });
-    return map;
-  }, [requests]);
-
-  const q = search.trim().toLowerCase();
-  const filtered = (residents ?? []).filter(
-    (r) => !q || `${residentFullName(r)} ${r.residentIdNumber} ${r.email} ${r.address} ${r.lotNo}`.toLowerCase().includes(q)
-  );
-  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const page = Math.min(Math.max(1, Number(values.page) || 1), pages);
-  const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   function confirmToggle() {
     if (!toggling) return;
@@ -75,10 +63,21 @@ export default function ResidentsPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
         title="Resident Records"
-        description="Search residents, review their requests and history, send password-reset links, and activate or deactivate accounts."
+        description="Search residents, send password-reset links, and activate or deactivate accounts."
       />
 
-      <SearchInput value={search} onChange={setSearch} placeholder="Search name, resident ID, email, address or lot…" className="sm:max-w-md" />
+      {/*
+        "Residents" is the backend's own paginated total — not computed here.
+        The other two have no metrics endpoint yet, so they show N/A rather
+        than a number worked out by filtering a fetched list on the frontend.
+      */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <StatCard label="Residents" value={total} icon={Users} accent="navy" hint="All accounts" />
+        <StatCard label="Active" value="N/A" icon={UserCheck} accent="emerald" />
+        <StatCard label="Inactive" value="N/A" icon={UserX} accent="red" />
+      </div>
+
+      <SearchInput value={search} onChange={setSearch} placeholder="Search name, resident ID or email…" className="sm:max-w-md" />
 
       {isLoading ? (
         <div className="space-y-2">
@@ -86,8 +85,8 @@ export default function ResidentsPage() {
             <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
-        <EmptyState icon={Users} title="No residents found" description="Try a different name, resident ID or address." />
+      ) : visible.length === 0 ? (
+        <EmptyState icon={Users} title="No residents found" description="Try a different name, resident ID or email." />
       ) : (
         <div className="space-y-4">
           <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
@@ -96,8 +95,6 @@ export default function ResidentsPage() {
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="pl-4">Resident</TableHead>
                   <TableHead>Resident ID</TableHead>
-                  <TableHead>Property</TableHead>
-                  <TableHead>Requests</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-12 pr-4 text-right">
@@ -107,7 +104,6 @@ export default function ResidentsPage() {
               </TableHeader>
               <TableBody>
                 {visible.map((res) => {
-                  const s = stats.get(res.id) ?? { total: 0, active: 0 };
                   const name = residentFullName(res);
                   return (
                     <TableRow key={res.id} className={`cursor-pointer ${res.active ? "" : "opacity-70"}`} onClick={() => router.push(`/residents/${res.id}`)}>
@@ -121,14 +117,6 @@ export default function ResidentsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">{res.residentIdNumber}</TableCell>
-                      <TableCell>
-                        <span className="block max-w-[200px] truncate text-sm">{res.address}</span>
-                        <span className="text-[11px] text-muted-foreground">{res.lotNo}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm font-semibold tabular-nums">{s.total}</span>
-                        {s.active > 0 && <span className="ml-1.5 text-[11px] text-sky-700 dark:text-sky-300">{s.active} in progress</span>}
-                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {formatDate(res.createdAt)}
                         {res.lastLoginAt && <span className="block text-[11px]">Seen {formatRelative(res.lastLoginAt)}</span>}
@@ -167,7 +155,7 @@ export default function ResidentsPage() {
           <Pagination
             page={page}
             pageSize={pageSize}
-            total={filtered.length}
+            total={total}
             onPageChange={(p) => set({ page: String(p) })}
             onPageSizeChange={(n) => {
               setPageSize(n);

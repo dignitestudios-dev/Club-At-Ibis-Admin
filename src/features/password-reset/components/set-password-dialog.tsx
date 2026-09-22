@@ -36,9 +36,14 @@ export function SetPasswordDialog({
 
   if (!target) return null;
 
+  const hasLower = /[a-z]/.test(password);
+  const hasUpper = /[A-Z]/.test(password);
+  const hasDigit = /\d/.test(password);
+  const hasSymbol = /[^A-Za-z0-9]/.test(password);
+  const isComplex = hasLower && hasUpper && hasDigit && hasSymbol;
   const tooShort = password.length < 8;
   const mismatch = confirm !== password;
-  const invalid = tooShort || mismatch;
+  const invalid = tooShort || !isComplex || mismatch;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -83,8 +88,9 @@ export function SetPasswordDialog({
               New password
               <RequiredMark />
             </label>
-            <PasswordInput id="sp-new" showStrength autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={touched && tooShort} />
+            <PasswordInput id="sp-new" showStrength autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={touched && (tooShort || !isComplex)} />
             {touched && tooShort && <p className="text-xs text-destructive" role="alert">Password must be at least 8 characters.</p>}
+            {touched && !tooShort && !isComplex && <p className="text-xs text-destructive" role="alert">Password must contain uppercase, lowercase, number, and symbol.</p>}
           </div>
           <div className="space-y-1.5">
             <label htmlFor="sp-confirm" className="flex items-center text-sm font-medium text-foreground">

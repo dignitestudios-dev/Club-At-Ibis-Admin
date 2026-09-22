@@ -19,6 +19,7 @@ import { useChangePasswordMutation } from "@/features/auth/api/auth.mutations";
 import { changePasswordSchema } from "@/features/auth/schemas/auth.schema";
 import { useActivity } from "@/hooks/use-admin-data";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useLogout } from "@/hooks/use-logout";
 import { useToast } from "@/hooks/use-toast";
 import { useUrlParams } from "@/hooks/use-url-params";
 
@@ -43,6 +44,7 @@ const ACCOUNT_ACTIVITY_TYPES = new Set([
 
 function ChangePasswordForm({ userId }: { userId: string }) {
   const toast = useToast();
+  const logout = useLogout();
   const { mutate, isPending } = useChangePasswordMutation();
   const {
     control,
@@ -88,8 +90,11 @@ function ChangePasswordForm({ userId }: { userId: string }) {
           { id: userId, payload },
           {
             onSuccess: () => {
-              toast.success("Password updated", "Use your new password the next time you sign in.");
+              toast.success("Password updated", "Please sign in with your new password.");
               reset();
+              setTimeout(() => {
+                logout();
+              }, 1200);
             },
             onError: (e: Error) => toast.error("Could not update password", e.message),
           }

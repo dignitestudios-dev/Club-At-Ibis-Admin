@@ -40,7 +40,7 @@ export function useUrlParams<T extends Record<string, string>>(defaults: T) {
 }
 
 /** Debounced text search that mirrors itself into the `q` URL param. */
-export function useUrlSearch(paramKey = "q", delay = 250) {
+export function useUrlSearch(paramKey = "q", delay = 1000) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();

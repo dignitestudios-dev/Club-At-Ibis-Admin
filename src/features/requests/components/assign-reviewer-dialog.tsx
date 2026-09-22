@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/spinner";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { SearchInput } from "@/components/shared/search-input";
-import { useAssignRequest, useRequests, useReviewers } from "@/hooks/use-admin-data";
+import { useAssignRequest, useRequests, useMockReviewers } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
 import { IN_FLIGHT } from "@/lib/domain";
 import { cn } from "@/utils/cn";
@@ -23,7 +23,7 @@ export function AssignReviewerDialog({
 }) {
   const toast = useToast();
   const assign = useAssignRequest();
-  const { data: reviewers } = useReviewers();
+  const { data: reviewers } = useMockReviewers();
   const { data: requests } = useRequests();
   const [selected, setSelected] = useState("");
   const [query, setQuery] = useState("");

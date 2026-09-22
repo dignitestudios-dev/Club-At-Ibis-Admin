@@ -1,8 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getReviewers, createReviewer, updateReviewer, setReceiveNewRequests, setLoginEnabled, resendInvitation } from "@/features/reviewers/api/reviewers.service";
-import { getResidents, setResidentActive } from "@/features/residents/api/residents.service";
+import { getReviewers, getReviewersPage, getReviewer, createReviewer, updateReviewer, setReceiveNewRequests, setLoginEnabled, resendInvitation } from "@/features/reviewers/api/reviewers.service";
+import { getMockReviewers } from "@/features/reviewers/api/reviewers.mock";
+import { getResidents, getResidentsPage, getResident, setResidentActive } from "@/features/residents/api/residents.service";
+import { getMockResidents } from "@/features/residents/api/residents.mock";
 import { getCategories, createCategory, updateCategory, archiveCategory, restoreCategory, restoreCategoryVersion } from "@/features/categories/api/categories.service";
 import { getRequests, recordExport } from "@/features/requests/api/requests.service";
 import { assignRequest, type AssignPayload } from "@/features/requests/api/assignments.service";
@@ -22,8 +24,29 @@ export const keys = {
 
 /* ------------------------------ queries ------------------------------ */
 
-export const useReviewers = () => useQuery({ queryKey: keys.reviewers, queryFn: getReviewers });
-export const useResidents = () => useQuery({ queryKey: keys.residents, queryFn: getResidents });
+/** `limit` lets a caller request a bigger/smaller batch than the default (100). */
+export const useReviewers = (limit?: number) =>
+  useQuery({ queryKey: [...keys.reviewers, limit ?? "default"], queryFn: () => getReviewers(limit) });
+export const useResidents = (limit?: number) =>
+  useQuery({ queryKey: [...keys.residents, limit ?? "default"], queryFn: () => getResidents(limit) });
+
+/** Real server-side pagination for the Reviewer Accounts / Resident Records tables. */
+export const useReviewersPage = (params: { page: number; limit: number; search: string }) =>
+  useQuery({ queryKey: [...keys.reviewers, "page", params], queryFn: () => getReviewersPage(params) });
+export const useResidentsPage = (params: { page: number; limit: number; search: string }) =>
+  useQuery({ queryKey: [...keys.residents, "page", params], queryFn: () => getResidentsPage(params) });
+
+/** Single-account fetches for the detail pages — hits the real "get by id" endpoint, not a fetch-all. */
+export const useReviewer = (id: string) => useQuery({ queryKey: [...keys.reviewers, id], queryFn: () => getReviewer(id), enabled: !!id });
+export const useResident = (id: string) => useQuery({ queryKey: [...keys.residents, id], queryFn: () => getResident(id), enabled: !!id });
+
+/**
+ * Mock-backed reviewer/resident data for features still working against mock
+ * Requests (assignment, dashboard, global search) — see reviewers.mock.ts /
+ * residents.mock.ts for why these stay separate from the real API above.
+ */
+export const useMockReviewers = () => useQuery({ queryKey: ["reviewers", "mock"], queryFn: getMockReviewers });
+export const useMockResidents = () => useQuery({ queryKey: ["residents", "mock"], queryFn: getMockResidents });
 export const useCategories = () => useQuery({ queryKey: keys.categories, queryFn: getCategories });
 export const useRequests = () => useQuery({ queryKey: keys.requests, queryFn: getRequests });
 export const useActivity = () => useQuery({ queryKey: keys.activity, queryFn: getActivity });
