@@ -86,10 +86,52 @@ export async function getResidentsPage({
   };
 }
 
+export interface ResidentActivityEntry {
+  id: string;
+  eventType?: string;
+  category: string;
+  message: string;
+  actorName: string;
+  actorRole?: string;
+  occurredAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ResidentDetail {
+  resident: Resident;
+  /** Up to the most recent account and security activity events for this resident */
+  activities: ResidentActivityEntry[];
+}
+
+interface ResidentActivityApiEntry {
+  _id: string;
+  eventType?: string;
+  category: string;
+  message: string;
+  actor: { _id?: string; role?: string; displayName?: string } | null;
+  occurredAt: string;
+  metadata?: Record<string, unknown>;
+}
+
 /** The single-resident endpoint — used by the resident detail page instead of fetching everyone and filtering. */
-export async function getResident(id: string): Promise<Resident> {
+export async function getResident(id: string): Promise<ResidentDetail> {
   const { data } = await axiosInstance.get(`/admin/residents/${id}`);
-  return toResident(data.data.resident);
+  const rawResident = data.data.resident;
+  const rawActivities = (data.data.activities as ResidentActivityApiEntry[]) || [];
+
+  return {
+    resident: toResident(rawResident),
+    activities: rawActivities.map((a) => ({
+      id: a._id,
+      eventType: a.eventType,
+      category: a.category || "Account",
+      message: a.message,
+      actorName: a.actor?.displayName ?? "System",
+      actorRole: a.actor?.role,
+      occurredAt: a.occurredAt,
+      metadata: a.metadata,
+    })),
+  };
 }
 
 export async function setResidentActive(id: string, active: boolean): Promise<Resident> {
