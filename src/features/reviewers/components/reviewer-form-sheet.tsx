@@ -164,7 +164,7 @@ export function ReviewerFormSheet({
                 <Field data-invalid={!!errors.name}>
                   <FieldLabel htmlFor="rev-name">Full name<RequiredMark /></FieldLabel>
                   <FieldContent>
-                    <Input id="rev-name" placeholder="e.g. Jordan Whitfield" aria-invalid={!!errors.name} {...register("name")} />
+                    <Input id="rev-name" placeholder="e.g. Jordan Whitfield" maxLength={100} disabled={pending} aria-invalid={!!errors.name} {...register("name")} />
                     <FieldError errors={errors.name ? [errors.name] : []} />
                   </FieldContent>
                 </Field>
@@ -172,14 +172,14 @@ export function ReviewerFormSheet({
                   <Field data-invalid={!!errors.employeeNumber}>
                     <FieldLabel htmlFor="rev-emp">Employee number{!editing && <RequiredMark />}</FieldLabel>
                     <FieldContent>
-                      <Input id="rev-emp" placeholder="EMP-1050" aria-invalid={!!errors.employeeNumber} {...register("employeeNumber")} />
+                      <Input id="rev-emp" placeholder="EMP-1050" maxLength={50} disabled={pending} aria-invalid={!!errors.employeeNumber} {...register("employeeNumber")} />
                       <FieldError errors={errors.employeeNumber ? [errors.employeeNumber] : []} />
                     </FieldContent>
                   </Field>
                   <Field data-invalid={!!errors.designation}>
                     <FieldLabel htmlFor="rev-des">Designation<RequiredMark /></FieldLabel>
                     <FieldContent>
-                      <Input id="rev-des" placeholder="Architectural Reviewer" aria-invalid={!!errors.designation} {...register("designation")} />
+                      <Input id="rev-des" placeholder="Architectural Reviewer" maxLength={100} disabled={pending} aria-invalid={!!errors.designation} {...register("designation")} />
                       <FieldError errors={errors.designation ? [errors.designation] : []} />
                     </FieldContent>
                   </Field>
@@ -187,7 +187,7 @@ export function ReviewerFormSheet({
                 <Field data-invalid={!!errors.email}>
                   <FieldLabel htmlFor="rev-email">Work email (login)<RequiredMark /></FieldLabel>
                   <FieldContent>
-                    <Input id="rev-email" type="email" placeholder="name@clubatibis.com" aria-invalid={!!errors.email} {...register("email")} />
+                    <Input id="rev-email" type="email" placeholder="name@clubatibis.com" maxLength={320} disabled={pending} aria-invalid={!!errors.email} {...register("email")} />
                     <FieldError errors={errors.email ? [errors.email] : []} />
                   </FieldContent>
                 </Field>
@@ -218,7 +218,7 @@ export function ReviewerFormSheet({
                           <Switch
                             checked={isFirstReviewer ? true : field.value}
                             onCheckedChange={(v) => field.onChange(v)}
-                            disabled={isFirstReviewer}
+                            disabled={pending || isFirstReviewer}
                             aria-label="Receive New Requests"
                           />
                         )}

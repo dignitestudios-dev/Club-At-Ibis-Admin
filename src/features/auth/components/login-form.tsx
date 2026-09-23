@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LockKeyhole } from "lucide-react";
@@ -20,6 +21,8 @@ import { DEFAULT_REDIRECT } from "@/config/routes";
 export default function LoginForm() {
   const dispatch = useAppDispatch();
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl");
   const { mutate: login, isPending } = useLoginMutation();
 
   const {
@@ -42,7 +45,7 @@ export default function LoginForm() {
         document.cookie = `auth-token=${token}; path=/; max-age=1209600; SameSite=Lax`;
         dispatch(setUser(admin));
         toast.success(`Welcome back, ${admin.firstName}.`);
-        window.location.href = DEFAULT_REDIRECT;
+        window.location.href = returnUrl ? decodeURIComponent(returnUrl) : DEFAULT_REDIRECT;
       },
       onError: (error: Error) => toast.error(error.message || "Unable to sign in."),
     });
@@ -71,6 +74,8 @@ export default function LoginForm() {
                   type="email"
                   autoComplete="email"
                   placeholder="admin@clubatibis.com"
+                  maxLength={320}
+                  disabled={isPending}
                   aria-invalid={!!errors.email}
                   {...register("email")}
                 />
@@ -96,6 +101,8 @@ export default function LoginForm() {
                       id="password"
                       autoComplete="current-password"
                       placeholder="******"
+                      maxLength={128}
+                      disabled={isPending}
                       aria-invalid={!!errors.password}
                       value={field.value ?? ""}
                       onChange={field.onChange}

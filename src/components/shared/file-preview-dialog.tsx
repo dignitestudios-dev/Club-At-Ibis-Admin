@@ -83,8 +83,10 @@ export function FilePreviewDialog({
   const toast = useToast();
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
+    setImageError(false);
     if (file?.file) {
       const url = URL.createObjectURL(file.file);
       setObjectUrl(url);
@@ -180,12 +182,19 @@ export function FilePreviewDialog({
               title={file.name}
               className="w-full h-[65vh] rounded-lg border-0 bg-white shadow-lg"
             />
+          ) : imageError ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
+              <ImageIcon className="size-12 mb-2 opacity-40 text-slate-400" />
+              <p className="text-sm font-medium text-slate-300">Unable to load image preview</p>
+              <p className="text-xs text-slate-500 mt-1">The image file could not be displayed or the source is unavailable.</p>
+            </div>
           ) : (
             <div className="overflow-auto max-h-full max-w-full flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={displayUrl}
                 alt={file.name}
+                onError={() => setImageError(true)}
                 style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
                 className="max-h-[65vh] max-w-full rounded-lg object-contain shadow-2xl transition-transform duration-200 border border-white/10"
               />

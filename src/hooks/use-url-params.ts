@@ -39,13 +39,16 @@ export function useUrlParams<T extends Record<string, string>>(defaults: T) {
   return { values, set };
 }
 
+import { useDebounce } from "@/hooks/use-debounce";
+
 /** Debounced text search that mirrors itself into the `q` URL param. */
-export function useUrlSearch(paramKey = "q", delay = 1000) {
+export function useUrlSearch(paramKey = "q", delay = 400) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const urlValue = searchParams.get(paramKey) ?? "";
   const [text, setText] = useState(urlValue);
+  const debouncedText = useDebounce(text, delay);
   const lastWritten = useRef(urlValue);
 
   // Adopt external URL changes (back button, links carrying ?q=).
@@ -57,18 +60,15 @@ export function useUrlSearch(paramKey = "q", delay = 1000) {
   }, [urlValue]);
 
   useEffect(() => {
-    if (text === lastWritten.current) return;
-    const id = setTimeout(() => {
-      lastWritten.current = text;
-      const params = new URLSearchParams(window.location.search);
-      if (text) params.set(paramKey, text);
-      else params.delete(paramKey);
-      params.delete("page");
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    }, delay);
-    return () => clearTimeout(id);
-  }, [text, paramKey, pathname, delay, router]);
+    if (debouncedText === lastWritten.current) return;
+    lastWritten.current = debouncedText;
+    const params = new URLSearchParams(window.location.search);
+    if (debouncedText) params.set(paramKey, debouncedText);
+    else params.delete(paramKey);
+    params.delete("page");
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [debouncedText, paramKey, pathname, router]);
 
   return [text, setText] as const;
 }

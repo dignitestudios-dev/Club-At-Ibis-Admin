@@ -88,7 +88,7 @@ export function SetPasswordDialog({
               New password
               <RequiredMark />
             </label>
-            <PasswordInput id="sp-new" showStrength autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={touched && (tooShort || !isComplex)} />
+            <PasswordInput id="sp-new" showStrength autoComplete="new-password" maxLength={128} disabled={mutation.isPending} value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={touched && (tooShort || !isComplex)} />
             {touched && tooShort && <p className="text-xs text-destructive" role="alert">Password must be at least 8 characters.</p>}
             {touched && !tooShort && !isComplex && <p className="text-xs text-destructive" role="alert">Password must contain uppercase, lowercase, number, and symbol.</p>}
           </div>
@@ -97,7 +97,7 @@ export function SetPasswordDialog({
               Confirm new password
               <RequiredMark />
             </label>
-            <PasswordInput id="sp-confirm" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} aria-invalid={touched && mismatch} />
+            <PasswordInput id="sp-confirm" autoComplete="new-password" maxLength={128} disabled={mutation.isPending} value={confirm} onChange={(e) => setConfirm(e.target.value)} aria-invalid={touched && mismatch} />
             {touched && mismatch && <p className="text-xs text-destructive" role="alert">Passwords do not match.</p>}
           </div>
 

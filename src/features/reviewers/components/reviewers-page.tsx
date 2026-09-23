@@ -85,11 +85,11 @@ export default function ReviewersPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="pl-4">Reviewer</TableHead>
-                  <TableHead>Employee no.</TableHead>
-                  <TableHead>Designation</TableHead>
-                  <TableHead>Receive new requests</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="pl-4 max-w-[240px]">Reviewer</TableHead>
+                  <TableHead className="max-w-[130px]">Employee no.</TableHead>
+                  <TableHead className="max-w-[180px]">Designation</TableHead>
+                  <TableHead className="max-w-[190px]">Receive new requests</TableHead>
+                  <TableHead className="max-w-[150px]">Status</TableHead>
                   <TableHead className="w-12 pr-4 text-right">
                     <span className="sr-only">Actions</span>
                   </TableHead>
@@ -104,18 +104,18 @@ export default function ReviewersPage() {
                   const routingLocked = actions.routingLocked && !receivePending && actions.pendingLoginId !== rev.id;
                   return (
                     <TableRow key={rev.id} className={rev.loginEnabled ? "" : "opacity-70"}>
-                      <TableCell className="pl-4">
-                        <Link href={`/reviewers/${rev.id}`} className="group flex items-center gap-3">
-                          <PersonAvatar name={rev.name} className="size-9" />
+                      <TableCell className="pl-4 max-w-[240px]">
+                        <Link href={`/reviewers/${rev.id}`} className="group flex items-center gap-3 min-w-0" title={`${rev.name} (${rev.email})`}>
+                          <PersonAvatar name={rev.name} className="size-9 shrink-0" />
                           <span className="min-w-0">
                             <span className="block truncate text-sm font-medium text-foreground group-hover:underline">{rev.name}</span>
                             <span className="block truncate text-xs text-muted-foreground">{rev.email}</span>
                           </span>
                         </Link>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{rev.employeeNumber}</TableCell>
-                      <TableCell className="text-sm">{rev.designation}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground max-w-[130px] truncate" title={rev.employeeNumber}>{rev.employeeNumber}</TableCell>
+                      <TableCell className="text-sm max-w-[180px] truncate" title={rev.designation}>{rev.designation}</TableCell>
+                      <TableCell className="max-w-[190px]">
                         <div className="flex items-center gap-2.5">
                           <Switch
                             checked={rev.receiveNewRequests}
@@ -133,9 +133,9 @@ export default function ReviewersPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-[150px]">
                         <ReviewerStatusChip reviewer={rev} />
-                        {rev.lastLoginAt && <span className="mt-0.5 block text-[11px] text-muted-foreground">Seen {formatRelative(rev.lastLoginAt)}</span>}
+                        {rev.lastLoginAt && <span className="mt-0.5 block text-[11px] text-muted-foreground truncate" title={`Seen ${formatRelative(rev.lastLoginAt)}`}>Seen {formatRelative(rev.lastLoginAt)}</span>}
                       </TableCell>
                       <TableCell className="pr-4 text-right">
                         <ReviewerRowMenu

@@ -69,7 +69,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
               <Field data-invalid={!!errors.password}>
                 <FieldLabel htmlFor="password">New password<RequiredMark /></FieldLabel>
                 <FieldContent>
-                  <PasswordInput id="password" showStrength value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
+                  <PasswordInput id="password" showStrength maxLength={128} disabled={isPending} value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
                   <FieldError errors={errors.password ? [errors.password] : []} />
                 </FieldContent>
               </Field>
@@ -82,7 +82,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
               <Field data-invalid={!!errors.confirmPassword}>
                 <FieldLabel htmlFor="confirmPassword">Confirm password<RequiredMark /></FieldLabel>
                 <FieldContent>
-                  <PasswordInput id="confirmPassword" value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
+                  <PasswordInput id="confirmPassword" maxLength={128} disabled={isPending} value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
                   <FieldError errors={errors.confirmPassword ? [errors.confirmPassword] : []} />
                 </FieldContent>
               </Field>

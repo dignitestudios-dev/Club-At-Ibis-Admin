@@ -63,6 +63,8 @@ export default function ForgotPasswordForm() {
                 type="email"
                 autoComplete="email"
                 placeholder="admin@clubatibis.com"
+                maxLength={320}
+                disabled={isPending}
                 aria-invalid={!!errors.email}
                 {...register("email")}
               />

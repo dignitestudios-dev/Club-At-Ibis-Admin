@@ -93,10 +93,10 @@ export default function ResidentsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="pl-4">Resident</TableHead>
-                  <TableHead>Resident ID</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="pl-4 max-w-[240px]">Resident</TableHead>
+                  <TableHead className="max-w-[140px]">Resident ID</TableHead>
+                  <TableHead className="max-w-[160px]">Joined</TableHead>
+                  <TableHead className="max-w-[120px]">Status</TableHead>
                   <TableHead className="w-12 pr-4 text-right">
                     <span className="sr-only">Actions</span>
                   </TableHead>
@@ -107,21 +107,21 @@ export default function ResidentsPage() {
                   const name = residentFullName(res);
                   return (
                     <TableRow key={res.id} className={`cursor-pointer ${res.active ? "" : "opacity-70"}`} onClick={() => router.push(`/residents/${res.id}`)}>
-                      <TableCell className="pl-4">
-                        <div className="flex items-center gap-3">
-                          <PersonAvatar name={name} className="size-9" />
+                      <TableCell className="pl-4 max-w-[240px]">
+                        <div className="flex items-center gap-3 min-w-0" title={`${name} (${res.email})`}>
+                          <PersonAvatar name={name} className="size-9 shrink-0" />
                           <span className="min-w-0">
                             <span className="block truncate text-sm font-medium text-foreground">{name}</span>
                             <span className="block truncate text-xs text-muted-foreground">{res.email}</span>
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{res.residentIdNumber}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="font-mono text-xs text-muted-foreground max-w-[140px] truncate" title={res.residentIdNumber}>{res.residentIdNumber}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[160px] truncate" title={`Joined: ${formatDate(res.createdAt)}${res.lastLoginAt ? `, Seen: ${formatRelative(res.lastLoginAt)}` : ''}`}>
                         {formatDate(res.createdAt)}
-                        {res.lastLoginAt && <span className="block text-[11px]">Seen {formatRelative(res.lastLoginAt)}</span>}
+                        {res.lastLoginAt && <span className="block text-[11px] truncate">Seen {formatRelative(res.lastLoginAt)}</span>}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-[120px]">
                         <ResidentStatusChip active={res.active} />
                       </TableCell>
                       <TableCell className="pr-4 text-right" onClick={(e) => e.stopPropagation()}>

@@ -308,14 +308,14 @@ export default function RequestsListPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="pl-4">Reference</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Resident</TableHead>
-                  <TableHead>Property</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Reviewer</TableHead>
-                  <TableHead>Deposit / refund</TableHead>
+                  <TableHead className="pl-4 max-w-[120px]">Reference</TableHead>
+                  <TableHead className="max-w-[200px]">Category</TableHead>
+                  <TableHead className="max-w-[180px]">Resident</TableHead>
+                  <TableHead className="max-w-[200px]">Property</TableHead>
+                  <TableHead className="max-w-[130px]">Submitted</TableHead>
+                  <TableHead className="max-w-[140px]">Status</TableHead>
+                  <TableHead className="max-w-[160px]">Reviewer</TableHead>
+                  <TableHead className="max-w-[140px]">Deposit / refund</TableHead>
                   <TableHead className="w-10 pr-4">
                     <span className="sr-only">Open</span>
                   </TableHead>
@@ -328,18 +328,19 @@ export default function RequestsListPage() {
                   const category = categoryById.get(req.categoryId);
                   return (
                     <TableRow key={req.id} onClick={() => router.push(`/requests/${req.id}`)} className="group cursor-pointer">
-                      <TableCell className="pl-4">
+                      <TableCell className="pl-4 max-w-[120px]">
                         <Link
                           href={`/requests/${req.id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300"
+                          className="font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 truncate block"
+                          title={req.code}
                         >
                           {req.code}
                         </Link>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-sm font-medium whitespace-nowrap text-foreground">{req.categoryName}</span>
+                      <TableCell className="max-w-[200px]">
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <span className="text-sm font-medium truncate text-foreground" title={req.categoryName}>{req.categoryName}</span>
                           {category?.status === "archived" && (
                             <span className="w-fit rounded-full bg-slate-200 px-1.5 text-[9px] font-bold tracking-wider text-slate-700 uppercase dark:bg-slate-700 dark:text-slate-200">
                               Archived
@@ -347,29 +348,29 @@ export default function RequestsListPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="text-sm font-medium whitespace-nowrap">{residentFullName(resident)}</div>
-                        <div className="text-[11px] text-muted-foreground">{resident?.residentIdNumber}</div>
+                      <TableCell className="max-w-[180px]">
+                        <div className="text-sm font-medium truncate" title={`${residentFullName(resident)} (${resident?.residentIdNumber || ''})`}>{residentFullName(resident)}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">{resident?.residentIdNumber}</div>
                       </TableCell>
-                      <TableCell>
-                        <div className="max-w-[200px] truncate text-sm">{req.fieldValues.propertyAddress}</div>
-                        <div className="text-[11px] text-muted-foreground">{req.fieldValues.lotNo}</div>
+                      <TableCell className="max-w-[200px]">
+                        <div className="max-w-[200px] truncate text-sm" title={`${req.fieldValues.propertyAddress || ''} (Lot: ${req.fieldValues.lotNo || ''})`}>{req.fieldValues.propertyAddress}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">{req.fieldValues.lotNo}</div>
                       </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap text-muted-foreground">{format(new Date(req.submittedAt), "MMM d, yyyy")}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-sm whitespace-nowrap text-muted-foreground max-w-[130px] truncate" title={format(new Date(req.submittedAt), "PPP")}>{format(new Date(req.submittedAt), "MMM d, yyyy")}</TableCell>
+                      <TableCell className="max-w-[140px]">
                         <StatusBadge status={req.status} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-[160px]">
                         {reviewer ? (
-                          <div className="flex items-center gap-2">
-                            <PersonAvatar name={reviewer.name} className="size-6" fallbackClassName="text-[9px]" />
-                            <span className="text-sm whitespace-nowrap">{reviewer.name}</span>
+                          <div className="flex items-center gap-2 min-w-0" title={reviewer.name}>
+                            <PersonAvatar name={reviewer.name} className="size-6 shrink-0" fallbackClassName="text-[9px]" />
+                            <span className="text-sm truncate">{reviewer.name}</span>
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground italic">Unassigned</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-[140px]">
                         <div className="flex flex-col items-start gap-1">
                           <DepositChip deposit={req.deposit} />
                           {req.refund && <RefundChip refund={req.refund} />}
