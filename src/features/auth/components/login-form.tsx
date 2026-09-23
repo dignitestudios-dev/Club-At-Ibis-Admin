@@ -100,7 +100,7 @@ export default function LoginForm() {
                     <PasswordInput
                       id="password"
                       autoComplete="current-password"
-                      placeholder="******"
+                      placeholder="Enter your password"
                       maxLength={128}
                       disabled={isPending}
                       aria-invalid={!!errors.password}

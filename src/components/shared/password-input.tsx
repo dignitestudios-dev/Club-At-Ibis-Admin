@@ -12,7 +12,7 @@ export interface PasswordInputProps extends React.ComponentProps<"input"> {
 
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
   function PasswordInput(
-    { className, showStrength = false, placeholder = "******", onFocus, onBlur, onChange, ...props },
+    { className, showStrength = false, placeholder = "Enter password", onFocus, onBlur, onChange, ...props },
     ref
   ) {
     const [visible, setVisible] = useState(false);
