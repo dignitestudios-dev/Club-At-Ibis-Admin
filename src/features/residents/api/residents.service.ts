@@ -51,18 +51,26 @@ export interface ResidentsPageResult {
   pagination: ApiPagination;
 }
 
-/** Real server-side pagination — the request's `page`/`limit`/`search` match what the table actually shows. */
+/** Real server-side pagination — the request's `page`/`limit`/`search`/`status` match what the table actually shows. */
 export async function getResidentsPage({
   page = 1,
   limit = 50,
   search = "",
+  status,
 }: {
   page?: number;
   limit?: number;
   search?: string;
+  status?: string;
 }): Promise<ResidentsPageResult> {
+  const normalizedStatus = status && status.toUpperCase() !== "ALL" ? status.toUpperCase() : undefined;
   const { data } = await axiosInstance.get("/admin/residents", {
-    params: { page, limit, search: search.trim() || undefined },
+    params: {
+      page,
+      limit,
+      search: search.trim() || undefined,
+      status: normalizedStatus,
+    },
   });
   return {
     residents: (data.data.residents as ResidentApiUser[]).map(toResident),

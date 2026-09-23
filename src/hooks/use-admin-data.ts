@@ -31,9 +31,9 @@ export const useResidents = (limit?: number) =>
   useQuery({ queryKey: [...keys.residents, limit ?? "default"], queryFn: () => getResidents(limit) });
 
 /** Real server-side pagination for the Reviewer Accounts / Resident Records tables. */
-export const useReviewersPage = (params: { page: number; limit: number; search: string }) =>
+export const useReviewersPage = (params: { page: number; limit: number; search: string; status?: string }) =>
   useQuery({ queryKey: [...keys.reviewers, "page", params], queryFn: () => getReviewersPage(params) });
-export const useResidentsPage = (params: { page: number; limit: number; search: string }) =>
+export const useResidentsPage = (params: { page: number; limit: number; search: string; status?: string }) =>
   useQuery({ queryKey: [...keys.residents, "page", params], queryFn: () => getResidentsPage(params) });
 
 /** Single-account fetches for the detail pages — hits the real "get by id" endpoint, not a fetch-all. */

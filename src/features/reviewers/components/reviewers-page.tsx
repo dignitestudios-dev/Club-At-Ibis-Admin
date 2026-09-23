@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Info, MailPlus, Plus, Route, UserCog, UserX, Users } from "lucide-react";
+import { Info, MailPlus, Plus, RotateCcw, Route, UserCog, UserX, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { Pagination } from "@/components/shared/pagination";
 import { StatCard } from "@/components/shared/stat-card";
 import { SearchInput } from "@/components/shared/search-input";
@@ -17,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ReviewerFormSheet } from "@/features/reviewers/components/reviewer-form-sheet";
 import { ReviewerRowMenu, ReviewerStatusChip } from "@/features/reviewers/components/reviewer-row-menu";
 import { useReviewerActions } from "@/features/reviewers/components/use-reviewer-actions";
-import { useReviewersPage } from "@/hooks/use-admin-data";
+import { useReviewers, useReviewersPage } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
 import { formatRelative } from "@/utils/format";
@@ -25,18 +26,41 @@ import { formatRelative } from "@/utils/format";
 export default function ReviewersPage() {
   const [pageSize, setPageSize] = usePageSize();
   const [search, setSearch] = useUrlSearch("q");
-  const { values, set } = useUrlParams({ page: "1" });
+  const { values, set } = useUrlParams({ page: "1", status: "all", defaultReviewer: "all" });
   const page = Math.max(1, Number(values.page) || 1);
+  const status = values.status || "all";
+  const defaultReviewer = values.defaultReviewer || "all";
 
-  // Genuinely server-paginated and server-searched: page/limit/search go to
-  // the API as-is, and `total` below is the backend's own count, not
-  // something computed here from a separate fetch.
-  const { data: pageResult, isLoading } = useReviewersPage({ page, limit: pageSize, search });
-  const visible = pageResult?.reviewers ?? [];
+  // Server-paginated and server-searched/filtered
+  const { data: pageResult, isLoading } = useReviewersPage({
+    page,
+    limit: pageSize,
+    search,
+    status: status !== "all" ? status : undefined,
+  });
+
+  const { data: allReviewers } = useReviewers();
+
+  const serverReviewers = pageResult?.reviewers ?? [];
+  const visible = useMemo(() => {
+    return serverReviewers.filter((rev) => {
+      if (defaultReviewer === "true") return rev.receiveNewRequests;
+      if (defaultReviewer === "false") return !rev.receiveNewRequests;
+      return true;
+    });
+  }, [serverReviewers, defaultReviewer]);
+
   const total = pageResult?.pagination.total ?? 0;
+
+  // Stat counts computed from the full roster query
+  const totalCount = allReviewers?.length ?? total;
+  const defaultCount = allReviewers ? allReviewers.filter((r) => r.receiveNewRequests).length : "—";
+  const pendingInviteCount = allReviewers ? allReviewers.filter((r) => r.inviteStatus === "invited").length : "—";
+  const inactiveCount = allReviewers ? allReviewers.filter((r) => !r.loginEnabled).length : "—";
 
   const actions = useReviewerActions();
   const [sheet, setSheet] = useState<{ open: boolean; reviewer: PublicReviewer | null }>({ open: false, reviewer: null });
+  const hasFilters = status !== "all" || defaultReviewer !== "all" || search.trim() !== "";
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -51,23 +75,67 @@ export default function ReviewersPage() {
         }
       />
 
-      {/*
-        "Reviewers" is the backend's own paginated total — not computed here.
-        The other three have no metrics endpoint yet, so they show N/A rather
-        than a number worked out by filtering a fetched list on the frontend.
-      */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Reviewers" value={total} icon={Users} accent="navy" hint="All accounts" />
-        <StatCard label="Default reviewers" value="N/A" icon={Route} accent="gold" />
-        <StatCard label="Pending invite" value="N/A" icon={MailPlus} accent="amber" />
-        <StatCard label="Inactive" value="N/A" icon={UserX} accent="red" />
+        <StatCard label="Reviewers" value={totalCount} icon={Users} accent="navy" hint="All accounts" />
+        <StatCard label="Default reviewers" value={defaultCount} icon={Route} accent="gold" />
+        <StatCard label="Pending invite" value={pendingInviteCount} icon={MailPlus} accent="amber" />
+        <StatCard label="Inactive" value={inactiveCount} icon={UserX} accent="red" />
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SearchInput value={search} onChange={setSearch} placeholder="Search name, email, employee no…" className="sm:max-w-sm" />
-        <p className="flex items-start gap-2 rounded-lg border border-brand-gold/30 bg-brand-gold/10 px-3 py-2 text-xs text-foreground/90 sm:max-w-md">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-1 flex-wrap items-center gap-2.5">
+          <SearchInput
+            value={search}
+            onChange={(val) => {
+              setSearch(val);
+              set({ page: "1" });
+            }}
+            placeholder="Search name, email, employee no…"
+            className="w-full sm:max-w-xs"
+          />
+          <FilterSelect
+            label="Account Status"
+            hideLabel
+            value={status}
+            onChange={(s) => set({ status: s, page: "1" })}
+            options={[
+              { label: "All statuses", value: "all" },
+              { label: "Active", value: "ACTIVE" },
+              { label: "Pending invite", value: "INVITED" },
+              { label: "Inactive", value: "DISABLED" },
+            ]}
+            className="w-full sm:w-44"
+          />
+          <FilterSelect
+            label="Routing"
+            hideLabel
+            value={defaultReviewer}
+            onChange={(dr) => set({ defaultReviewer: dr, page: "1" })}
+            options={[
+              { label: "All routing", value: "all" },
+              { label: "Default reviewers", value: "true" },
+              { label: "Regular reviewers", value: "false" },
+            ]}
+            className="w-full sm:w-44"
+          />
+          {hasFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearch("");
+                set({ status: "all", defaultReviewer: "all", page: "1" });
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground h-9 px-2.5"
+            >
+              <RotateCcw className="size-3.5 mr-1" />
+              Reset filters
+            </Button>
+          )}
+        </div>
+        <p className="flex items-start gap-2 rounded-lg border border-brand-gold/30 bg-brand-gold/10 px-3 py-2 text-xs text-foreground/90 lg:max-w-xs">
           <Info className="mt-0.5 size-3.5 shrink-0 text-brand-gold" aria-hidden="true" />
-          At least one Default Reviewer must remain. Turning off the last one asks you to pick a replacement.
+          At least one Default Reviewer must remain active.
         </p>
       </div>
 

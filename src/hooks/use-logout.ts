@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppDispatch } from "@/store";
 import { clearUser } from "@/store/slices/auth.slice";
@@ -9,8 +10,10 @@ import { logoutUser } from "@/features/auth/api/auth.service";
 export function useLogout() {
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
+  const [isPending, setIsPending] = useState(false);
 
-  return async function logout() {
+  async function logout() {
+    setIsPending(true);
     try {
       await logoutUser();
     } catch {
@@ -25,5 +28,7 @@ export function useLogout() {
       queryClient.removeQueries();
       window.location.href = "/auth/login";
     }
-  };
+  }
+
+  return { logout, isPending };
 }

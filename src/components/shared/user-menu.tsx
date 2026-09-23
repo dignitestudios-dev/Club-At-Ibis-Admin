@@ -17,7 +17,7 @@ import { useLogout } from "@/hooks/use-logout";
 
 export function UserMenu() {
   const user = useCurrentUser();
-  const logout = useLogout();
+  const { logout, isPending } = useLogout();
   const [confirmingLogout, setConfirmingLogout] = useState(false);
 
   if (!user) return null;
@@ -61,12 +61,17 @@ export function UserMenu() {
 
       <ConfirmDialog
         open={confirmingLogout}
-        onOpenChange={setConfirmingLogout}
+        onOpenChange={(open) => {
+          if (!isPending) setConfirmingLogout(open);
+        }}
         title="Log out?"
         description="You'll need to sign in again to access the admin console."
-        confirmLabel="Log Out"
+        confirmLabel={isPending ? "Logging out..." : "Log Out"}
+        loading={isPending}
         destructive
-        onConfirm={() => logout()}
+        onConfirm={async () => {
+          await logout();
+        }}
       />
     </>
   );

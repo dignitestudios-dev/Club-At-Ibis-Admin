@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, LockKeyhole, MoreHorizontal, Power, UserCheck, UserX, Users } from "lucide-react";
+import { KeyRound, LockKeyhole, MoreHorizontal, Power, RotateCcw, UserCheck, UserX, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { Pagination } from "@/components/shared/pagination";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { SearchInput } from "@/components/shared/search-input";
@@ -17,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ResidentStatusChip } from "@/features/residents/components/resident-status-chip";
 import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
 import { SendResetDialog, type ResetTarget } from "@/features/password-reset/components/send-reset-dialog";
-import { useResidentsPage, useSetResidentActive } from "@/hooks/use-admin-data";
+import { useResidents, useResidentsPage, useSetResidentActive } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
@@ -28,15 +29,28 @@ export default function ResidentsPage() {
   const router = useRouter();
   const toast = useToast();
   const [search, setSearch] = useUrlSearch("q");
-  const { values, set } = useUrlParams({ page: "1" });
+  const { values, set } = useUrlParams({ page: "1", status: "all" });
   const [pageSize, setPageSize] = usePageSize();
   const page = Math.max(1, Number(values.page) || 1);
+  const status = values.status || "all";
 
-  // Genuinely server-paginated: page/limit/search go to the API as-is, so
+  // Genuinely server-paginated: page/limit/search/status go to the API as-is, so
   // what's requested always matches what's on screen.
-  const { data: pageResult, isLoading } = useResidentsPage({ page, limit: pageSize, search });
+  const { data: pageResult, isLoading } = useResidentsPage({
+    page,
+    limit: pageSize,
+    search,
+    status: status !== "all" ? status : undefined,
+  });
   const visible = pageResult?.residents ?? [];
   const total = pageResult?.pagination.total ?? 0;
+
+  const { data: allResidents } = useResidents();
+  const totalCount = allResidents?.length ?? total;
+  const activeCount = allResidents ? allResidents.filter((r) => r.active).length : "—";
+  const inactiveCount = allResidents ? allResidents.filter((r) => !r.active).length : "—";
+
+  const hasFilters = status !== "all" || search.trim() !== "";
 
   const setActive = useSetResidentActive();
   const [resetTarget, setResetTarget] = useState<ResetTarget | null>(null);
@@ -66,18 +80,50 @@ export default function ResidentsPage() {
         description="Search residents, send password-reset links, and activate or deactivate accounts."
       />
 
-      {/*
-        "Residents" is the backend's own paginated total — not computed here.
-        The other two have no metrics endpoint yet, so they show N/A rather
-        than a number worked out by filtering a fetched list on the frontend.
-      */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <StatCard label="Residents" value={total} icon={Users} accent="navy" hint="All accounts" />
-        <StatCard label="Active" value="N/A" icon={UserCheck} accent="emerald" />
-        <StatCard label="Inactive" value="N/A" icon={UserX} accent="red" />
+        <StatCard label="Residents" value={totalCount} icon={Users} accent="navy" hint="All accounts" />
+        <StatCard label="Active" value={activeCount} icon={UserCheck} accent="emerald" />
+        <StatCard label="Inactive" value={inactiveCount} icon={UserX} accent="red" />
       </div>
 
-      <SearchInput value={search} onChange={setSearch} placeholder="Search name, resident ID or email…" className="sm:max-w-md" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <SearchInput
+          value={search}
+          onChange={(val) => {
+            setSearch(val);
+            set({ page: "1" });
+          }}
+          placeholder="Search name, resident ID or email…"
+          className="sm:max-w-md"
+        />
+        <FilterSelect
+          label="Account Status"
+          hideLabel
+          value={status}
+          onChange={(s) => set({ status: s, page: "1" })}
+          options={[
+            { label: "All statuses", value: "all" },
+            { label: "Active", value: "ACTIVE" },
+            { label: "Pending verification", value: "PENDING_EMAIL_VERIFICATION" },
+            { label: "Inactive", value: "DISABLED" },
+          ]}
+          className="w-full sm:w-48"
+        />
+        {hasFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearch("");
+              set({ status: "all", page: "1" });
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground h-9 px-2.5"
+          >
+            <RotateCcw className="size-3.5 mr-1" />
+            Reset filters
+          </Button>
+        )}
+      </div>
 
       {isLoading ? (
         <div className="space-y-2">

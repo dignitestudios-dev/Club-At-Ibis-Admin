@@ -44,7 +44,7 @@ const ACCOUNT_ACTIVITY_TYPES = new Set([
 
 function ChangePasswordForm({ userId }: { userId: string }) {
   const toast = useToast();
-  const logout = useLogout();
+  const { logout } = useLogout();
   const { mutate, isPending } = useChangePasswordMutation();
   const {
     control,
