@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Suspense } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -64,7 +65,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             </p>
           </div>
 
-          <div className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">{children}</div>
+          <div className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">
+            <Suspense>{children}</Suspense>
+          </div>
         </div>
       </main>
 
