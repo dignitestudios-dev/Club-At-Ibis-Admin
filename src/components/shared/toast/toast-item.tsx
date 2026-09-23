@@ -7,23 +7,23 @@ const VARIANT_CONFIG: Record<
 > = {
   success: {
     icon: CheckCircle2,
-    iconClass: "text-emerald-600",
-    chipClass: "bg-emerald-50",
+    iconClass: "text-emerald-600 dark:text-emerald-400",
+    chipClass: "bg-emerald-50 dark:bg-emerald-950/60",
   },
   error: {
     icon: XCircle,
-    iconClass: "text-red-600",
-    chipClass: "bg-red-50",
+    iconClass: "text-red-600 dark:text-red-400",
+    chipClass: "bg-red-50 dark:bg-red-950/60",
   },
   info: {
     icon: Info,
-    iconClass: "text-blue-600",
-    chipClass: "bg-blue-50",
+    iconClass: "text-blue-600 dark:text-blue-400",
+    chipClass: "bg-blue-50 dark:bg-blue-950/60",
   },
   warning: {
     icon: AlertTriangle,
-    iconClass: "text-amber-600",
-    chipClass: "bg-amber-50",
+    iconClass: "text-amber-600 dark:text-amber-400",
+    chipClass: "bg-amber-50 dark:bg-amber-950/60",
   },
 };
 

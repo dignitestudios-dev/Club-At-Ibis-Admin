@@ -80,10 +80,10 @@ export default function AssignmentsPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Waiting in intake" value={intake.length} icon={Inbox} accent="blue" hint="No owner yet" />
-        <StatCard label="Assigned · in progress" value={assigned.length} icon={ListChecks} accent="navy" hint="Owned by a reviewer" />
-        <StatCard label="Active reviewers" value={activeReviewers.length} icon={Users} accent="emerald" hint="Can be assigned" />
-        <StatCard label="Default reviewers" value={activeReviewers.filter((r) => r.receiveNewRequests).length} icon={Route} accent="gold" hint="Receive new requests" />
+        <StatCard label="Waiting In Intake" value={intake.length} icon={Inbox} accent="blue" hint="No owner yet" />
+        <StatCard label="Assigned · In Progress" value={assigned.length} icon={ListChecks} accent="navy" hint="Owned by a reviewer" />
+        <StatCard label="Active Reviewers" value={activeReviewers.length} icon={Users} accent="emerald" hint="Can be assigned" />
+        <StatCard label="Default Reviewers" value={activeReviewers.filter((r) => r.receiveNewRequests).length} icon={Route} accent="gold" hint="Receive new requests" />
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

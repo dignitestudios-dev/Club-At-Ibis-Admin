@@ -26,8 +26,9 @@ export function useUrlParams<T extends Record<string, string>>(defaults: T) {
     (patch: Partial<T>) => {
       const params = new URLSearchParams(window.location.search);
       for (const [k, v] of Object.entries(patch)) {
-        if (v === undefined || v === "" || v === defaultsRef.current[k]) params.delete(k);
-        else params.set(k, String(v));
+        const valStr = v === undefined ? "" : String(v).trim();
+        if (v === undefined || valStr === "" || valStr === defaultsRef.current[k]) params.delete(k);
+        else params.set(k, valStr);
       }
       const qs = params.toString();
       // router.replace (not history.replaceState) so useSearchParams updates and the UI reacts.
@@ -47,23 +48,25 @@ export function useUrlSearch(paramKey = "q", delay = 400) {
   const pathname = usePathname();
   const router = useRouter();
   const urlValue = searchParams.get(paramKey) ?? "";
-  const [text, setText] = useState(urlValue);
+  const [text, setText] = useState(urlValue.trim());
   const debouncedText = useDebounce(text, delay);
-  const lastWritten = useRef(urlValue);
+  const lastWritten = useRef(urlValue.trim());
 
   // Adopt external URL changes (back button, links carrying ?q=).
   useEffect(() => {
-    if (urlValue !== lastWritten.current) {
-      lastWritten.current = urlValue;
-      setText(urlValue);
+    const trimmedUrl = urlValue.trim();
+    if (trimmedUrl !== lastWritten.current) {
+      lastWritten.current = trimmedUrl;
+      setText(trimmedUrl);
     }
   }, [urlValue]);
 
   useEffect(() => {
-    if (debouncedText === lastWritten.current) return;
-    lastWritten.current = debouncedText;
+    const trimmed = debouncedText.trim();
+    if (trimmed === lastWritten.current) return;
+    lastWritten.current = trimmed;
     const params = new URLSearchParams(window.location.search);
-    if (debouncedText) params.set(paramKey, debouncedText);
+    if (trimmed) params.set(paramKey, trimmed);
     else params.delete(paramKey);
     params.delete("page");
     const qs = params.toString();

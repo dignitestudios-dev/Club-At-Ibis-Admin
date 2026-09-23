@@ -21,7 +21,7 @@ export default function Error({
         <AlertCircle className="size-7" />
       </div>
       <div className="space-y-1.5 max-w-md">
-        <h1 className="font-heading text-2xl font-semibold text-foreground">Something went wrong</h1>
+        <h1 className="font-heading text-2xl font-semibold text-foreground">Something Went Wrong</h1>
         <p className="text-sm text-muted-foreground">
           An unexpected error occurred while loading this section. Please try again or return to the dashboard.
         </p>
@@ -29,7 +29,7 @@ export default function Error({
       <div className="flex items-center gap-3 pt-2">
         <Button onClick={() => reset()} className="gap-2">
           <RotateCw className="size-4" />
-          Try again
+          Try Again
         </Button>
         <Button variant="outline" onClick={() => window.location.assign("/dashboard")}>
           Back to Dashboard

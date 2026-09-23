@@ -45,7 +45,7 @@ export default function NotificationsPage() {
               aria-label={`Mark all ${unread} unread notifications as read`}
             >
               <CheckCheck className="size-4 text-primary" aria-hidden="true" />
-              Mark all as read ({unread})
+              Mark All As Read ({unread})
             </Button>
           ) : undefined
         }

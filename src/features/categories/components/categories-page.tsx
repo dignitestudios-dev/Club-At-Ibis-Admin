@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Archive,
   ArchiveRestore,
+  Eye,
   History,
   FileUp,
   LayoutTemplate,
@@ -20,9 +21,11 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/shared/search-input";
 import { SegmentedTabs } from "@/components/shared/pill-tabs";
+import { Pagination } from "@/components/shared/pagination";
+import { usePageSize } from "@/hooks/use-page-size";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useArchiveCategory, useCategories, useRequests, useRestoreCategory } from "@/hooks/use-admin-data";
+import { useArchiveCategory, useCategories, useCategoriesPage, useRequests, useRestoreCategory } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
 import { IN_FLIGHT } from "@/lib/domain";
 import { formatDate, formatRelative } from "@/utils/format";
@@ -30,15 +33,28 @@ import { cn } from "@/utils/cn";
 
 export default function CategoriesPage() {
   const toast = useToast();
-  const { data: categories, isLoading } = useCategories();
+  const [pageSize, setPageSize] = usePageSize();
+  const [search, setSearch] = useUrlSearch("q");
+  const { values, set } = useUrlParams({ tab: "active", page: "1" });
+
+  const page = Math.max(1, Number(values.page) || 1);
+  const tab: "active" | "archived" = values.tab === "archived" ? "archived" : "active";
+  const setTab = (t: "active" | "archived") => set({ tab: t, page: "1" });
+
+  // Server-side filtered by status, searched, and paginated via API
+  const { data: pageResult, isLoading } = useCategoriesPage({
+    page,
+    limit: pageSize,
+    search,
+    status: tab,
+  });
+
+  // Query full list for accurate counts on the Active / Archived tabs
+  const { data: allCategories } = useCategories();
   const { data: requests } = useRequests();
   const archive = useArchiveCategory();
   const restore = useRestoreCategory();
 
-  const { values, set } = useUrlParams({ tab: "active" });
-  const tab: "active" | "archived" = values.tab === "archived" ? "archived" : "active";
-  const setTab = (t: "active" | "archived") => set({ tab: t });
-  const [search, setSearch] = useUrlSearch("q");
   const [archiving, setArchiving] = useState<Category | null>(null);
   const [restoring, setRestoring] = useState<Category | null>(null);
 
@@ -53,14 +69,11 @@ export default function CategoriesPage() {
     return map;
   }, [requests]);
 
-  const all = categories ?? [];
-  const activeCount = all.filter((c) => c.status === "active").length;
-  const archivedCount = all.filter((c) => c.status === "archived").length;
-  const q = search.trim().toLowerCase();
-  const shown = all
-    .filter((c) => c.status === tab)
-    .filter((c) => !q || `${c.name} ${c.description}`.toLowerCase().includes(q))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const shown = pageResult?.categories ?? [];
+  const total = pageResult?.pagination.total ?? 0;
+
+  const activeCount = allCategories ? allCategories.filter((c) => c.status === "active").length : undefined;
+  const archivedCount = allCategories ? allCategories.filter((c) => c.status === "archived").length : undefined;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -85,7 +98,15 @@ export default function CategoriesPage() {
             { value: "archived", label: "Archived", count: archivedCount },
           ]}
         />
-        <SearchInput value={search} onChange={setSearch} placeholder="Search categories…" className="sm:max-w-xs" />
+        <SearchInput
+          value={search}
+          onChange={(val) => {
+            setSearch(val);
+            set({ page: "1" });
+          }}
+          placeholder="Search categories…"
+          className="sm:max-w-xs"
+        />
       </div>
 
       {isLoading ? (
@@ -97,112 +118,152 @@ export default function CategoriesPage() {
       ) : shown.length === 0 ? (
         <EmptyState
           icon={tab === "archived" ? Archive : LayoutTemplate}
-          title={tab === "archived" ? "No archived categories" : "No categories found"}
+          title={
+            search.trim()
+              ? `No ${tab === "archived" ? "archived " : ""}categories match “${search}”`
+              : tab === "archived"
+              ? "No archived categories"
+              : "No categories found"
+          }
           description={
-            tab === "archived"
+            search.trim()
+              ? "Try adjusting your search terms or clearing the filter."
+              : tab === "archived"
               ? "Archived categories appear here. Their historical requests stay searchable and can be restored at any time."
               : "Try a different search or add a new category."
           }
+          action={
+            search.trim() ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearch("");
+                  set({ page: "1" });
+                }}
+              >
+                Clear search
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {shown.map((cat, i) => {
-            const u = usage.get(cat.id) ?? { total: 0, active: 0 };
-            const docs = cat.fields.filter((f) => f.type === "file");
-            const info = cat.fields.filter((f) => f.type !== "file");
-            const archived = cat.status === "archived";
-            return (
-              <article
-                key={cat.id}
-                style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-                className={cn(
-                  "group relative flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card p-5 shadow-2xs transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 fill-mode-both",
-                  "hover:-translate-y-1 hover:shadow-md",
-                  archived && "bg-muted/30"
-                )}
-              >
-                <span
-                  aria-hidden="true"
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {shown.map((cat, i) => {
+              const u = usage.get(cat.id) ?? { total: 0, active: 0 };
+              const docs = cat.fields.filter((f) => f.type === "file");
+              const info = cat.fields.filter((f) => f.type !== "file");
+              const archived = cat.status === "archived";
+              return (
+                <article
+                  key={cat.id}
+                  style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
                   className={cn(
-                    "absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r opacity-80 transition-opacity group-hover:opacity-100",
-                    archived ? "from-slate-300 to-slate-400" : "from-brand-gold to-amber-600"
+                    "group relative flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card p-5 shadow-2xs transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 fill-mode-both",
+                    "hover:-translate-y-1 hover:shadow-md",
+                    archived && "bg-muted/30"
                   )}
-                />
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex w-full items-center justify-between gap-1.5">
-                    <span
-                      className={cn(
-                        "rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase",
-                        archived
-                          ? "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                          : "border-emerald-300/80 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-                      )}
-                    >
-                      {archived ? "Archived" : "Active"}
-                    </span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${cat.name}`} />}>
-                        <MoreHorizontal />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-52">
-                        <DropdownMenuItem render={<Link href={`/categories/${cat.id}/edit`} />}>
-                          <Pencil />
-                          Edit form
-                        </DropdownMenuItem>
-                        <DropdownMenuItem render={<Link href={`/categories/${cat.id}/versions`} />}>
-                          <History />
-                          Version history ({cat.versions.length})
-                        </DropdownMenuItem>
-                        <DropdownMenuItem render={<Link href={`/requests?category=${cat.id}`} />}>
-                          <LayoutTemplate />
-                          View its requests
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {archived ? (
-                          <DropdownMenuItem onClick={() => setRestoring(cat)}>
-                            <ArchiveRestore />
-                            Restore category
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem variant="destructive" onClick={() => setArchiving(cat)}>
-                            <Archive />
-                            Archive category
-                          </DropdownMenuItem>
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r opacity-80 transition-opacity group-hover:opacity-100",
+                      archived ? "from-slate-300 to-slate-400" : "from-brand-gold to-amber-600"
+                    )}
+                  />
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex w-full items-center justify-between gap-1.5">
+                      <span
+                        className={cn(
+                          "rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase",
+                          archived
+                            ? "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                            : "border-emerald-300/80 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
                         )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      >
+                        {archived ? "Archived" : "Active"}
+                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${cat.name}`} />}>
+                          <MoreHorizontal />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52">
+                          <DropdownMenuItem render={<Link href={`/categories/${cat.id}`} />}>
+                            <Eye />
+                            View resident form
+                          </DropdownMenuItem>
+                          <DropdownMenuItem render={<Link href={`/categories/${cat.id}/edit`} />}>
+                            <Pencil />
+                            Edit form
+                          </DropdownMenuItem>
+                          <DropdownMenuItem render={<Link href={`/categories/${cat.id}/versions`} />}>
+                            <History />
+                            Version history (v{cat.currentVersion ?? cat.version})
+                          </DropdownMenuItem>
+                          <DropdownMenuItem render={<Link href={`/requests?category=${cat.id}`} />}>
+                            <LayoutTemplate />
+                            View its requests
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {archived ? (
+                            <DropdownMenuItem onClick={() => setRestoring(cat)}>
+                              <ArchiveRestore />
+                              Restore category
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem variant="destructive" onClick={() => setArchiving(cat)}>
+                              <Archive />
+                              Archive category
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
-                </div>
 
-                <div className="mt-4 flex-1 space-y-1.5">
-                  <h3 className="font-heading text-lg font-medium text-foreground">{cat.name}</h3>
-                  <p className="line-clamp-2 text-sm text-muted-foreground">{cat.description || "No description."}</p>
-                </div>
+                  <div className="mt-4 flex-1 space-y-1.5">
+                    <h3 className="font-heading text-lg font-medium text-foreground">
+                      <Link href={`/categories/${cat.id}`} className="transition-colors hover:text-primary">
+                        {cat.name}
+                      </Link>
+                    </h3>
+                    <p className="line-clamp-2 text-sm text-muted-foreground">{cat.description || "No description."}</p>
+                  </div>
 
-                <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
-                    <Type className="size-3" /> {info.length} info field{info.length === 1 ? "" : "s"}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
-                    <FileUp className="size-3" /> {docs.length} document{docs.length === 1 ? "" : "s"}
-                  </span>
-                  <Link href={`/categories/${cat.id}/versions`} title="View version history" className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
-                    <History className="size-3" aria-hidden="true" />v{cat.version}
-                  </Link>
-                </div>
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+                      <Type className="size-3" /> {info.length} info field{info.length === 1 ? "" : "s"}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+                      <FileUp className="size-3" /> {docs.length} document{docs.length === 1 ? "" : "s"}
+                    </span>
+                    <Link href={`/categories/${cat.id}/versions`} title="View version history" className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
+                      <History className="size-3" aria-hidden="true" />v{cat.currentVersion ?? cat.version}
+                    </Link>
+                  </div>
 
-                <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground">
-                  <span>
-                    <span className="font-semibold text-foreground tabular-nums">{u.total}</span> request{u.total === 1 ? "" : "s"}
-                    {u.active > 0 && <> · <span className="text-sky-700 dark:text-sky-300">{u.active} in progress</span></>}
-                  </span>
-                  <span title={formatDate(archived && cat.archivedAt ? cat.archivedAt : cat.updatedAt)}>
-                    {archived && cat.archivedAt ? "Archived" : "Updated"} {formatRelative(archived && cat.archivedAt ? cat.archivedAt : cat.updatedAt)}
-                  </span>
-                </div>
-              </article>
-            );
-          })}
+                  <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground">
+                    <span>
+                      <span className="font-semibold text-foreground tabular-nums">{u.total}</span> request{u.total === 1 ? "" : "s"}
+                      {u.active > 0 && <> · <span className="text-sky-700 dark:text-sky-300">{u.active} in progress</span></>}
+                    </span>
+                    <span title={formatDate(archived && cat.archivedAt ? cat.archivedAt : cat.updatedAt)}>
+                      {archived && cat.archivedAt ? "Archived" : "Updated"} {formatRelative(archived && cat.archivedAt ? cat.archivedAt : cat.updatedAt)}
+                    </span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={(p) => set({ page: String(p) })}
+            onPageSizeChange={setPageSize}
+          />
         </div>
       )}
 

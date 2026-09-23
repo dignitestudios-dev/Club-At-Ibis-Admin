@@ -37,8 +37,8 @@ export const NotificationItem = memo(function NotificationItem({
         <NotificationIcon type={notification.type} className="mt-0.5 size-10" />
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={cn("rounded-full border px-2.5 py-0.5 text-[11px] font-medium", BADGE[notification.type])}>
-              {NOTIFICATION_LABEL[notification.type]}
+            <span className={cn("rounded-full border px-2.5 py-0.5 text-[11px] font-medium", (BADGE as Record<string, string>)[notification.type] || BADGE.action_required)}>
+              {(NOTIFICATION_LABEL as Record<string, string>)[notification.type] || "Alert"}
             </span>
             {!notification.read && (
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary tracking-wide dark:text-amber-300">NEW</span>

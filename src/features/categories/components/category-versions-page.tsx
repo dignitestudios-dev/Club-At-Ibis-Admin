@@ -2,19 +2,19 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, FilePlus2, FileText, GitCommitVertical, History, Minus, Pencil, Plus, RotateCcw, Tag } from "lucide-react";
+import { ArrowLeft, Eye, FilePlus2, FileText, GitCommitVertical, History, Minus, Pencil, Plus, RotateCcw, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { RequiredMark } from "@/components/shared/required-mark";
 import { FIELD_TYPE_BY_ID, describeAccept, isChoiceType } from "@/features/categories/components/field-types";
-import { useCategories, useRequests, useRestoreCategoryVersion } from "@/hooks/use-admin-data";
+import { useCategoryVersions, useCommonForm, useRequests, useRestoreCategoryVersion } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
 import { useUrlParams } from "@/hooks/use-url-params";
 import { fieldDiffStates } from "@/lib/category-diff";
-import { baseProjectFields } from "@/lib/mock/categories";
 import { formatDateTime, formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
@@ -26,23 +26,78 @@ function changeTone(text: string) {
   return { icon: Pencil, cls: "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800" };
 }
 
+function getActorName(actor: any): string {
+  if (!actor) return "System";
+  if (typeof actor === "string") return actor;
+  return actor.displayName || "Admin";
+}
+
 export default function CategoryVersionsPage({ id }: { id: string }) {
   const toast = useToast();
-  const { data: categories, isLoading } = useCategories();
+  const { data: versionData, isLoading: isVersionsLoading } = useCategoryVersions(id);
+  const { data: commonFormData, isLoading: isCommonLoading } = useCommonForm();
   const { data: requests } = useRequests();
   const restore = useRestoreCategoryVersion();
   const { values, set } = useUrlParams({ v: "" });
   const [confirming, setConfirming] = useState<number | null>(null);
+  const [restoreNote, setRestoreNote] = useState("");
 
-  const category = categories?.find((c) => c.id === id);
-  const versions = useMemo(() => [...(category?.versions ?? [])].sort((a, b) => b.version - a.version), [category]);
+  const category = versionData?.category;
+  const versions = useMemo(() => [...(versionData?.versions ?? [])].sort((a, b) => b.version - a.version), [versionData]);
   const counts = useMemo(() => {
     const map = new Map<number, number>();
     (requests ?? []).filter((r) => r.categoryId === id).forEach((r) => map.set(r.formVersion, (map.get(r.formVersion) ?? 0) + 1));
     return map;
   }, [requests, id]);
 
-  if (isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  const isLoading = isVersionsLoading || isCommonLoading;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        <Skeleton className="h-4 w-36 rounded" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1.5">
+            <Skeleton className="h-3.5 w-28 rounded" />
+            <Skeleton className="h-8 w-60 rounded" />
+            <Skeleton className="h-4 w-48 rounded" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-24 rounded-lg" />
+            <Skeleton className="h-9 w-28 rounded-lg" />
+          </div>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-12">
+          <div className="lg:col-span-4">
+            <Card className="shadow-2xs">
+              <CardHeader className="border-b border-border/70 pb-3">
+                <Skeleton className="h-5 w-24 rounded" />
+              </CardHeader>
+              <CardContent className="space-y-2 pt-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+          <div className="space-y-5 lg:col-span-8">
+            <Card className="shadow-2xs">
+              <CardHeader className="border-b border-border/70 pb-3 flex flex-row items-center justify-between">
+                <Skeleton className="h-5 w-32 rounded" />
+                <Skeleton className="h-8 w-28 rounded" />
+              </CardHeader>
+              <CardContent className="space-y-4 pt-5">
+                <Skeleton className="h-12 w-full rounded-xl" />
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!category) {
     return (
       <EmptyState
@@ -57,12 +112,32 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
     );
   }
 
-  const selectedNumber = Number(values.v) || category.version;
-  const selected = versions.find((v) => v.version === selectedNumber) ?? versions[0];
+  const currentVersionNumber = category.currentVersion ?? category.version ?? 1;
+  const selectedNumber = Number(values.v) || currentVersionNumber;
+  const selected = versions.find((v) => v.version === selectedNumber) ?? versions[0] ?? {
+    version: currentVersionNumber,
+    name: category.name,
+    description: category.description,
+    fields: category.fields,
+    createdAt: category.createdAt,
+    createdBy: getActorName(category.createdBy),
+    changes: ["Current version"],
+    changeSummaries: ["Current version"],
+    note: null,
+  };
   const previous = versions.find((v) => v.version === selected.version - 1);
-  const isCurrent = selected.version === category.version;
+  const isCurrent = selected.version === currentVersionNumber;
   const diff = fieldDiffStates(previous?.fields, selected.fields);
   const removed = previous ? previous.fields.filter((f) => !selected.fields.some((x) => x.id === f.id)) : [];
+
+  const changeList: string[] =
+    selected.changeSummaries && selected.changeSummaries.length > 0
+      ? selected.changeSummaries
+      : Array.isArray(selected.changes) && selected.changes.length > 0
+      ? selected.changes.map((c) => (typeof c === "string" ? c : JSON.stringify(c)))
+      : ["Initial form"];
+
+  const commonFields = commonFormData?.fields ?? [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -77,13 +152,13 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
             <p className="text-xs font-semibold tracking-wider text-brand-gold uppercase">Version history</p>
             <h1 className="font-heading text-2xl font-medium text-foreground sm:text-3xl">{category.name}</h1>
             <p className="text-sm text-muted-foreground">
-              {versions.length} version{versions.length === 1 ? "" : "s"} · current is <span className="font-semibold text-foreground">v{category.version}</span>
+              {versions.length} version{versions.length === 1 ? "" : "s"} · current is <span className="font-semibold text-foreground">v{currentVersionNumber}</span>
             </p>
           </div>
         </div>
         <Button nativeButton={false} render={<Link href={`/categories/${category.id}/edit`} />}>
           <Pencil className="size-4" />
-          Edit form (creates v{category.version + 1})
+          Edit form (creates v{currentVersionNumber + 1})
         </Button>
       </div>
 
@@ -99,6 +174,9 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
               {versions.map((v) => {
                 const active = v.version === selected.version;
                 const used = counts.get(v.version) ?? 0;
+                const firstChange = v.changeSummaries?.[0] || (typeof v.changes?.[0] === "string" ? v.changes[0] : `v${v.version}`);
+                const extraChangesCount = (v.changeSummaries?.length ?? v.changes?.length ?? 1) - 1;
+                const author = getActorName(v.createdBy);
                 return (
                   <li key={v.version}>
                     <button
@@ -111,20 +189,20 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
                       )}
                     >
                       {active && <span aria-hidden="true" className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-primary dark:bg-amber-400" />}
-                      <span className={cn("mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border font-mono text-xs font-bold", v.version === category.version ? "border-primary bg-primary text-primary-foreground dark:border-amber-400 dark:bg-amber-400 dark:text-[#0d1522]" : "border-border bg-muted text-muted-foreground")}>
+                      <span className={cn("mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border font-mono text-xs font-bold", v.version === currentVersionNumber ? "border-primary bg-primary text-primary-foreground dark:border-amber-400 dark:bg-amber-400 dark:text-[#0d1522]" : "border-border bg-muted text-muted-foreground")}>
                         v{v.version}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-semibold text-foreground">{v.version === 1 ? "Initial version" : `Version ${v.version}`}</span>
-                          {v.version === category.version && (
+                          {v.version === currentVersionNumber && (
                             <span className="rounded-full bg-emerald-50 px-2 py-px text-[10px] font-bold tracking-wider text-emerald-800 uppercase dark:bg-emerald-950/50 dark:text-emerald-300">Current</span>
                           )}
                         </span>
                         <span className="block text-xs text-muted-foreground" title={formatDateTime(v.createdAt)}>
-                          {formatRelative(v.createdAt)} · {v.createdBy}
+                          {formatRelative(v.createdAt)} · {author}
                         </span>
-                        <span className="mt-1 block truncate text-xs text-foreground/80">{v.changes[0]}{v.changes.length > 1 ? ` +${v.changes.length - 1} more` : ""}</span>
+                        <span className="mt-1 block truncate text-xs text-foreground/80">{firstChange}{extraChangesCount > 0 ? ` +${extraChangesCount} more` : ""}</span>
                         <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                           <FileText className="size-3" aria-hidden="true" />
                           {used} request{used === 1 ? "" : "s"} submitted on this version
@@ -148,13 +226,20 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
                     Version {selected.version} {isCurrent && <span className="ml-1 text-sm font-normal text-emerald-700 dark:text-emerald-300">· current</span>}
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">
-                    Saved {formatDateTime(selected.createdAt)} by {selected.createdBy}
+                    Saved {formatDateTime(selected.createdAt)} by {getActorName(selected.createdBy)}
                   </p>
                 </div>
                 {!isCurrent && (
-                  <Button variant="outline" size="sm" onClick={() => setConfirming(selected.version)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setRestoreNote(`Restored from v${selected.version}`);
+                      setConfirming(selected.version);
+                    }}
+                  >
                     <RotateCcw />
-                    Restore as v{category.version + 1}
+                    Restore as v{currentVersionNumber + 1}
                   </Button>
                 )}
               </div>
@@ -173,7 +258,7 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
                   {previous ? `Changes from v${previous.version}` : "What this version contains"}
                 </p>
                 <ul className="space-y-1.5">
-                  {selected.changes.map((c, i) => {
+                  {changeList.map((c, i) => {
                     const tone = changeTone(c);
                     const CI = tone.icon;
                     return (
@@ -191,21 +276,34 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
           </Card>
 
           <Card className="shadow-2xs">
-            <CardHeader className="border-b border-border/70 pb-3">
-              <CardTitle className="font-heading text-lg font-medium">Form as residents saw it</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Standard project information first, then the {selected.fields.length} configured field{selected.fields.length === 1 ? "" : "s"}.
-              </p>
+            <CardHeader className="flex flex-col gap-2 border-b border-border/70 pb-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="font-heading text-lg font-medium">Form as residents saw it</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Standard project information first, then the {selected.fields.length} configured field{selected.fields.length === 1 ? "" : "s"}.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                nativeButton={false}
+                render={<Link href={`/categories/${category.id}?v=${selected.version}`} />}
+              >
+                <Eye className="size-3.5" />
+                Full resident view
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4 pt-5">
-              <div className="flex flex-wrap gap-2 rounded-xl border border-border bg-muted/30 p-3">
-                {baseProjectFields.map((f) => (
-                  <span key={f.id} className="inline-flex items-center rounded-full border border-border bg-card px-2.5 py-1 text-xs">
-                    {f.label}
-                    {f.required && <span className="ml-0.5 font-bold text-red-600 dark:text-red-400">*</span>}
-                  </span>
-                ))}
-              </div>
+              {commonFields.length > 0 && (
+                <div className="flex flex-wrap gap-2 rounded-xl border border-border bg-muted/30 p-3">
+                  {commonFields.map((f) => (
+                    <span key={f.id} className="inline-flex items-center rounded-full border border-border bg-card px-2.5 py-1 text-xs">
+                      {f.label}
+                      {f.required && <span className="ml-0.5 font-bold text-red-600 dark:text-red-400">*</span>}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {selected.fields.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">No additional fields in this version.</p>}
               <ol className="space-y-2.5">
@@ -215,7 +313,7 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
                   const state = diff.get(f.id);
                   return (
                     <li
-                      key={f.id}
+                      key={f.id || i}
                       className={cn(
                         "flex gap-3 rounded-xl border bg-card p-3.5",
                         state === "added" ? "border-emerald-300/80 bg-emerald-50/60 dark:border-emerald-800 dark:bg-emerald-950/20" : state === "changed" ? "border-amber-300/80 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-950/20" : "border-border"
@@ -268,21 +366,40 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
         open={confirming !== null}
         onOpenChange={(o) => !o && setConfirming(null)}
         title={`Restore v${confirming} as a new version?`}
-        description={`This creates v${category.version + 1} with the form exactly as it was in v${confirming}. Version history is never overwritten, existing requests keep the version they were submitted on, and only new requests use the restored form.`}
+        description={`This creates v${currentVersionNumber + 1} with the form exactly as it was in v${confirming}. Version history is never overwritten, existing requests keep the version they were submitted on, and only new requests use the restored form.`}
         confirmLabel="Restore as new version"
         loading={restore.isPending}
         onConfirm={() => {
           if (confirming === null) return;
           const from = confirming;
           restore.mutate(
-            { id: category.id, version: from },
+            {
+              id: category.id,
+              version: from,
+              payload: {
+                expectedVersion: currentVersionNumber,
+                note: restoreNote || undefined,
+              },
+            },
             {
               onSuccess: (updated) => {
-                toast.success("Version restored", `v${from} is now the current form as v${updated.version}.`);
+                const nextVer = updated.currentVersion ?? updated.version;
+                toast.success("Version restored", `v${from} is now the current form as v${nextVer}.`);
                 setConfirming(null);
-                set({ v: String(updated.version) });
+                set({ v: String(nextVer) });
               },
-              onError: (e: Error) => toast.error("Could not restore", e.message),
+              onError: (e: any) => {
+                const code = e?.response?.data?.error?.code || e?.code;
+                const msg = e?.response?.data?.message || e?.message || "Could not restore version";
+                if (code === "STALE_CATEGORY_VERSION") {
+                  toast.error(
+                    "Version conflict",
+                    "A newer version of this category exists. Please refresh and retry."
+                  );
+                } else {
+                  toast.error("Could not restore", msg);
+                }
+              },
             }
           );
         }}

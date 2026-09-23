@@ -10,8 +10,25 @@ export interface SendResetPayload {
   userId: string;
 }
 
-export async function sendPasswordReset({ userId }: SendResetPayload): Promise<void> {
-  await axiosInstance.post(`/admin/accounts/${userId}/password-reset-requests`);
+export async function sendPasswordReset({ userKind, userId }: SendResetPayload): Promise<void> {
+  const origin =
+    userKind === "reviewer"
+      ? process.env.NEXT_PUBLIC_REVIEWER_APP_URL ||
+        process.env.NEXT_PUBLIC_REVIEWER_URL ||
+        (typeof window !== "undefined" ? window.location.origin : "http://localhost:3001")
+      : process.env.NEXT_PUBLIC_RESIDENT_APP_URL ||
+        process.env.NEXT_PUBLIC_RESIDENT_URL ||
+        (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
+
+  await axiosInstance.post(
+    `/admin/accounts/${userId}/password-reset-requests`,
+    {},
+    {
+      headers: {
+        "x-frontend-origin": origin,
+      },
+    }
+  );
 }
 
 export interface SetPasswordPayload {

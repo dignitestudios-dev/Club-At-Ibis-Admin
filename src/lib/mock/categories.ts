@@ -67,6 +67,7 @@ function category(
     description,
     status: "active",
     fields: current,
+    currentVersion: version,
     version,
     versions,
     createdAt,

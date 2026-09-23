@@ -160,7 +160,7 @@ export default function ProfilePage() {
         <div className="space-y-6 animate-in fade-in duration-300">
         <Card className="shadow-2xs">
           <CardHeader className="border-b border-border/70 pb-3">
-            <CardTitle className="font-heading text-lg font-medium">Account details</CardTitle>
+            <CardTitle className="font-heading text-lg font-medium">Account Details</CardTitle>
           </CardHeader>
           <CardContent className="pt-5">
             <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
@@ -180,7 +180,7 @@ export default function ProfilePage() {
         </Card>
         <Card className="shadow-2xs">
           <CardHeader className="border-b border-border/70 pb-3">
-            <CardTitle className="font-heading text-lg font-medium">Change password</CardTitle>
+            <CardTitle className="font-heading text-lg font-medium">Change Password</CardTitle>
             <p className="text-xs text-muted-foreground">Choose a strong password you don&apos;t use anywhere else.</p>
           </CardHeader>
           <CardContent className="pt-5">
@@ -195,7 +195,7 @@ export default function ProfilePage() {
             Account changes you made: activating or deactivating residents and reviewers, password-reset links, reviewer creation and updates, and default-reviewer changes.
           </p>
           {mine.length === 0 ? (
-            <EmptyState icon={ScrollText} title="No activity yet" description="Account-management actions you perform will be listed here." />
+            <EmptyState icon={ScrollText} title="No Activity Yet" description="Account-management actions you perform will be listed here." />
           ) : (
             <ActivityList entries={mine} />
           )}

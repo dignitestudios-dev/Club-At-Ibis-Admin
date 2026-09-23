@@ -64,34 +64,53 @@ export interface ApiPagination {
   totalPages: number;
 }
 
+export interface ReviewerMetrics {
+  total: number;
+  defaultReviewers: number;
+  pendingInvite: number;
+  inactive: number;
+}
+
 export interface ReviewersPageResult {
   reviewers: PublicReviewer[];
+  metrics?: ReviewerMetrics;
   pagination: ApiPagination;
 }
 
-/** Real server-side pagination — the request's `page`/`limit`/`search`/`status` match what the table actually shows. */
+/** Real server-side pagination — the request's `page`/`limit`/`search`/`status`/`isDefaultReviewer` match what the table actually shows. */
 export async function getReviewersPage({
   page = 1,
   limit = 50,
   search = "",
   status,
+  isDefaultReviewer,
 }: {
   page?: number;
   limit?: number;
   search?: string;
   status?: string;
+  isDefaultReviewer?: boolean | string;
 }): Promise<ReviewersPageResult> {
   const normalizedStatus = status && status.toUpperCase() !== "ALL" ? status.toUpperCase() : undefined;
+  let normalizedDefault: boolean | undefined = undefined;
+  if (isDefaultReviewer === true || isDefaultReviewer === "true") {
+    normalizedDefault = true;
+  } else if (isDefaultReviewer === false || isDefaultReviewer === "false") {
+    normalizedDefault = false;
+  }
+
   const { data } = await axiosInstance.get("/admin/reviewers", {
     params: {
       page,
       limit,
       search: search.trim() || undefined,
       status: normalizedStatus,
+      isDefaultReviewer: normalizedDefault,
     },
   });
   return {
     reviewers: (data.data.reviewers as ReviewerApiUser[]).map(toPublicReviewer),
+    metrics: data.data?.metrics,
     pagination: data.pagination,
   };
 }
@@ -133,16 +152,44 @@ export async function getReviewer(id: string): Promise<ReviewerDetail> {
   };
 }
 
+/**
+ * Resolves the Reviewer frontend origin to be sent in the `x-frontend-origin` header.
+ * Allows the backend to construct action links (such as invitation & create-password links)
+ * pointing to the Reviewer web app rather than the Admin portal.
+ */
+export function getReviewerFrontendOrigin(): string {
+  const envOrigin =
+    process.env.NEXT_PUBLIC_REVIEWER_APP_URL ||
+    process.env.NEXT_PUBLIC_REVIEWER_URL ||
+    process.env.NEXT_PUBLIC_REVIEWER_FRONTEND_ORIGIN;
+  if (envOrigin && envOrigin.trim()) {
+    return envOrigin.trim();
+  }
+  if (typeof window !== "undefined" && window.location.origin) {
+    return window.location.origin;
+  }
+  return "http://localhost:3001";
+}
+
 export async function createReviewer(payload: ReviewerFormPayload): Promise<PublicReviewer> {
   const { firstName, lastName } = splitName(payload.name);
-  const { data } = await axiosInstance.post("/admin/reviewer-invitations", {
-    employeeNumber: payload.employeeNumber.trim(),
-    firstName,
-    lastName,
-    email: payload.email.trim(),
-    designation: payload.designation?.trim() || undefined,
-    isDefaultReviewer: payload.receiveNewRequests,
-  });
+  const reviewerOrigin = getReviewerFrontendOrigin();
+  const { data } = await axiosInstance.post(
+    "/admin/reviewer-invitations",
+    {
+      employeeNumber: payload.employeeNumber.trim(),
+      firstName,
+      lastName,
+      email: payload.email.trim(),
+      designation: payload.designation?.trim() || undefined,
+      isDefaultReviewer: payload.receiveNewRequests,
+    },
+    {
+      headers: {
+        "x-frontend-origin": reviewerOrigin,
+      },
+    }
+  );
   return toPublicReviewer(data.data.user);
 }
 
@@ -199,5 +246,14 @@ export async function setLoginEnabled(id: string, enabled: boolean, replacementI
 }
 
 export async function resendInvitation(id: string): Promise<void> {
-  await axiosInstance.post(`/admin/reviewer-invitations/${id}/resend`);
+  const reviewerOrigin = getReviewerFrontendOrigin();
+  await axiosInstance.post(
+    `/admin/reviewer-invitations/${id}/resend`,
+    {},
+    {
+      headers: {
+        "x-frontend-origin": reviewerOrigin,
+      },
+    }
+  );
 }

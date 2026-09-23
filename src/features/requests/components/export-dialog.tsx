@@ -62,7 +62,7 @@ export function ExportDialog({
           <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
             <FileSpreadsheet className="size-5" aria-hidden="true" />
           </div>
-          <DialogTitle className="font-heading text-xl font-medium">Export requests to CSV</DialogTitle>
+          <DialogTitle className="font-heading text-xl font-medium">Export Requests to CSV</DialogTitle>
           <DialogDescription>
             Exports <span className="font-semibold text-foreground">all {requests.length} matching row{requests.length === 1 ? "" : "s"}</span>
             {" "}— not just the page you are looking at.

@@ -29,12 +29,12 @@ export default function ResetPasswordForm({ token }: { token: string }) {
   if (!token) {
     return (
       <div className="flex-1 px-6 py-8 sm:px-8 space-y-4 text-center">
-        <h1 className="font-heading text-2xl font-medium text-foreground">Link expired</h1>
+        <h1 className="font-heading text-2xl font-medium text-foreground">Link Expired</h1>
         <p className="text-sm text-muted-foreground">
           This reset link is missing, invalid or has already been used. Request another one.
         </p>
         <Link href="/auth/forgot-password" className="text-sm font-medium text-primary hover:underline dark:text-amber-300">
-          Request a new link
+          Request a New Link
         </Link>
       </div>
     );
@@ -43,7 +43,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
   return (
     <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 sm:px-8 space-y-6">
       <div className="space-y-1.5">
-        <h1 className="font-heading text-2xl font-medium text-foreground">Set a new password</h1>
+        <h1 className="font-heading text-2xl font-medium text-foreground">Set a New Password</h1>
         <p className="text-sm text-muted-foreground">Choose a strong password for your administrator account.</p>
       </div>
       <form
@@ -67,7 +67,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
             control={control}
             render={({ field }) => (
               <Field data-invalid={!!errors.password}>
-                <FieldLabel htmlFor="password">New password<RequiredMark /></FieldLabel>
+                <FieldLabel htmlFor="password">New Password<RequiredMark /></FieldLabel>
                 <FieldContent>
                   <PasswordInput id="password" showStrength maxLength={128} disabled={isPending} value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
                   <FieldError errors={errors.password ? [errors.password] : []} />
@@ -80,7 +80,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
             control={control}
             render={({ field }) => (
               <Field data-invalid={!!errors.confirmPassword}>
-                <FieldLabel htmlFor="confirmPassword">Confirm password<RequiredMark /></FieldLabel>
+                <FieldLabel htmlFor="confirmPassword">Confirm Password<RequiredMark /></FieldLabel>
                 <FieldContent>
                   <PasswordInput id="confirmPassword" maxLength={128} disabled={isPending} value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
                   <FieldError errors={errors.confirmPassword ? [errors.confirmPassword] : []} />
@@ -90,7 +90,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
           />
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending && <Spinner className="size-4" />}
-            Update password
+            Update Password
           </Button>
         </FieldGroup>
       </form>

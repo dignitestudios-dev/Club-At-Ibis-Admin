@@ -60,7 +60,7 @@ export function SendResetDialog({
               <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
                 <KeyRound className="size-5" aria-hidden="true" />
               </div>
-              <DialogTitle className="font-heading text-xl font-medium">Send password-reset link?</DialogTitle>
+              <DialogTitle className="font-heading text-xl font-medium">Send Password-Reset Link?</DialogTitle>
               <DialogDescription>
                 {target.name} will receive an email with a secure link to set a new password. Their current password stays valid until they use it.
               </DialogDescription>
@@ -84,7 +84,7 @@ export function SendResetDialog({
               </Button>
               <Button onClick={handleSend} disabled={send.isPending}>
                 {send.isPending ? <Spinner className="size-4" /> : <Mail className="size-4" />}
-                Send reset link
+                Send Reset Link
               </Button>
             </DialogFooter>
           </>
@@ -94,7 +94,7 @@ export function SendResetDialog({
               <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
                 <CheckCircle2 className="size-5" aria-hidden="true" />
               </div>
-              <DialogTitle className="font-heading text-xl font-medium">Reset link sent</DialogTitle>
+              <DialogTitle className="font-heading text-xl font-medium">Reset Link Sent</DialogTitle>
               <DialogDescription>
                 {target.name} can now set a new password. This action was recorded in the activity log.
               </DialogDescription>

@@ -33,8 +33,11 @@ export const NOTIFICATION_LABEL: Record<AdminNotificationType, string> = Object.
   Object.entries(CONFIG).map(([k, v]) => [k, v.label])
 ) as Record<AdminNotificationType, string>;
 
-export function NotificationIcon({ type, className }: { type: AdminNotificationType; className?: string }) {
-  const { icon: Icon, className: tone } = CONFIG[type];
+const FALLBACK_CONFIG = CONFIG.action_required;
+
+export function NotificationIcon({ type, className }: { type: AdminNotificationType | string; className?: string }) {
+  const conf = (CONFIG as Record<string, { icon: LucideIcon; className: string; label: string }>)[type] ?? FALLBACK_CONFIG;
+  const { icon: Icon, className: tone } = conf;
   return (
     <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl border", tone, className)}>
       <Icon className="size-4" aria-hidden="true" />

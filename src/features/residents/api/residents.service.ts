@@ -46,8 +46,15 @@ export interface ApiPagination {
   totalPages: number;
 }
 
+export interface ResidentMetrics {
+  total: number;
+  active: number;
+  inactive: number;
+}
+
 export interface ResidentsPageResult {
   residents: Resident[];
+  metrics?: ResidentMetrics;
   pagination: ApiPagination;
 }
 
@@ -74,6 +81,7 @@ export async function getResidentsPage({
   });
   return {
     residents: (data.data.residents as ResidentApiUser[]).map(toResident),
+    metrics: data.data?.metrics,
     pagination: data.pagination,
   };
 }

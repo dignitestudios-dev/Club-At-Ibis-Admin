@@ -74,7 +74,7 @@ export function AssignReviewerDialog({
           <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
             <UserRoundCheck className="size-5" aria-hidden="true" />
           </div>
-          <DialogTitle className="font-heading text-xl font-medium">{current ? "Reassign request" : "Assign request"}</DialogTitle>
+          <DialogTitle className="font-heading text-xl font-medium">{current ? "Reassign Request" : "Assign Request"}</DialogTitle>
           <DialogDescription>
             <span className="font-mono font-semibold text-foreground">{request.code}</span> · {request.categoryName}.{" "}
             {current

@@ -121,39 +121,74 @@ interface CategoryField {
 
 type CategoryStatus = "active" | "archived";
 
+interface CategoryActor {
+  id: string | null;
+  role: string;
+  displayName: string;
+}
+
 interface CategoryVersion {
+  id?: string;
+  categoryId?: string;
   version: number;
   name: string;
   description: string;
   fields: CategoryField[];
   createdAt: string;
-  createdBy: string;
+  createdBy: CategoryActor | string;
+  /** Machine-readable diff objects from backend. */
+  changes?: Array<Record<string, unknown> | string>;
   /** Human-readable summary of what changed from the previous version. */
-  changes: string[];
-  note?: string;
+  changeSummaries?: string[];
+  restoredFromVersion?: number | null;
+  note?: string | null;
 }
 
 interface Category {
   id: string;
+  slug?: string;
   name: string;
   description: string;
   status: CategoryStatus;
   fields: CategoryField[];
   /** Incremented on every saved edit. New requests snapshot the version. */
+  currentVersion: number;
+  /** Compatibility alias for currentVersion */
   version: number;
-  /** Every version ever saved, oldest first. The last entry is the current one. */
-  versions: CategoryVersion[];
+  /** Every version ever saved, newest first when loaded from versions endpoint. */
+  versions?: CategoryVersion[];
+  createdBy?: CategoryActor | string;
   createdAt: string;
   updatedAt: string;
-  archivedAt?: string;
+  archivedAt?: string | null;
+  currentForm?: CategoryVersion;
+}
+
+interface CommonForm {
+  key: string;
+  currentVersion: number;
+  fields: CategoryField[];
+  note?: string | null;
+  createdBy?: CategoryActor | string;
+  createdAt: string;
+}
+
+interface VersionComparison {
+  categoryId: string;
+  fromVersion: number;
+  toVersion: number;
+  changes: Array<Record<string, unknown>>;
+  summaries: string[];
 }
 
 interface CategoryDraftPayload {
   name: string;
   description: string;
-  fields: CategoryField[];
+  fields: Array<Omit<CategoryField, "id" | "order"> & { id?: string; order?: number }>;
   /** Optional note stored with the new version. */
   note?: string;
+  /** Required on updates to prevent concurrent overwrite collisions. */
+  expectedVersion?: number;
 }
 
 /* ------------------------------------------------------------------ */

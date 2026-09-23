@@ -205,11 +205,11 @@ export default function DashboardOverview() {
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Button variant="outline" nativeButton={false} render={<Link href="/requests" />}>
             <FileText className="size-4" />
-            All requests &amp; export
+            All Requests &amp; Export
           </Button>
           <Button nativeButton={false} render={<Link href="/categories/new" />} className="shadow-xs">
             <LayoutTemplate className="size-4" />
-            New category
+            New Category
           </Button>
         </div>
       </div>
@@ -219,7 +219,7 @@ export default function DashboardOverview() {
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 id="attention-heading" className="font-heading text-xl font-medium text-foreground">
-              Needs attention
+              Needs Attention
             </h2>
             <p className="text-xs text-muted-foreground">Pending work stays here until the reviewer or resident resolves it.</p>
           </div>
@@ -277,7 +277,7 @@ export default function DashboardOverview() {
         <div className="flex items-end justify-between">
           <div>
             <h2 id="status-heading" className="font-heading text-xl font-medium text-foreground">
-              Requests by current status
+              Requests by Current Status
             </h2>
             <p className="text-xs text-muted-foreground">Select a status to open the filtered request list.</p>
           </div>
@@ -325,11 +325,11 @@ export default function DashboardOverview() {
       <section>
         <Card className="shadow-2xs">
           <CardHeader className="border-b border-border/70 pb-3">
-            <CardTitle className="font-heading text-lg font-medium">Recent system activity</CardTitle>
+            <CardTitle className="font-heading text-lg font-medium">Recent System Activity</CardTitle>
             <p className="text-xs text-muted-foreground">Account, category, routing and security changes</p>
             <CardAction>
               <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/activity" />}>
-                Full log
+                Full Log
                 <ArrowRight className="size-3.5" />
               </Button>
             </CardAction>

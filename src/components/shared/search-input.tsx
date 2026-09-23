@@ -28,7 +28,7 @@ export function SearchInput({
         aria-label={ariaLabel ?? placeholder}
         className="bg-card pr-9 pl-9"
       />
-      {value && (
+      {value && value.trim().length > 0 && (
         <button
           type="button"
           onClick={() => onChange("")}

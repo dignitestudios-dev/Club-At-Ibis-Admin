@@ -47,7 +47,7 @@ export function InvitationSentDialog({
           <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
             <MailCheck className="size-5" aria-hidden="true" />
           </div>
-          <DialogTitle className="font-heading text-xl font-medium">{resent ? "Invitation resent" : "Invitation sent"}</DialogTitle>
+          <DialogTitle className="font-heading text-xl font-medium">{resent ? "Invitation Resent" : "Invitation Sent"}</DialogTitle>
           <DialogDescription>
             An invitation link was emailed to <span className="font-semibold text-foreground">{target?.email}</span>. {target?.name.split(" ")[0]} opens it, creates their own password, and can then sign in. You never see or set that password.
           </DialogDescription>
@@ -63,7 +63,7 @@ export function InvitationSentDialog({
             <p>
               You&apos;ve been added as an Architectural Review Board reviewer. Use the button below to create your password and activate your account. The link expires in 72 hours and can only be used once.
             </p>
-            <span className="inline-block rounded-md bg-[#112636] px-3.5 py-2 text-[11px] font-semibold text-white">Create your password</span>
+            <span className="inline-block rounded-md bg-[#112636] px-3.5 py-2 text-[11px] font-semibold text-white">Create Your Password</span>
           </div>
         </div>
 
@@ -86,11 +86,11 @@ export function ReviewerFormSheet({
   reviewer?: PublicReviewer | null;
 }) {
   const toast = useToast();
-  const { data: reviewers } = useReviewers();
+  const editing = !!reviewer;
+  const { data: reviewers } = useReviewers(100, { enabled: open && !editing });
   const create = useCreateReviewer();
   const update = useUpdateReviewer();
   const [invited, setInvited] = useState<{ name: string; email: string } | null>(null);
-  const editing = !!reviewer;
   const isFirstReviewer = !editing && (reviewers ?? []).filter((r) => r.receiveNewRequests && r.loginEnabled).length === 0;
 
   const {
@@ -150,7 +150,7 @@ export function ReviewerFormSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md">
           <SheetHeader className="border-b border-border px-6 py-5">
-            <SheetTitle className="font-heading text-xl font-medium">{editing ? "Edit reviewer" : "Add reviewer"}</SheetTitle>
+            <SheetTitle className="font-heading text-xl font-medium">{editing ? "Edit Reviewer" : "Add Reviewer"}</SheetTitle>
             <SheetDescription>
               {editing
                 ? "Update the reviewer's profile details. Account status is managed from the reviewers list."
@@ -162,7 +162,7 @@ export function ReviewerFormSheet({
             <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5 custom-scrollbar">
               <FieldGroup>
                 <Field data-invalid={!!errors.name}>
-                  <FieldLabel htmlFor="rev-name">Full name<RequiredMark /></FieldLabel>
+                  <FieldLabel htmlFor="rev-name">Full Name<RequiredMark /></FieldLabel>
                   <FieldContent>
                     <Input id="rev-name" placeholder="e.g. Jordan Whitfield" maxLength={100} disabled={pending} aria-invalid={!!errors.name} {...register("name")} />
                     <FieldError errors={errors.name ? [errors.name] : []} />
@@ -170,7 +170,7 @@ export function ReviewerFormSheet({
                 </Field>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field data-invalid={!!errors.employeeNumber}>
-                    <FieldLabel htmlFor="rev-emp">Employee number{!editing && <RequiredMark />}</FieldLabel>
+                    <FieldLabel htmlFor="rev-emp">Employee Number{!editing && <RequiredMark />}</FieldLabel>
                     <FieldContent>
                       <Input id="rev-emp" placeholder="EMP-1050" maxLength={50} disabled={pending} aria-invalid={!!errors.employeeNumber} {...register("employeeNumber")} />
                       <FieldError errors={errors.employeeNumber ? [errors.employeeNumber] : []} />

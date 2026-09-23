@@ -93,7 +93,7 @@ export default function PasswordResetPage() {
         {/* Selector */}
         <Card className="shadow-2xs lg:col-span-2">
           <CardHeader className="border-b border-border/70 pb-3">
-            <CardTitle className="font-heading text-lg font-medium">Select an account</CardTitle>
+            <CardTitle className="font-heading text-lg font-medium">Select an Account</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-5">
             <SegmentedTabs
@@ -143,11 +143,11 @@ export default function PasswordResetPage() {
             <div className="grid gap-2 sm:grid-cols-2">
               <Button disabled={!selected} onClick={() => setDialogTarget(selected)}>
                 <Mail className="size-4" />
-                Send reset link
+                Send Reset Link
               </Button>
               <Button variant="outline" disabled={!selected || invitePending} onClick={() => setPasswordTarget(selected)}>
                 <LockKeyhole className="size-4" />
-                Set new password
+                Set New Password
               </Button>
             </div>
             {invitePending && <p className="text-xs text-muted-foreground">This reviewer hasn&apos;t accepted their invitation yet, so a password can&apos;t be set.</p>}
@@ -157,7 +157,7 @@ export default function PasswordResetPage() {
         {/* History */}
         <Card className="overflow-hidden shadow-2xs lg:col-span-3">
           <CardHeader className="border-b border-border/70 pb-3">
-            <CardTitle className="font-heading text-lg font-medium">Reset history</CardTitle>
+            <CardTitle className="font-heading text-lg font-medium">Reset History</CardTitle>
             <p className="text-xs text-muted-foreground">Every reset initiation, who started it, and where it stands.</p>
           </CardHeader>
           <CardContent className="p-0">

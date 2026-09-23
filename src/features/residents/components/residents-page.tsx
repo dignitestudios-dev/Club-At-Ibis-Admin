@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ResidentStatusChip } from "@/features/residents/components/resident-status-chip";
 import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
 import { SendResetDialog, type ResetTarget } from "@/features/password-reset/components/send-reset-dialog";
-import { useResidents, useResidentsPage, useSetResidentActive } from "@/hooks/use-admin-data";
+import { useResidentsPage, useSetResidentActive } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
@@ -45,10 +45,11 @@ export default function ResidentsPage() {
   const visible = pageResult?.residents ?? [];
   const total = pageResult?.pagination.total ?? 0;
 
-  const { data: allResidents } = useResidents();
-  const totalCount = allResidents?.length ?? total;
-  const activeCount = allResidents ? allResidents.filter((r) => r.active).length : "—";
-  const inactiveCount = allResidents ? allResidents.filter((r) => !r.active).length : "—";
+  // Stat counts provided directly in the API response metrics
+  const metrics = pageResult?.metrics;
+  const totalCount = metrics?.total ?? total;
+  const activeCount = metrics ? metrics.active : (isLoading ? "—" : 0);
+  const inactiveCount = metrics ? metrics.inactive : (isLoading ? "—" : 0);
 
   const hasFilters = status !== "all" || search.trim() !== "";
 
@@ -102,9 +103,9 @@ export default function ResidentsPage() {
           value={status}
           onChange={(s) => set({ status: s, page: "1" })}
           options={[
-            { label: "All statuses", value: "all" },
+            { label: "All Statuses", value: "all" },
             { label: "Active", value: "ACTIVE" },
-            { label: "Pending verification", value: "PENDING_EMAIL_VERIFICATION" },
+            { label: "Pending Verification", value: "PENDING_EMAIL_VERIFICATION" },
             { label: "Inactive", value: "DISABLED" },
           ]}
           className="w-full sm:w-48"
@@ -120,7 +121,7 @@ export default function ResidentsPage() {
             className="text-xs text-muted-foreground hover:text-foreground h-9 px-2.5"
           >
             <RotateCcw className="size-3.5 mr-1" />
-            Reset filters
+            Reset Filters
           </Button>
         )}
       </div>
@@ -132,7 +133,7 @@ export default function ResidentsPage() {
           ))}
         </div>
       ) : visible.length === 0 ? (
-        <EmptyState icon={Users} title="No residents found" description="Try a different name, resident ID or email." />
+        <EmptyState icon={Users} title="No Residents Found" description="Try a different name, resident ID or email." />
       ) : (
         <div className="space-y-4">
           <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
@@ -178,16 +179,16 @@ export default function ResidentsPage() {
                           <DropdownMenuContent align="end" className="w-52">
                             <DropdownMenuItem disabled={!res.active} onClick={() => setResetTarget({ kind: "resident", id: res.id, name, email: res.email })}>
                               <KeyRound />
-                              Send password reset
+                              Send Password Reset
                             </DropdownMenuItem>
                             <DropdownMenuItem disabled={!res.active} onClick={() => setPasswordTarget({ kind: "resident", id: res.id, name, email: res.email })}>
                               <LockKeyhole />
-                              Change password
+                              Change Password
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem variant={res.active ? "destructive" : "default"} onClick={() => setToggling(res)}>
                               <Power />
-                              {res.active ? "Deactivate account" : "Activate account"}
+                              {res.active ? "Deactivate Account" : "Activate Account"}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

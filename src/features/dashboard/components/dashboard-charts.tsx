@@ -29,7 +29,7 @@ export function DashboardCharts({ data }: { data: DashboardChartData }) {
     <section className="grid gap-5 lg:grid-cols-5">
       <Card className="shadow-2xs lg:col-span-2">
         <CardHeader className="border-b border-border/70 pb-3">
-          <CardTitle className="font-heading text-lg font-medium">Pipeline health</CardTitle>
+          <CardTitle className="font-heading text-lg font-medium">Pipeline Health</CardTitle>
           <p className="text-xs text-muted-foreground">
             {data.inProgress} in progress · {data.total} all-time
           </p>
@@ -59,7 +59,7 @@ export function DashboardCharts({ data }: { data: DashboardChartData }) {
 
       <Card className="shadow-2xs lg:col-span-3">
         <CardHeader className="border-b border-border/70 pb-3">
-          <CardTitle className="font-heading text-lg font-medium">Submissions · last 6 months</CardTitle>
+          <CardTitle className="font-heading text-lg font-medium">Submissions · Last 6 Months</CardTitle>
           <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
             {[
               ["#059669", "Approved / completed"],
@@ -94,7 +94,7 @@ export function DashboardInsights({
     <section className="grid gap-5 lg:grid-cols-3">
       <Card className="shadow-2xs">
         <CardHeader className="border-b border-border/70 pb-3">
-          <CardTitle className="font-heading text-lg font-medium">Reviewer workload</CardTitle>
+          <CardTitle className="font-heading text-lg font-medium">Reviewer Workload</CardTitle>
           <p className="text-xs text-muted-foreground">Active requests per assigned reviewer</p>
           <CardAction>
             <Link href="/reviewers" className="text-xs font-medium text-primary hover:underline dark:text-amber-300">
@@ -130,7 +130,7 @@ export function DashboardInsights({
 
       <Card className="shadow-2xs">
         <CardHeader className="border-b border-border/70 pb-3">
-          <CardTitle className="font-heading text-lg font-medium">Popular categories</CardTitle>
+          <CardTitle className="font-heading text-lg font-medium">Popular Categories</CardTitle>
           <p className="text-xs text-muted-foreground">Requests submitted, all time</p>
           <CardAction>
             <Link href="/categories" className="text-xs font-medium text-primary hover:underline dark:text-amber-300">
@@ -145,11 +145,11 @@ export function DashboardInsights({
 
       <Card className="shadow-2xs">
         <CardHeader className="border-b border-border/70 pb-3">
-          <CardTitle className="font-heading text-lg font-medium">Oversight alerts</CardTitle>
+          <CardTitle className="font-heading text-lg font-medium">Oversight Alerts</CardTitle>
           <p className="text-xs text-muted-foreground">Latest activity that reached you</p>
           <CardAction>
             <Link href="/notifications" className="text-xs font-medium text-primary hover:underline dark:text-amber-300">
-              View all
+              View All
             </Link>
           </CardAction>
         </CardHeader>

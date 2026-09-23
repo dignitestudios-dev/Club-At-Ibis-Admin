@@ -117,8 +117,8 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Active requests" value="N/A" icon={Clock} accent="blue" />
         <StatCard label="Completed" value="N/A" icon={CheckCircle2} accent="emerald" />
-        <StatCard label="Total handled" value="N/A" icon={UserCog} accent="navy" />
-        <StatCard label="Incoming list" value="N/A" icon={Route} accent="gold" />
+        <StatCard label="Total Handled" value="N/A" icon={UserCog} accent="navy" />
+        <StatCard label="Incoming List" value="N/A" icon={Route} accent="gold" />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
@@ -166,7 +166,7 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
 
         <Card className="flex max-h-[26rem] flex-col overflow-hidden shadow-2xs lg:col-span-2">
           <CardHeader className="border-b border-border/70 pb-3">
-            <CardTitle className="font-heading text-lg font-medium">Account activity</CardTitle>
+            <CardTitle className="font-heading text-lg font-medium">Account Activity</CardTitle>
             <p className="text-xs text-muted-foreground">The most recent administrative changes recorded for this reviewer.</p>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 overflow-y-auto p-0 custom-scrollbar">
@@ -204,11 +204,11 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
 
       <Card className="overflow-hidden shadow-2xs">
         <CardHeader className="border-b border-border/70 pb-3">
-          <CardTitle className="font-heading text-lg font-medium">Assigned requests</CardTitle>
+          <CardTitle className="font-heading text-lg font-medium">Assigned Requests</CardTitle>
           <p className="text-xs text-muted-foreground">Everything this reviewer currently owns or previously handled.</p>
         </CardHeader>
         <CardContent>
-          <EmptyState icon={CheckCircle2} title="Not available yet" description="Requests aren't wired up to a backend yet, so this reviewer's assigned requests can't be shown here." />
+          <EmptyState icon={CheckCircle2} title="Not Available Yet" description="Requests aren't wired up to a backend yet, so this reviewer's assigned requests can't be shown here." />
         </CardContent>
       </Card>
 

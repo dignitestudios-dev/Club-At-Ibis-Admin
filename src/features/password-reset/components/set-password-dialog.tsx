@@ -69,7 +69,7 @@ export function SetPasswordDialog({
             <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
               <KeyRound className="size-5" aria-hidden="true" />
             </div>
-            <DialogTitle className="font-heading text-xl font-medium">Change password</DialogTitle>
+            <DialogTitle className="font-heading text-xl font-medium">Change Password</DialogTitle>
             <DialogDescription>Set a new password directly. The account owner is emailed that an administrator changed it.</DialogDescription>
           </DialogHeader>
 
@@ -85,7 +85,7 @@ export function SetPasswordDialog({
 
           <div className="space-y-1.5">
             <label htmlFor="sp-new" className="flex items-center text-sm font-medium text-foreground">
-              New password
+              New Password
               <RequiredMark />
             </label>
             <PasswordInput id="sp-new" showStrength autoComplete="new-password" maxLength={128} disabled={mutation.isPending} value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={touched && (tooShort || !isComplex)} />
@@ -94,7 +94,7 @@ export function SetPasswordDialog({
           </div>
           <div className="space-y-1.5">
             <label htmlFor="sp-confirm" className="flex items-center text-sm font-medium text-foreground">
-              Confirm new password
+              Confirm New Password
               <RequiredMark />
             </label>
             <PasswordInput id="sp-confirm" autoComplete="new-password" maxLength={128} disabled={mutation.isPending} value={confirm} onChange={(e) => setConfirm(e.target.value)} aria-invalid={touched && mismatch} />
@@ -112,7 +112,7 @@ export function SetPasswordDialog({
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending && <Spinner className="size-4" />}
-              Change password
+              Change Password
             </Button>
           </DialogFooter>
         </form>

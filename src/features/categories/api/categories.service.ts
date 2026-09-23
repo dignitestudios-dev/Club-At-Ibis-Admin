@@ -1,178 +1,242 @@
-import { db, delay } from "@/lib/mock/store";
-import { logActivity, currentAdminActor } from "@/lib/mock/activity";
-import { describeChanges } from "@/lib/category-diff";
+import axiosInstance from "@/lib/axios";
 
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
+export interface ApiPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
-function normaliseFields(fields: CategoryField[]): CategoryField[] {
-  return fields.map((f, i) => ({
-    ...f,
-    label: f.label.trim(),
-    helpText: f.helpText?.trim() ? f.helpText.trim() : undefined,
-    order: i + 1,
-  }));
+export interface CategoriesPageResult {
+  categories: Category[];
+  pagination: ApiPagination;
 }
 
-function assertUniqueName(categories: Category[], name: string, ignoreId?: string) {
-  if (
-    categories.some(
-      (c) => c.id !== ignoreId && c.name.trim().toLowerCase() === name.trim().toLowerCase()
-    )
-  ) {
-    throw new Error("A category with this name already exists.");
-  }
+export interface CategoryVersionsResult {
+  category: Category;
+  versions: CategoryVersion[];
 }
 
-export async function getCategories(): Promise<Category[]> {
-  return delay(db.getCategories(), 60);
+function toCategory(raw: any): Category {
+  const currentVersion = raw.currentVersion ?? raw.version ?? 1;
+  return {
+    id: raw.id || raw._id,
+    slug: raw.slug,
+    name: raw.name ?? "",
+    description: raw.description ?? "",
+    status: raw.status ?? "active",
+    currentVersion,
+    version: currentVersion,
+    fields: raw.fields ? raw.fields.map(toField) : (raw.currentForm?.fields ? raw.currentForm.fields.map(toField) : []),
+    versions: raw.versions ? raw.versions.map(toVersion) : undefined,
+    currentForm: raw.currentForm ? toVersion(raw.currentForm) : undefined,
+    createdBy: raw.createdBy,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+    archivedAt: raw.archivedAt ?? null,
+  };
 }
 
+function toField(f: any): CategoryField {
+  return {
+    id: f.id,
+    label: f.label ?? "",
+    type: f.type,
+    required: !!f.required,
+    helpText: f.helpText ?? undefined,
+    options: f.options ? [...f.options] : undefined,
+    accept: f.accept ? [...f.accept] : undefined,
+    multiple: f.multiple !== undefined ? !!f.multiple : undefined,
+    order: typeof f.order === "number" ? f.order : 0,
+  };
+}
+
+function toVersion(raw: any): CategoryVersion {
+  return {
+    id: raw.id || raw._id,
+    categoryId: raw.categoryId,
+    version: raw.version,
+    name: raw.name ?? "",
+    description: raw.description ?? "",
+    fields: raw.fields ? raw.fields.map(toField) : [],
+    note: raw.note ?? null,
+    changes: raw.changes ?? [],
+    changeSummaries: raw.changeSummaries ?? [],
+    restoredFromVersion: raw.restoredFromVersion ?? null,
+    createdBy: raw.createdBy,
+    createdAt: raw.createdAt,
+  };
+}
+
+function toCommonForm(raw: any): CommonForm {
+  return {
+    key: raw.key,
+    currentVersion: raw.currentVersion,
+    fields: raw.fields ? raw.fields.map(toField) : [],
+    note: raw.note ?? null,
+    createdBy: raw.createdBy,
+    createdAt: raw.createdAt,
+  };
+}
+
+/**
+ * Fetch the common/fixed form questions displayed at the top of every resident form.
+ */
+export async function getCommonForm(): Promise<CommonForm> {
+  const { data } = await axiosInstance.get("/admin/categories/common-form");
+  return toCommonForm(data.data.commonForm);
+}
+
+/**
+ * Paginated and filtered categories list from the backend.
+ */
+export async function getCategoriesPage({
+  page = 1,
+  limit = 20,
+  search = "",
+  status,
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: "active" | "archived";
+} = {}): Promise<CategoriesPageResult> {
+  const params: Record<string, unknown> = { page, limit };
+  if (search.trim()) params.search = search.trim();
+  if (status) params.status = status;
+
+  const { data } = await axiosInstance.get("/admin/categories", { params });
+  return {
+    categories: (data.data.categories as any[]).map(toCategory),
+    pagination: data.pagination,
+  };
+}
+
+/**
+ * Convenience helper to fetch all categories (up to limit) for dropdowns and pickers.
+ */
+export async function getCategories(limit = 100): Promise<Category[]> {
+  const result = await getCategoriesPage({ page: 1, limit });
+  return result.categories;
+}
+
+/**
+ * Fetch a single category by its ID along with its current form definition.
+ */
+export async function getCategory(categoryId: string): Promise<Category> {
+  const { data } = await axiosInstance.get(`/admin/categories/${categoryId}`);
+  return toCategory(data.data.category);
+}
+
+/**
+ * Create a new category and its form version 1.
+ */
 export async function createCategory(payload: CategoryDraftPayload): Promise<Category> {
-  const categories = db.getCategories();
-  assertUniqueName(categories, payload.name);
-  const now = new Date().toISOString();
-  let id = slugify(payload.name);
-  if (categories.some((c) => c.id === id)) id = `${id}-${Date.now().toString(36)}`;
-  const fields = normaliseFields(payload.fields);
-  const category: Category = {
-    id,
+  const body = {
     name: payload.name.trim(),
     description: payload.description.trim(),
-    status: "active",
-    fields,
-    version: 1,
-    versions: [
-      {
-        version: 1,
-        name: payload.name.trim(),
-        description: payload.description.trim(),
-        fields,
-        createdAt: now,
-        createdBy: currentAdminActor().name,
-        changes: ["Initial form"],
-        note: payload.note?.trim() || undefined,
-      },
-    ],
-    createdAt: now,
-    updatedAt: now,
+    note: payload.note?.trim() || undefined,
+    fields: payload.fields.map((f) => ({
+      label: f.label.trim(),
+      type: f.type,
+      required: f.required,
+      helpText: f.helpText?.trim() || undefined,
+      options: f.options && f.options.length ? f.options.map((o) => o.trim()) : undefined,
+      accept: f.accept && f.accept.length ? f.accept : undefined,
+      multiple: f.multiple,
+    })),
   };
-  db.setCategories([...categories, category]);
-  logActivity({
-    category: "category",
-    type: "category_created",
-    message: `Created category “${category.name}” (form v1) with ${category.fields.length} configured field${category.fields.length === 1 ? "" : "s"}. Now available to residents.`,
-    target: { kind: "category", id, label: category.name },
-  });
-  return delay(category, 220);
+
+  const { data } = await axiosInstance.post("/admin/categories", body);
+  return toCategory(data.data.category);
 }
 
-/** Saves a new immutable version of the category form. */
-function pushVersion(previous: Category, next: CategoryDraftPayload, extraChanges: string[] = []): Category {
-  const fields = normaliseFields(next.fields);
-  const draft = { name: next.name.trim(), description: next.description.trim(), fields };
-  const changes = [...extraChanges, ...describeChanges(previous, draft)];
-  if (changes.length === 0) {
-    throw new Error("No changes to save — the form is identical to the current version.");
-  }
-  const version = previous.version + 1;
-  const now = new Date().toISOString();
+/**
+ * Publish a new category form version (e.g. v2, v3).
+ */
+export async function updateCategory(categoryId: string, payload: CategoryDraftPayload): Promise<Category> {
+  const body = {
+    expectedVersion: payload.expectedVersion,
+    name: payload.name.trim(),
+    description: payload.description.trim(),
+    note: payload.note?.trim() || undefined,
+    fields: payload.fields.map((f) => ({
+      id: f.id || undefined, // Send existing UUID if present; backend assigns UUID if omitted
+      label: f.label.trim(),
+      type: f.type,
+      required: f.required,
+      helpText: f.helpText?.trim() || undefined,
+      options: f.options && f.options.length ? f.options.map((o) => o.trim()) : undefined,
+      accept: f.accept && f.accept.length ? f.accept : undefined,
+      multiple: f.multiple,
+    })),
+  };
+
+  const { data } = await axiosInstance.patch(`/admin/categories/${categoryId}`, body);
+  return toCategory(data.data.category);
+}
+
+/**
+ * Archive or restore a category.
+ */
+export async function setCategoryStatus(categoryId: string, status: "active" | "archived"): Promise<Category> {
+  const { data } = await axiosInstance.patch(`/admin/categories/${categoryId}/status`, { status });
+  return toCategory(data.data.category);
+}
+
+export async function archiveCategory(categoryId: string): Promise<Category> {
+  return setCategoryStatus(categoryId, "archived");
+}
+
+export async function restoreCategory(categoryId: string): Promise<Category> {
+  return setCategoryStatus(categoryId, "active");
+}
+
+/**
+ * Retrieve the full version history for a category (newest first).
+ */
+export async function getCategoryVersions(categoryId: string): Promise<CategoryVersionsResult> {
+  const { data } = await axiosInstance.get(`/admin/categories/${categoryId}/versions`);
   return {
-    ...previous,
-    ...draft,
-    version,
-    versions: [
-      ...previous.versions,
-      { version, ...draft, createdAt: now, createdBy: currentAdminActor().name, changes, note: next.note?.trim() || undefined },
-    ],
-    updatedAt: now,
+    category: toCategory(data.data.category),
+    versions: (data.data.versions as any[]).map(toVersion),
   };
 }
 
-export async function updateCategory(id: string, payload: CategoryDraftPayload): Promise<Category> {
-  const categories = db.getCategories();
-  const idx = categories.findIndex((c) => c.id === id);
-  if (idx === -1) throw new Error("Category not found.");
-  assertUniqueName(categories, payload.name, id);
-  const updated = pushVersion(categories[idx], payload);
-  const next = [...categories];
-  next[idx] = updated;
-  db.setCategories(next);
-  logActivity({
-    category: "category",
-    type: "category_updated",
-    message: `Saved “${updated.name}” as form v${updated.version} (${updated.versions[updated.versions.length - 1].changes.length} change${updated.versions[updated.versions.length - 1].changes.length === 1 ? "" : "s"}). Applies to new requests only; earlier versions are kept.`,
-    target: { kind: "category", id, label: updated.name },
-  });
-  return delay(updated, 220);
+/**
+ * Fetch a specific version of a category form.
+ */
+export async function getCategoryVersion(categoryId: string, version: number): Promise<CategoryVersion> {
+  const { data } = await axiosInstance.get(`/admin/categories/${categoryId}/versions/${version}`);
+  return toVersion(data.data.version);
 }
 
-/** Re-applies an old version's form as a brand-new version (history is never rewritten). */
-export async function restoreCategoryVersion(id: string, version: number): Promise<Category> {
-  const categories = db.getCategories();
-  const idx = categories.findIndex((c) => c.id === id);
-  if (idx === -1) throw new Error("Category not found.");
-  const source = categories[idx].versions.find((v) => v.version === version);
-  if (!source) throw new Error("Version not found.");
-  if (source.version === categories[idx].version) throw new Error("That is already the current version.");
-  assertUniqueName(categories, source.name, id);
-  const updated = pushVersion(
-    categories[idx],
-    { name: source.name, description: source.description, fields: source.fields, note: `Restored from v${version}` },
-    [`Restored from v${version}`]
-  );
-  const next = [...categories];
-  next[idx] = updated;
-  db.setCategories(next);
-  logActivity({
-    category: "category",
-    type: "category_version_restored",
-    message: `Restored “${updated.name}” v${version} as new form v${updated.version}.`,
-    target: { kind: "category", id, label: updated.name },
+/**
+ * Compare two category form versions and receive backend diff & summaries.
+ */
+export async function compareCategoryVersions(
+  categoryId: string,
+  fromVersion: number,
+  toVersion: number
+): Promise<VersionComparison> {
+  const { data } = await axiosInstance.get(`/admin/categories/${categoryId}/version-comparison`, {
+    params: { fromVersion, toVersion },
   });
-  return delay(updated, 220);
+  return data.data.comparison;
 }
 
-export async function archiveCategory(id: string): Promise<Category> {
-  const categories = db.getCategories();
-  const idx = categories.findIndex((c) => c.id === id);
-  if (idx === -1) throw new Error("Category not found.");
-  const now = new Date().toISOString();
-  const updated: Category = { ...categories[idx], status: "archived", archivedAt: now, updatedAt: now };
-  const next = [...categories];
-  next[idx] = updated;
-  db.setCategories(next);
-  logActivity({
-    category: "category",
-    type: "category_archived",
-    message: `Archived category “${updated.name}”. Removed from new-request selection; historical requests preserved.`,
-    target: { kind: "category", id, label: updated.name },
-  });
-  return delay(updated, 180);
-}
-
-export async function restoreCategory(id: string): Promise<Category> {
-  const categories = db.getCategories();
-  const idx = categories.findIndex((c) => c.id === id);
-  if (idx === -1) throw new Error("Category not found.");
-  const updated: Category = {
-    ...categories[idx],
-    status: "active",
-    archivedAt: undefined,
-    updatedAt: new Date().toISOString(),
+/**
+ * Restore an older form version as a brand-new immutable version.
+ */
+export async function restoreCategoryVersion(
+  categoryId: string,
+  version: number,
+  payload?: { expectedVersion?: number; note?: string }
+): Promise<Category> {
+  const body = {
+    expectedVersion: payload?.expectedVersion,
+    note: payload?.note?.trim() || undefined,
   };
-  const next = [...categories];
-  next[idx] = updated;
-  db.setCategories(next);
-  logActivity({
-    category: "category",
-    type: "category_restored",
-    message: `Restored category “${updated.name}”. It is Active again with its saved form configuration.`,
-    target: { kind: "category", id, label: updated.name },
-  });
-  return delay(updated, 180);
+  const { data } = await axiosInstance.post(`/admin/categories/${categoryId}/versions/${version}/restore`, body);
+  return toCategory(data.data.category);
 }

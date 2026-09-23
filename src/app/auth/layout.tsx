@@ -6,9 +6,9 @@ import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative h-svh max-h-svh flex flex-col justify-between overflow-hidden bg-slate-950 select-none">
+    <div className="relative min-h-svh flex flex-col justify-between overflow-y-auto bg-slate-950 select-none">
       {/* Background Hero Image */}
-      <div className="absolute inset-0 z-0">
+      <div className="fixed inset-0 z-0 pointer-events-none">
         <Image
           src="/brand/ibis-clubhouse.jpg"
           alt="The Club at Ibis"
@@ -30,7 +30,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         />
       </div>
 
-      <div className="pointer-events-none absolute -right-16 -bottom-12 select-none opacity-15 lg:opacity-25 z-0">
+      <div className="pointer-events-none fixed -right-16 -bottom-12 select-none opacity-15 lg:opacity-25 z-0">
         <Image
           src="/brand/ibis-mark-gold.png"
           alt=""
@@ -51,8 +51,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
       </header>
 
-      <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-2 sm:px-6 min-h-0 overflow-hidden">
-        <div className="relative w-full max-w-[440px] max-h-[calc(100svh-96px)] flex flex-col rounded-2xl border border-white/30 dark:border-white/10 bg-white/95 dark:bg-[#121c2d]/95 shadow-2xl backdrop-blur-xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+      <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-4 sm:px-6 sm:py-6">
+        <div className="relative w-full max-w-[440px] h-auto max-h-[calc(100svh-4.5rem)] sm:max-h-[calc(100svh-5.5rem)] flex flex-col rounded-2xl border border-white/30 dark:border-white/10 bg-white/95 dark:bg-[#121c2d]/95 shadow-2xl backdrop-blur-xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 my-auto">
           <div className="pointer-events-none absolute -right-10 -top-10 select-none opacity-[0.05] dark:opacity-[0.06] z-0">
             <Image src="/brand/ibis-mark-navy.png" alt="" width={240} height={158} className="h-auto w-[200px] object-contain dark:hidden" />
             <Image src="/brand/ibis-mark-gold.png" alt="" width={240} height={158} className="h-auto w-[200px] object-contain hidden dark:block" />
@@ -65,7 +65,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             </p>
           </div>
 
-          <div className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="relative z-10 flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar">
             <Suspense>{children}</Suspense>
           </div>
         </div>

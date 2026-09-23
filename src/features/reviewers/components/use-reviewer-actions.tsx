@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import {
   Dialog,
@@ -29,17 +29,16 @@ type Pending = { reviewer: PublicReviewer; kind: "receive" | "login" };
  * toggle (with the "keep at least one Default Reviewer" rule), login access,
  * password reset and the read-only "access as reviewer" view.
  */
-export function useReviewerActions() {
+export function useReviewerActions({ defaultReviewersCount }: { defaultReviewersCount?: number } = {}) {
   const toast = useToast();
-  const { data: reviewers } = useReviewers();
+  const [replace, setReplace] = useState<Pending | null>(null);
+  const [replacementId, setReplacementId] = useState<string>("");
+  const { data: reviewers, isLoading: isLoadingReviewers } = useReviewers(100, { enabled: !!replace });
   const setReceive = useSetReceiveNewRequests();
   const setLogin = useSetLoginEnabled();
   const resend = useResendInvitation();
   const [passwordTarget, setPasswordTarget] = useState<ResetTarget | null>(null);
   const [resentTo, setResentTo] = useState<{ name: string; email: string } | null>(null);
-
-  const [replace, setReplace] = useState<Pending | null>(null);
-  const [replacementId, setReplacementId] = useState<string>("");
   const [resetTarget, setResetTarget] = useState<ResetTarget | null>(null);
   const [confirmLogin, setConfirmLogin] = useState<PublicReviewer | null>(null);
 
@@ -48,13 +47,25 @@ export function useReviewerActions() {
   // cannot sign in or act on anything — `loginEnabled` alone doesn't capture
   // that (it only tracks whether the account is administratively disabled).
   const canActNow = (r: PublicReviewer) => r.loginEnabled && r.inviteStatus === "active";
-  const isLastDefault = (rev: PublicReviewer) =>
-    rev.receiveNewRequests && canActNow(rev) && !list.some((r) => r.id !== rev.id && r.receiveNewRequests && canActNow(r));
+  const isLastDefault = (rev: PublicReviewer) => {
+    if (!rev.receiveNewRequests) return false;
+    if (typeof defaultReviewersCount === "number") {
+      return defaultReviewersCount <= 1;
+    }
+    return canActNow(rev) && !list.some((r) => r.id !== rev.id && r.receiveNewRequests && canActNow(r));
+  };
   const replacements = (rev: PublicReviewer) => list.filter((r) => r.id !== rev.id && canActNow(r) && !r.receiveNewRequests);
+
+  const options = replace ? replacements(replace.reviewer) : [];
+
+  useEffect(() => {
+    if (replace && options.length > 0 && !replacementId) {
+      setReplacementId(options[0].id);
+    }
+  }, [replace, options, replacementId]);
 
   function toggleReceive(rev: PublicReviewer, enabled: boolean) {
     if (!enabled && isLastDefault(rev)) {
-      setReplacementId(replacements(rev)[0]?.id ?? "");
       setReplace({ reviewer: rev, kind: "receive" });
       return;
     }
@@ -66,14 +77,20 @@ export function useReviewerActions() {
             enabled ? "Now receiving new requests" : "No longer receiving new requests",
             `${rev.name} ${enabled ? "is a Default Reviewer." : "was removed as a Default Reviewer."}`
           ),
-        onError: (e: Error) => toast.error("Could not update routing", e.message),
+        onError: (e: any) => {
+          const msg = e?.response?.data?.message || e?.message || "";
+          if (msg.includes("LAST_DEFAULT") || msg.toLowerCase().includes("default reviewer")) {
+            setReplace({ reviewer: rev, kind: "receive" });
+          } else {
+            toast.error("Could not update routing", msg);
+          }
+        },
       }
     );
   }
 
   function requestLoginChange(rev: PublicReviewer) {
     if (rev.loginEnabled && isLastDefault(rev)) {
-      setReplacementId(replacements(rev)[0]?.id ?? "");
       setReplace({ reviewer: rev, kind: "login" });
       return;
     }
@@ -88,7 +105,14 @@ export function useReviewerActions() {
       { id: rev.id, enabled, replacementId: replacement },
       {
         onSuccess: () => toast.success(enabled ? "Account activated" : "Account deactivated", `${rev.name} is now ${enabled ? "active" : "inactive"}.`),
-        onError: (e: Error) => toast.error("Could not update account", e.message),
+        onError: (e: any) => {
+          const msg = e?.response?.data?.message || e?.message || "";
+          if (msg.includes("LAST_DEFAULT") || msg.toLowerCase().includes("default reviewer")) {
+            setReplace({ reviewer: rev, kind: "login" });
+          } else {
+            toast.error("Could not update account", msg);
+          }
+        },
       }
     );
   }
@@ -101,8 +125,9 @@ export function useReviewerActions() {
         { id: reviewer.id, enabled: false, replacementId },
         {
           onSuccess: () => {
-            toast.success("Default reviewer changed", `${list.find((r) => r.id === replacementId)?.name} now receives new requests.`);
+            toast.success("Default Reviewer changed", `${list.find((r) => r.id === replacementId)?.name || "Replacement reviewer"} now receives new requests.`);
             setReplace(null);
+            setReplacementId("");
           },
           onError: (e: Error) => toast.error("Could not change default", e.message),
         }
@@ -112,8 +137,9 @@ export function useReviewerActions() {
         { id: reviewer.id, enabled: false, replacementId },
         {
           onSuccess: () => {
-            toast.success("Account deactivated", `${reviewer.name} was replaced as default by ${list.find((r) => r.id === replacementId)?.name}.`);
+            toast.success("Account deactivated", `${reviewer.name} was replaced as default by ${list.find((r) => r.id === replacementId)?.name || "replacement reviewer"}.`);
             setReplace(null);
+            setReplacementId("");
           },
           onError: (e: Error) => toast.error("Could not deactivate", e.message),
         }
@@ -136,8 +162,6 @@ export function useReviewerActions() {
     setResetTarget({ kind: "reviewer", id: rev.id, name: rev.name, email: rev.email });
   }
 
-  const options = replace ? replacements(replace.reviewer) : [];
-
   const dialogs = (
     <>
       <Dialog open={!!replace} onOpenChange={(o) => !o && setReplace(null)}>
@@ -146,12 +170,16 @@ export function useReviewerActions() {
             <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-amber-300/70 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
               <ShieldAlert className="size-5" aria-hidden="true" />
             </div>
-            <DialogTitle className="font-heading text-xl font-medium">Select a replacement first</DialogTitle>
+            <DialogTitle className="font-heading text-xl font-medium">Select a Replacement First</DialogTitle>
             <DialogDescription>
               {replace?.reviewer.name} is the only Default Reviewer. At least one must always receive new requests — choose who takes over.
             </DialogDescription>
           </DialogHeader>
-          {options.length === 0 ? (
+          {isLoadingReviewers ? (
+            <div className="flex items-center justify-center py-8">
+              <Spinner className="size-6 text-muted-foreground" />
+            </div>
+          ) : options.length === 0 ? (
             <p className="rounded-xl border border-border bg-muted/40 p-3.5 text-sm text-muted-foreground">
               No other reviewer with login access is available. Create or enable another reviewer first.
             </p>
@@ -181,7 +209,7 @@ export function useReviewerActions() {
             </Button>
             <Button onClick={confirmReplace} disabled={!replacementId || options.length === 0 || setReceive.isPending || setLogin.isPending}>
               {(setReceive.isPending || setLogin.isPending) && <Spinner className="size-4" />}
-              Confirm change
+              Confirm Change
             </Button>
           </DialogFooter>
         </DialogContent>

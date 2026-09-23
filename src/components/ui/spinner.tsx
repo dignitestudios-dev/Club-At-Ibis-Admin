@@ -1,10 +1,24 @@
-import { cn } from "cn"
-import { Loader2Icon } from "lucide-react"
+import * as React from "react";
+import { cn } from "@/utils/cn";
 
-function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
-  return (
-    <Loader2Icon data-slot="spinner" role="status" aria-label="Loading" className={cn("size-4 animate-spin", className)} {...props} />
-  )
+export interface LoaderProps extends React.SVGProps<SVGSVGElement> {
+  className?: string;
 }
 
-export { Spinner }
+export function Loader({ className, ...props }: LoaderProps) {
+  return (
+    <svg
+      data-slot="spinner"
+      role="status"
+      aria-label="Loading"
+      className={cn("dexnive-loader inline-block", className)}
+      viewBox="25 25 50 50"
+      {...props}
+    >
+      <circle r="20" cy="50" cx="50" />
+    </svg>
+  );
+}
+
+export const Spinner = Loader;
+export type SpinnerProps = LoaderProps;
