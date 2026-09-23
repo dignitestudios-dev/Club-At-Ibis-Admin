@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Inbox, Info, Plus, Route, UserCog, UserX, Users } from "lucide-react";
+import { Info, MailPlus, Plus, Route, UserCog, UserX, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -59,7 +59,7 @@ export default function ReviewersPage() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Reviewers" value={total} icon={Users} accent="navy" hint="All accounts" />
         <StatCard label="Default reviewers" value="N/A" icon={Route} accent="gold" />
-        <StatCard label="In intake" value="N/A" icon={Inbox} accent="blue" />
+        <StatCard label="Pending invite" value="N/A" icon={MailPlus} accent="amber" />
         <StatCard label="Inactive" value="N/A" icon={UserX} accent="red" />
       </div>
 
