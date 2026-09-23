@@ -165,10 +165,10 @@ export function getReviewerFrontendOrigin(): string {
   if (envOrigin && envOrigin.trim()) {
     return envOrigin.trim();
   }
-  if (typeof window !== "undefined" && window.location.origin) {
-    return window.location.origin;
+  if (typeof window !== "undefined" && window.location.origin.includes("localhost")) {
+    return "http://localhost:3001";
   }
-  return "http://localhost:3001";
+  return "https://clubatibis-reviewer.vercel.app";
 }
 
 export async function createReviewer(payload: ReviewerFormPayload): Promise<PublicReviewer> {
