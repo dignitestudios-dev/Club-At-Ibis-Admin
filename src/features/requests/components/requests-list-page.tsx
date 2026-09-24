@@ -20,7 +20,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DepositChip, RefundChip } from "@/features/requests/components/request-chips";
 import { ExportDialog } from "@/features/requests/components/export-dialog";
-import { useCategories, useRequests, useResidents, useReviewers } from "@/hooks/use-admin-data";
+import { useCategories, useRequests, useRequestsPage, useResidents, useReviewers } from "@/hooks/use-admin-data";
+import type { RequestsQueryParams } from "@/features/requests/api/requests.service";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
@@ -43,7 +44,6 @@ const URL_DEFAULTS = {
   reviewer: "all",
   deposit: "all",
   refund: "all",
-  year: "all",
   from: "",
   to: "",
   page: "1",
@@ -56,10 +56,35 @@ export default function RequestsListPage() {
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
 
-  const { data: requests, isLoading, isFetching, refetch } = useRequests();
+  const page = Math.max(1, Number(url.page) || 1);
+
+  const queryParams = useMemo<RequestsQueryParams>(
+    () => ({
+      page,
+      limit: pageSize,
+      search: search.trim() || undefined,
+      status: url.status !== "all" && STATUS_ORDER.includes(url.status as RequestStatus) ? url.status : undefined,
+      categoryId: url.category !== "all" ? url.category : undefined,
+      categoryStatus: url.categoryStatus === "active" || url.categoryStatus === "archived" ? url.categoryStatus : undefined,
+      assignedReviewerId: url.reviewer !== "all" ? url.reviewer : undefined,
+      depositStatus: ["not_required", "required", "received", "partially_refunded", "fully_refunded", "retained"].includes(url.deposit)
+        ? url.deposit
+        : undefined,
+      refundOutcome: ["refunded", "no_refund"].includes(url.refund) ? url.refund : undefined,
+      submittedFrom: url.from || undefined,
+      submittedTo: url.to || undefined,
+    }),
+    [page, pageSize, search, url]
+  );
+
+  const { data: pageData, isLoading, isFetching, refetch } = useRequestsPage(queryParams);
+  const { data: allRequests } = useRequests({ limit: 100 });
   const { data: residents } = useResidents();
   const { data: categories } = useCategories();
   const { data: reviewers } = useReviewers();
+
+  const requests = pageData?.requests ?? [];
+  const totalCount = pageData?.pagination?.total ?? 0;
 
   const applied = useMemo<RequestFilters>(
     () => ({
@@ -68,9 +93,10 @@ export default function RequestsListPage() {
       categoryId: url.category,
       categoryStatus: url.categoryStatus === "active" || url.categoryStatus === "archived" ? url.categoryStatus : "all",
       reviewerId: url.reviewer,
-      depositStatus: ["not_required", "pending", "received"].includes(url.deposit) ? (url.deposit as RequestFilters["depositStatus"]) : "all",
-      refund: ["awaiting", "refunded", "no_refund", "none"].includes(url.refund) ? (url.refund as RequestFilters["refund"]) : "all",
-      year: url.year,
+      depositStatus: ["not_required", "required", "received", "partially_refunded", "fully_refunded", "retained"].includes(url.deposit)
+        ? (url.deposit as RequestFilters["depositStatus"])
+        : "all",
+      refund: ["refunded", "no_refund"].includes(url.refund) ? (url.refund as RequestFilters["refund"]) : "all",
       from: url.from,
       to: url.to,
     }),
@@ -97,7 +123,6 @@ export default function RequestsListPage() {
       reviewer: f.reviewerId,
       deposit: f.depositStatus,
       refund: f.refund,
-      year: f.year,
       from: f.from,
       to: f.to,
       page: "1",
@@ -114,25 +139,14 @@ export default function RequestsListPage() {
   const reviewerById = useMemo(() => new Map((reviewers ?? []).map((r) => [r.id, r])), [reviewers]);
   const categoryById = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c])), [categories]);
 
-  const ctx = useMemo(() => ({ residents: residents ?? [], categories: categories ?? [] }), [residents, categories]);
-  const matching = useMemo(() => filterRequests(requests ?? [], applied, ctx), [requests, applied, ctx]);
-
   // Counts for the status pills respect every filter except status.
   const statusCounts = useMemo(() => {
-    const base = filterRequests(requests ?? [], { ...applied, status: "all" }, ctx);
     const counts = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])) as Record<RequestStatus, number>;
-    base.forEach((r) => (counts[r.status] += 1));
-    return { counts, total: base.length };
-  }, [requests, applied, ctx]);
-
-  const years = useMemo<string[]>(() => {
-    const set = new Set<string>((requests ?? []).map((r) => new Date(r.submittedAt).getFullYear().toString()));
-    return [...set].sort().reverse();
-  }, [requests]);
-
-  const pageCount = Math.max(1, Math.ceil(matching.length / pageSize));
-  const page = Math.min(Math.max(1, Number(url.page) || 1), pageCount);
-  const visible = matching.slice((page - 1) * pageSize, page * pageSize);
+    (allRequests ?? []).forEach((r) => {
+      if (counts[r.status] !== undefined) counts[r.status] += 1;
+    });
+    return { counts, total: (allRequests ?? []).length };
+  }, [allRequests]);
 
   const activeFilterCount = countActiveFilters(applied);
   const hasAnyFilter = activeFilterCount > 0 || applied.search.trim() !== "";
@@ -143,10 +157,9 @@ export default function RequestsListPage() {
     if (applied.status !== "all") parts.push(`status ${STATUS_LABEL[applied.status]}`);
     if (applied.categoryId !== "all") parts.push(`category ${categoryById.get(applied.categoryId)?.name ?? applied.categoryId}`);
     if (applied.categoryStatus !== "all") parts.push(`${applied.categoryStatus} categories`);
-    if (applied.reviewerId !== "all") parts.push(applied.reviewerId === "unassigned" ? "unassigned" : `reviewer ${reviewerById.get(applied.reviewerId)?.name ?? ""}`);
+    if (applied.reviewerId !== "all") parts.push(`reviewer ${reviewerById.get(applied.reviewerId)?.name ?? ""}`);
     if (applied.depositStatus !== "all") parts.push(`deposit ${applied.depositStatus.replace("_", " ")}`);
     if (applied.refund !== "all") parts.push(`refund ${applied.refund.replace("_", " ")}`);
-    if (applied.year !== "all") parts.push(`year ${applied.year}`);
     if (applied.from || applied.to) parts.push(`submitted ${applied.from || "…"} → ${applied.to || "…"}`);
     return parts.join(", ");
   }, [applied, categoryById, reviewerById]);
@@ -159,8 +172,9 @@ export default function RequestsListPage() {
   ];
   const reviewerOptions = [
     { label: "All reviewers", value: "all" },
-    { label: "Unassigned (intake)", value: "unassigned" },
-    ...(reviewers ?? []).map((r) => ({ label: r.name, value: r.id })),
+    ...(reviewers ?? [])
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((r) => ({ label: r.name, value: r.id })),
   ];
 
   return (
@@ -189,11 +203,11 @@ export default function RequestsListPage() {
               <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
               <span>Refresh</span>
             </Button>
-            <Button onClick={() => setExportOpen(true)} disabled={isLoading || matching.length === 0}>
+            <Button onClick={() => setExportOpen(true)} disabled={isLoading || totalCount === 0}>
               <Download className="size-4" />
               Export CSV
               <span className="ml-0.5 rounded-full bg-white/20 px-1.5 text-[10px] font-semibold tabular-nums dark:bg-black/15">
-                {matching.length}
+                {totalCount}
               </span>
             </Button>
           </div>
@@ -244,12 +258,6 @@ export default function RequestsListPage() {
                 <Input id="f-to" type="date" value={draft.to} onChange={(e) => setDraft({ ...draft, to: e.target.value })} />
               </div>
               <FilterSelect
-                label="Year"
-                value={draft.year}
-                onChange={(year) => setDraft({ ...draft, year })}
-                options={[{ label: "All years", value: "all" }, ...years.map((y) => ({ label: y, value: y }))]}
-              />
-              <FilterSelect
                 label="Request status"
                 value={draft.status}
                 onChange={(status) => setDraft({ ...draft, status })}
@@ -274,8 +282,11 @@ export default function RequestsListPage() {
                 options={[
                   { label: "Any deposit status", value: "all" },
                   { label: "Not required", value: "not_required" },
-                  { label: "Pending", value: "pending" },
+                  { label: "Required", value: "required" },
                   { label: "Received", value: "received" },
+                  { label: "Partially refunded", value: "partially_refunded" },
+                  { label: "Fully refunded", value: "fully_refunded" },
+                  { label: "Retained", value: "retained" },
                 ]}
               />
               <FilterSelect
@@ -284,10 +295,8 @@ export default function RequestsListPage() {
                 onChange={(refund) => setDraft({ ...draft, refund })}
                 options={[
                   { label: "Any refund outcome", value: "all" },
-                  { label: "Awaiting refund action", value: "awaiting" },
                   { label: "Refunded", value: "refunded" },
-                  { label: "No Refund (-)", value: "no_refund" },
-                  { label: "No refund record", value: "none" },
+                  { label: "No refund (-)", value: "no_refund" },
                 ]}
               />
             </div>
@@ -312,7 +321,7 @@ export default function RequestsListPage() {
             <Skeleton key={i} className="h-14 w-full rounded-xl" />
           ))}
         </div>
-      ) : matching.length === 0 ? (
+      ) : requests.length === 0 ? (
         <EmptyState
           icon={FileSearch}
           title="No requests match"
@@ -332,7 +341,7 @@ export default function RequestsListPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="pl-4 max-w-[120px]">Reference</TableHead>
+                  <TableHead className="pl-4 w-[160px] min-w-[160px] whitespace-nowrap">Reference</TableHead>
                   <TableHead className="max-w-[200px]">Category</TableHead>
                   <TableHead className="max-w-[180px]">Resident</TableHead>
                   <TableHead className="max-w-[200px]">Property</TableHead>
@@ -346,7 +355,7 @@ export default function RequestsListPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visible.map((req) => {
+                {requests.map((req) => {
                   const resident = req.resident
                     ? {
                         id: req.resident.id,
@@ -368,11 +377,11 @@ export default function RequestsListPage() {
                   const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
                   return (
                     <TableRow key={req.id} onClick={() => router.push(`/requests/${req.id}`)} className="group cursor-pointer">
-                      <TableCell className="pl-4 max-w-[120px]">
+                      <TableCell className="pl-4 w-[160px] min-w-[160px] whitespace-nowrap">
                         <Link
                           href={`/requests/${req.id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 truncate block"
+                          className="font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap block"
                           title={req.code}
                         >
                           {req.code}
@@ -428,7 +437,7 @@ export default function RequestsListPage() {
           <Pagination
             page={page}
             pageSize={pageSize}
-            total={matching.length}
+            total={totalCount}
             onPageChange={(p) => setUrl({ page: String(p) })}
             onPageSizeChange={(n) => {
               setPageSize(n);
@@ -441,7 +450,7 @@ export default function RequestsListPage() {
       <ExportDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
-        requests={matching}
+        requests={allRequests ?? requests}
         context={{ residents: residents ?? [], categories: categories ?? [], reviewers: reviewers ?? [] }}
         filterSummary={filterSummary}
       />

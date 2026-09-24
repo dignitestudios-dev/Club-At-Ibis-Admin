@@ -76,13 +76,13 @@ export function AssignReviewerDialog({
 
   return (
     <Dialog open={!!request} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)] overflow-hidden">
         <DialogHeader>
           <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
             <UserRoundCheck className="size-5" aria-hidden="true" />
           </div>
           <DialogTitle className="font-heading text-xl font-medium">{current ? "Reassign Request" : "Assign Request"}</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="break-words">
             <span className="font-mono font-semibold text-foreground">{request.code}</span> · {request.categoryName}.{" "}
             {current
               ? `Currently with ${current.name}. After reassignment they lose authority to act on it; earlier actions stay in the history.`
@@ -90,7 +90,7 @@ export function AssignReviewerDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative">
+        <div className="relative w-full min-w-0">
           <SearchInput value={query} onChange={setQuery} placeholder="Search active reviewers by name, email, designation…" />
           {isFetchingReviewers && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -99,7 +99,7 @@ export function AssignReviewerDialog({
           )}
         </div>
 
-        <RadioGroup value={selected} onValueChange={(v) => setSelected(String(v))} className="grid max-h-64 gap-2 overflow-y-auto pr-1 custom-scrollbar">
+        <RadioGroup value={selected} onValueChange={(v) => setSelected(String(v))} className="grid max-h-64 w-full min-w-0 max-w-full gap-2 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
           {isLoadingReviewers && options.length === 0 ? (
             <div className="flex items-center justify-center py-8">
               <Spinner className="size-6 text-primary" />
@@ -113,17 +113,21 @@ export function AssignReviewerDialog({
                 <label
                   key={r.id}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl border p-3 transition-colors",
+                    "flex w-full min-w-0 max-w-full box-border items-center gap-3 rounded-xl border p-3 transition-colors overflow-hidden",
                     isCurrent ? "cursor-not-allowed opacity-55" : "cursor-pointer",
                     selected === r.id ? "border-primary bg-primary/5 dark:border-amber-400 dark:bg-amber-400/5" : "border-border hover:border-foreground/30"
                   )}
                 >
-                  <RadioGroupItem value={r.id} disabled={isCurrent} />
-                  <PersonAvatar name={r.name} />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
+                  <div className="shrink-0 flex items-center">
+                    <RadioGroupItem value={r.id} disabled={isCurrent} />
+                  </div>
+                  <div className="shrink-0">
+                    <PersonAvatar name={r.name} />
+                  </div>
+                  <span className="min-w-0 flex-1 overflow-hidden">
+                    <span className="flex min-w-0 items-center gap-2">
                       <span className="truncate text-sm font-medium">{r.name}</span>
-                      {r.receiveNewRequests && <span className="rounded-full bg-brand-gold/15 px-1.5 py-px text-[9px] font-bold tracking-wider text-brand-gold uppercase">Default</span>}
+                      {r.receiveNewRequests && <span className="shrink-0 rounded-full bg-brand-gold/15 px-1.5 py-px text-[9px] font-bold tracking-wider text-brand-gold uppercase">Default</span>}
                     </span>
                     <span className="block truncate text-xs text-muted-foreground font-mono">{r.email}</span>
                     {r.designation && <span className="block truncate text-[11px] text-muted-foreground/80">{r.designation}</span>}

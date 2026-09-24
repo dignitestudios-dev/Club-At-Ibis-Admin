@@ -6,7 +6,7 @@ import { getMockReviewers } from "@/features/reviewers/api/reviewers.mock";
 import { getResidents, getResidentsPage, getResident, setResidentActive } from "@/features/residents/api/residents.service";
 import { getMockResidents } from "@/features/residents/api/residents.mock";
 import { getCategories, getCategoriesPage, getCategory, getCommonForm, getCategoryVersions, getCategoryVersion, compareCategoryVersions, createCategory, updateCategory, archiveCategory, restoreCategory, restoreCategoryVersion } from "@/features/categories/api/categories.service";
-import { getRequests, getRequestById, recordExport } from "@/features/requests/api/requests.service";
+import { getRequests, getRequestsPage, getRequestById, recordExport, type RequestsQueryParams } from "@/features/requests/api/requests.service";
 import { assignRequest, type AssignPayload } from "@/features/requests/api/assignments.service";
 import { getActivity } from "@/features/activity/api/activity.service";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "@/features/notifications/api/notifications.service";
@@ -95,7 +95,10 @@ export const useVersionComparison = (id: string, fromVersion: number, toVersion:
     enabled: !!id && fromVersion > 0 && toVersion > 0 && fromVersion !== toVersion,
   });
 
-export const useRequests = () => useQuery({ queryKey: keys.requests, queryFn: () => getRequests() });
+export const useRequests = (params?: RequestsQueryParams) =>
+  useQuery({ queryKey: params ? [...keys.requests, params] : keys.requests, queryFn: () => getRequests(params) });
+export const useRequestsPage = (params: RequestsQueryParams) =>
+  useQuery({ queryKey: [...keys.requests, "page", params], queryFn: () => getRequestsPage(params) });
 export const useRequest = (id: string) =>
   useQuery({ queryKey: [...keys.requests, id], queryFn: () => getRequestById(id), enabled: !!id });
 export const useActivity = () => useQuery({ queryKey: keys.activity, queryFn: getActivity });

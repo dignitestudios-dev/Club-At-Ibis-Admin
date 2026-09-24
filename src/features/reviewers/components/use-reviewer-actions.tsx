@@ -165,13 +165,13 @@ export function useReviewerActions({ defaultReviewersCount }: { defaultReviewers
   const dialogs = (
     <>
       <Dialog open={!!replace} onOpenChange={(o) => !o && setReplace(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
           <DialogHeader>
             <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-amber-300/70 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
               <ShieldAlert className="size-5" aria-hidden="true" />
             </div>
             <DialogTitle className="font-heading text-xl font-medium">Select a Replacement First</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="break-words">
               {replace?.reviewer.name} is the only Default Reviewer. At least one must always receive new requests — choose who takes over.
             </DialogDescription>
           </DialogHeader>
@@ -184,18 +184,22 @@ export function useReviewerActions({ defaultReviewersCount }: { defaultReviewers
               No other reviewer with login access is available. Create or enable another reviewer first.
             </p>
           ) : (
-            <RadioGroup value={replacementId} onValueChange={(v) => setReplacementId(String(v))} className="grid max-h-64 gap-2 overflow-y-auto">
+            <RadioGroup value={replacementId} onValueChange={(v) => setReplacementId(String(v))} className="grid max-h-64 w-full min-w-0 max-w-full gap-2 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
               {options.map((r) => (
                 <label
                   key={r.id}
                   className={cn(
-                    "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors",
+                    "flex w-full min-w-0 max-w-full box-border cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors overflow-hidden",
                     replacementId === r.id ? "border-primary bg-primary/5 dark:border-amber-400 dark:bg-amber-400/5" : "border-border hover:border-foreground/30"
                   )}
                 >
-                  <RadioGroupItem value={r.id} />
-                  <PersonAvatar name={r.name} />
-                  <span className="min-w-0">
+                  <div className="shrink-0 flex items-center">
+                    <RadioGroupItem value={r.id} />
+                  </div>
+                  <div className="shrink-0">
+                    <PersonAvatar name={r.name} />
+                  </div>
+                  <span className="min-w-0 flex-1 overflow-hidden">
                     <span className="block truncate text-sm font-medium">{r.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">{r.designation}</span>
                   </span>

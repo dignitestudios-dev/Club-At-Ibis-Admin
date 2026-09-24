@@ -102,14 +102,84 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
   };
 }
 
-export async function getRequests(params?: {
+export interface RequestsQueryParams {
   status?: string;
   search?: string;
   page?: number;
   limit?: number;
-}): Promise<RequestRecord[]> {
+  submittedFrom?: string;
+  submittedTo?: string;
+  categoryId?: string;
+  categoryStatus?: string;
+  assignedReviewerId?: string;
+  depositStatus?: string;
+  refundOutcome?: string;
+}
+
+export interface PaginatedRequestsResponse {
+  requests: RequestRecord[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+function cleanRequestParams(params?: RequestsQueryParams): Record<string, any> {
+  const clean: Record<string, any> = {};
+  if (!params) return clean;
+  if (params.page) clean.page = params.page;
+  if (params.limit) clean.limit = params.limit;
+  if (params.search && params.search.trim()) clean.search = params.search.trim();
+  if (params.status && params.status !== "all") clean.status = params.status;
+  if (params.submittedFrom) clean.submittedFrom = params.submittedFrom;
+  if (params.submittedTo) clean.submittedTo = params.submittedTo;
+  if (params.categoryId && params.categoryId !== "all") clean.categoryId = params.categoryId;
+  if (params.categoryStatus && params.categoryStatus !== "all") clean.categoryStatus = params.categoryStatus;
+  if (params.assignedReviewerId && params.assignedReviewerId !== "all") clean.assignedReviewerId = params.assignedReviewerId;
+  if (params.depositStatus && params.depositStatus !== "all") clean.depositStatus = params.depositStatus;
+  if (params.refundOutcome && params.refundOutcome !== "all") clean.refundOutcome = params.refundOutcome;
+  return clean;
+}
+
+export async function getRequestsPage(params?: RequestsQueryParams): Promise<PaginatedRequestsResponse> {
+  const cleanParams = cleanRequestParams(params);
   try {
-    const { data } = await axiosInstance.get("/admin/requests", { params });
+    const { data } = await axiosInstance.get("/admin/requests", { params: cleanParams });
+    const list = data?.data?.requests ?? data?.requests ?? [];
+    return {
+      requests: list.map(toAdminRequestRecord),
+      pagination: data?.pagination ?? {
+        page: params?.page ?? 1,
+        limit: params?.limit ?? 20,
+        total: list.length,
+        totalPages: Math.ceil(list.length / (params?.limit ?? 20)) || 1,
+      },
+    };
+  } catch {
+    const all = db.getRequests();
+    const page = params?.page ?? 1;
+    const limit = params?.limit ?? 20;
+    return delay(
+      {
+        requests: [...all].sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1)).slice((page - 1) * limit, page * limit),
+        pagination: {
+          page,
+          limit,
+          total: all.length,
+          totalPages: Math.ceil(all.length / limit) || 1,
+        },
+      },
+      80
+    );
+  }
+}
+
+export async function getRequests(params?: RequestsQueryParams): Promise<RequestRecord[]> {
+  const cleanParams = cleanRequestParams(params);
+  try {
+    const { data } = await axiosInstance.get("/admin/requests", { params: cleanParams });
     const list = data?.data?.requests ?? data?.requests ?? [];
     return list.map(toAdminRequestRecord);
   } catch {

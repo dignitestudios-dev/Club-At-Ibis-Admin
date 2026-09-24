@@ -82,10 +82,9 @@ export interface RequestFilters {
   status: RequestStatus | "all";
   categoryId: string;
   categoryStatus: "all" | CategoryStatus;
-  reviewerId: string; // "all" | "unassigned" | reviewer id
-  depositStatus: "all" | DepositStatus;
-  refund: "all" | RefundOutcome | "none";
-  year: string; // "all" | "2026"
+  reviewerId: string; // "all" | reviewer id
+  depositStatus: "all" | "not_required" | "required" | "received" | "partially_refunded" | "fully_refunded" | "retained";
+  refund: "all" | "refunded" | "no_refund";
   from: string; // yyyy-mm-dd
   to: string;
 }
@@ -98,7 +97,6 @@ export const DEFAULT_FILTERS: RequestFilters = {
   reviewerId: "all",
   depositStatus: "all",
   refund: "all",
-  year: "all",
   from: "",
   to: "",
 };
@@ -148,14 +146,7 @@ export function filterRequests(
       return false;
     }
     if (filters.depositStatus !== "all" && req.deposit.status !== filters.depositStatus) return false;
-    if (filters.refund !== "all") {
-      if (filters.refund === "none") {
-        if (req.refund) return false;
-      } else if (req.refund?.outcome !== filters.refund) {
-        return false;
-      }
-    }
-    if (filters.year !== "all" && new Date(req.submittedAt).getFullYear().toString() !== filters.year) return false;
+    if (filters.refund !== "all" && req.refund?.outcome !== filters.refund) return false;
     if (filters.from && req.submittedAt.slice(0, 10) < filters.from) return false;
     if (filters.to && req.submittedAt.slice(0, 10) > filters.to) return false;
     return true;

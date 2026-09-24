@@ -144,7 +144,7 @@ export default function AssignmentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="pl-4 max-w-[180px]">Request</TableHead>
+                    <TableHead className="pl-4 w-[180px] min-w-[180px]">Request</TableHead>
                     <TableHead className="max-w-[120px]">Action</TableHead>
                     <TableHead className="max-w-[220px]">Reviewer change</TableHead>
                     <TableHead className="max-w-[160px]">Done by</TableHead>
@@ -157,8 +157,8 @@ export default function AssignmentsPage() {
                 <TableBody>
                   {visibleActivity.map(({ event, request }) => (
                     <TableRow key={`${request.id}-${event.id}`} className="group cursor-pointer" onClick={() => router.push(`/requests/${request.id}`)}>
-                      <TableCell className="pl-4 max-w-[180px]">
-                        <Link href={`/requests/${request.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 truncate" title={request.code}>
+                      <TableCell className="pl-4 w-[180px] min-w-[180px]">
+                        <Link href={`/requests/${request.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap" title={request.code}>
                           {request.code}
                         </Link>
                         <span className="block truncate text-sm font-medium text-foreground" title={request.categoryName}>{request.categoryName}</span>
@@ -232,7 +232,7 @@ export default function AssignmentsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="pl-4 max-w-[180px]">Request</TableHead>
+                  <TableHead className="pl-4 w-[180px] min-w-[180px]">Request</TableHead>
                   <TableHead className="max-w-[180px]">Resident</TableHead>
                   <TableHead className="max-w-[200px]">Property</TableHead>
                   <TableHead className="max-w-[130px]">Status</TableHead>
@@ -252,10 +252,10 @@ export default function AssignmentsPage() {
                   const resName = residentFullName(residentById.get(req.residentId));
                   return (
                     <TableRow key={req.id} className="group cursor-pointer" onClick={() => router.push(`/requests/${req.id}`)}>
-                      <TableCell className="pl-4 max-w-[180px]">
+                      <TableCell className="pl-4 w-[180px] min-w-[180px]">
                         <div className="flex items-center gap-3 min-w-0">
                           <span className="min-w-0">
-                            <Link href={`/requests/${req.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 truncate" title={req.code}>
+                            <Link href={`/requests/${req.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap" title={req.code}>
                               {req.code}
                             </Link>
                             <span className="block truncate text-sm font-medium text-foreground" title={req.categoryName}>{req.categoryName}</span>
