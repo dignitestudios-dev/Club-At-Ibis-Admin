@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/utils/cn";
 
 export interface SearchInputProps {
@@ -15,7 +16,7 @@ export interface SearchInputProps {
 }
 
 /**
- * Search box with a leading icon, a clear (×) button, and a built-in 1-second (1000ms) debounce.
+ * Search box with a leading icon, a clear (×) button, and a shared useDebounce hook.
  * Keeps typing responsive while preventing excessive query and filter recalculations.
  */
 export function SearchInput({
@@ -27,22 +28,24 @@ export function SearchInput({
   debounceMs = 400,
 }: SearchInputProps) {
   const [internalValue, setInternalValue] = useState(value);
+  const debouncedValue = useDebounce(internalValue, debounceMs);
   const latestOnChange = useRef(onChange);
   latestOnChange.current = onChange;
+  const isFirstMount = useRef(true);
 
   useEffect(() => {
     setInternalValue(value);
   }, [value]);
 
   useEffect(() => {
-    if (internalValue === value) return;
-
-    const timer = setTimeout(() => {
-      latestOnChange.current(internalValue);
-    }, debounceMs);
-
-    return () => clearTimeout(timer);
-  }, [internalValue, value, debounceMs]);
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    if (debouncedValue !== value) {
+      latestOnChange.current(debouncedValue);
+    }
+  }, [debouncedValue, value]);
 
   const handleClear = () => {
     setInternalValue("");
@@ -57,6 +60,7 @@ export function SearchInput({
         onChange={(e) => setInternalValue(e.target.value)}
         placeholder={placeholder}
         aria-label={ariaLabel ?? placeholder}
+        maxLength={100}
         className="bg-card pr-9 pl-9"
       />
       {internalValue && internalValue.trim().length > 0 && (

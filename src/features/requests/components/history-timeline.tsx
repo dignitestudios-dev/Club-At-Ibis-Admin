@@ -52,17 +52,16 @@ const ROLE_LABEL: Record<ActorRole, string> = {
   system: "System",
 };
 
-/** Events are shown oldest → newest, per the request-history spec. */
 export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
-  const sorted = [...events].sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  const list = events ?? [];
 
   return (
     <ol className="space-y-0">
-      {sorted.map((event, index) => {
+      {list.map((event, index) => {
         const cfg = EVENT_CONFIG[event.type] || { icon: Send, label: event.type?.replace(/_/g, " ") || "Update", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" };
         const failed = event.type === "letter_email" && event.message.toLowerCase().includes("failed");
         const Icon = failed ? MailWarning : cfg.icon;
-        const isLast = index === sorted.length - 1;
+        const isLast = index === list.length - 1;
         const roleLabel = ROLE_LABEL[event.actor?.role] || event.actor?.role || "User";
         const actorName = event.actor?.name || "User";
 
@@ -111,9 +110,9 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
                 </time>
               </div>
 
-              <p className="text-sm leading-relaxed text-foreground/85">{event.message}</p>
+              <p className="text-sm leading-relaxed text-foreground/85 break-words">{event.message}</p>
               {event.detail && (
-                <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground break-words">
                   {event.detail}
                 </p>
               )}
@@ -129,7 +128,7 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
           </li>
         );
       })}
-      {sorted.length === 0 && <p className="text-sm text-muted-foreground">No history recorded.</p>}
+      {list.length === 0 && <p className="text-sm text-muted-foreground">No history recorded.</p>}
     </ol>
   );
 }

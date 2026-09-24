@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
@@ -61,9 +61,14 @@ export default function LoginForm() {
     };
   }, [setValue]);
 
+  const isSubmittingRef = useRef(false);
+
   function onSubmit(data: LoginCredentials) {
+    if (isSubmittingRef.current || isPending) return;
+    isSubmittingRef.current = true;
     login(data, {
       onSuccess: ({ token, admin }) => {
+        isSubmittingRef.current = false;
         localStorage.removeItem("caia.logged-out");
         localStorage.setItem("auth-token", token);
         localStorage.setItem("auth-user", JSON.stringify(admin));
@@ -72,7 +77,13 @@ export default function LoginForm() {
         toast.success(`Welcome back, ${admin.firstName}.`);
         window.location.href = returnUrl ? decodeURIComponent(returnUrl) : DEFAULT_REDIRECT;
       },
-      onError: (error: Error) => toast.error(error.message || "Unable to sign in."),
+      onError: (error: Error) => {
+        isSubmittingRef.current = false;
+        toast.error(error.message || "Unable to sign in.");
+      },
+      onSettled: () => {
+        isSubmittingRef.current = false;
+      },
     });
   }
 

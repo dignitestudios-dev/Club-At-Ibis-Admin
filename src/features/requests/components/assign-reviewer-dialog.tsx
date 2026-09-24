@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { UserRoundCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { SearchInput } from "@/components/shared/search-input";
 import { useAssignRequest, useReviewers } from "@/hooks/use-admin-data";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/utils/cn";
 
@@ -22,16 +23,10 @@ export function AssignReviewerDialog({
 }) {
   const toast = useToast();
   const assign = useAssignRequest();
+  const isSubmittingRef = useRef(false);
   const [selected, setSelected] = useState("");
   const [query, setQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(query.trim());
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [query]);
+  const debouncedSearch = useDebounce(query.trim(), 250);
 
   const { data: reviewers, isLoading: isLoadingReviewers, isFetching: isFetchingReviewers } = useReviewers(
     { limit: 100, search: debouncedSearch, status: "ACTIVE" },
@@ -42,7 +37,6 @@ export function AssignReviewerDialog({
     if (request) {
       setSelected("");
       setQuery("");
-      setDebouncedSearch("");
     }
   }, [request]);
 
@@ -57,7 +51,8 @@ export function AssignReviewerDialog({
   const chosen = reviewers?.find((r) => r.id === selected);
 
   function submit() {
-    if (!request || !chosen) return;
+    if (!request || !chosen || isSubmittingRef.current || assign.isPending) return;
+    isSubmittingRef.current = true;
     assign.mutate(
       {
         requestId: request.id,
@@ -66,10 +61,17 @@ export function AssignReviewerDialog({
       },
       {
         onSuccess: () => {
+          isSubmittingRef.current = false;
           toast.success(current ? "Request reassigned" : "Request assigned", `${request.code} is now with ${chosen.name}.`);
           onOpenChange(false);
         },
-        onError: (e: Error) => toast.error("Could not assign", e.message),
+        onError: (e: Error) => {
+          isSubmittingRef.current = false;
+          toast.error("Could not assign", e.message);
+        },
+        onSettled: () => {
+          isSubmittingRef.current = false;
+        },
       }
     );
   }
