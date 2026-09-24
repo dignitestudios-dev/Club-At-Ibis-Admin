@@ -1,3 +1,5 @@
+"use client";
+
 import { ThemeProvider } from "next-themes";
 import ReduxProvider from "./redux-provider";
 import QueryProvider from "./query-provider";

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { ChevronRight, Download, FileSearch, Filter, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, Download, FileSearch, Filter, RefreshCw, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FilterSelect } from "@/components/shared/filter-select";
@@ -20,9 +20,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DepositChip, RefundChip } from "@/features/requests/components/request-chips";
 import { ExportDialog } from "@/features/requests/components/export-dialog";
-import { useCategories, useRequests, useMockResidents, useMockReviewers } from "@/hooks/use-admin-data";
+import { useCategories, useRequests, useResidents, useReviewers } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
+import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
+import { cn } from "@/utils/cn";
 import {
   DEFAULT_FILTERS,
   STATUS_LABEL,
@@ -49,14 +51,15 @@ const URL_DEFAULTS = {
 
 export default function RequestsListPage() {
   const router = useRouter();
+  const toast = useToast();
   const { values: url, set: setUrl } = useUrlParams(URL_DEFAULTS);
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
 
-  const { data: requests, isLoading } = useRequests();
-  const { data: residents } = useMockResidents();
+  const { data: requests, isLoading, isFetching, refetch } = useRequests();
+  const { data: residents } = useResidents();
   const { data: categories } = useCategories();
-  const { data: reviewers } = useMockReviewers();
+  const { data: reviewers } = useReviewers();
 
   const applied = useMemo<RequestFilters>(
     () => ({
@@ -122,8 +125,8 @@ export default function RequestsListPage() {
     return { counts, total: base.length };
   }, [requests, applied, ctx]);
 
-  const years = useMemo(() => {
-    const set = new Set((requests ?? []).map((r) => new Date(r.submittedAt).getFullYear().toString()));
+  const years = useMemo<string[]>(() => {
+    const set = new Set<string>((requests ?? []).map((r) => new Date(r.submittedAt).getFullYear().toString()));
     return [...set].sort().reverse();
   }, [requests]);
 
@@ -166,13 +169,34 @@ export default function RequestsListPage() {
         title="All Requests"
         description="Search, filter and track every architectural request across all categories."
         actions={
-          <Button onClick={() => setExportOpen(true)} disabled={isLoading || matching.length === 0}>
-            <Download className="size-4" />
-            Export CSV
-            <span className="ml-0.5 rounded-full bg-white/20 px-1.5 text-[10px] font-semibold tabular-nums dark:bg-black/15">
-              {matching.length}
-            </span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await refetch();
+                  toast.success("Requests refreshed");
+                } catch {
+                  toast.error("Failed to refresh requests");
+                }
+              }}
+              disabled={isFetching}
+              className="h-9 gap-1.5"
+              aria-label="Refresh requests"
+              title="Refresh requests"
+            >
+              <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+              <span>Refresh</span>
+            </Button>
+            <Button onClick={() => setExportOpen(true)} disabled={isLoading || matching.length === 0}>
+              <Download className="size-4" />
+              Export CSV
+              <span className="ml-0.5 rounded-full bg-white/20 px-1.5 text-[10px] font-semibold tabular-nums dark:bg-black/15">
+                {matching.length}
+              </span>
+            </Button>
+          </div>
         }
       />
 
@@ -323,9 +347,25 @@ export default function RequestsListPage() {
               </TableHeader>
               <TableBody>
                 {visible.map((req) => {
-                  const resident = residentById.get(req.residentId);
+                  const resident = req.resident
+                    ? {
+                        id: req.resident.id,
+                        residentIdNumber: req.resident.residentId || req.resident.residentIdNumber || "",
+                        firstName: req.resident.firstName || "",
+                        lastName: req.resident.lastName || "",
+                        displayName: req.resident.displayName || "",
+                        email: req.resident.email || "",
+                        phone: req.resident.phone || "",
+                        active: true,
+                        address: req.property?.address || req.fieldValues?.propertyAddress || "",
+                        lotNo: req.property?.lotNo || req.fieldValues?.lotNo || "",
+                        createdAt: "",
+                      }
+                    : residentById.get(req.residentId);
                   const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
                   const category = categoryById.get(req.categoryId);
+                  const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
+                  const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
                   return (
                     <TableRow key={req.id} onClick={() => router.push(`/requests/${req.id}`)} className="group cursor-pointer">
                       <TableCell className="pl-4 max-w-[120px]">
@@ -353,8 +393,8 @@ export default function RequestsListPage() {
                         <div className="text-[11px] text-muted-foreground truncate">{resident?.residentIdNumber}</div>
                       </TableCell>
                       <TableCell className="max-w-[200px]">
-                        <div className="max-w-[200px] truncate text-sm" title={`${req.fieldValues.propertyAddress || ''} (Lot: ${req.fieldValues.lotNo || ''})`}>{req.fieldValues.propertyAddress}</div>
-                        <div className="text-[11px] text-muted-foreground truncate">{req.fieldValues.lotNo}</div>
+                        <div className="max-w-[200px] truncate text-sm" title={`${propAddress} (Lot: ${propLot})`}>{propAddress}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">{propLot}</div>
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap text-muted-foreground max-w-[130px] truncate" title={format(new Date(req.submittedAt), "PPP")}>{format(new Date(req.submittedAt), "MMM d, yyyy")}</TableCell>
                       <TableCell className="max-w-[140px]">

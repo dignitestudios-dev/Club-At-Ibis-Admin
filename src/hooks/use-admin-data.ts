@@ -6,7 +6,7 @@ import { getMockReviewers } from "@/features/reviewers/api/reviewers.mock";
 import { getResidents, getResidentsPage, getResident, setResidentActive } from "@/features/residents/api/residents.service";
 import { getMockResidents } from "@/features/residents/api/residents.mock";
 import { getCategories, getCategoriesPage, getCategory, getCommonForm, getCategoryVersions, getCategoryVersion, compareCategoryVersions, createCategory, updateCategory, archiveCategory, restoreCategory, restoreCategoryVersion } from "@/features/categories/api/categories.service";
-import { getRequests, recordExport } from "@/features/requests/api/requests.service";
+import { getRequests, getRequestById, recordExport } from "@/features/requests/api/requests.service";
 import { assignRequest, type AssignPayload } from "@/features/requests/api/assignments.service";
 import { getActivity } from "@/features/activity/api/activity.service";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "@/features/notifications/api/notifications.service";
@@ -25,11 +25,14 @@ export const keys = {
 
 /* ------------------------------ queries ------------------------------ */
 
-/** `limit` lets a caller request a bigger/smaller batch than the default (100). */
-export const useReviewers = (limit?: number, options?: { enabled?: boolean }) =>
+/** `params` lets a caller request a bigger/smaller batch or search reviewers via API. */
+export const useReviewers = (
+  params?: { limit?: number; search?: string; status?: string } | number,
+  options?: { enabled?: boolean }
+) =>
   useQuery({
-    queryKey: [...keys.reviewers, limit ?? "default"],
-    queryFn: () => getReviewers(limit),
+    queryKey: [...keys.reviewers, typeof params === "number" ? params : params ?? "default"],
+    queryFn: () => getReviewers(params),
     enabled: options?.enabled !== undefined ? options.enabled : true,
   });
 export const useResidents = (limit?: number, options?: { enabled?: boolean }) =>
@@ -92,7 +95,9 @@ export const useVersionComparison = (id: string, fromVersion: number, toVersion:
     enabled: !!id && fromVersion > 0 && toVersion > 0 && fromVersion !== toVersion,
   });
 
-export const useRequests = () => useQuery({ queryKey: keys.requests, queryFn: getRequests });
+export const useRequests = () => useQuery({ queryKey: keys.requests, queryFn: () => getRequests() });
+export const useRequest = (id: string) =>
+  useQuery({ queryKey: [...keys.requests, id], queryFn: () => getRequestById(id), enabled: !!id });
 export const useActivity = () => useQuery({ queryKey: keys.activity, queryFn: getActivity });
 export const useNotifications = () =>
   useQuery({ queryKey: keys.notifications, queryFn: () => getNotifications() });

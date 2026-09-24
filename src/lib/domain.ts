@@ -57,8 +57,11 @@ export const REFUND_LABEL: Record<RefundOutcome, string> = {
 /* People                                                              */
 /* ------------------------------------------------------------------ */
 
-export function residentFullName(r?: Pick<Resident, "firstName" | "lastName"> | null) {
-  return r ? `${r.firstName} ${r.lastName}`.trim() : "Unknown resident";
+export function residentFullName(r?: { firstName?: string; lastName?: string; displayName?: string; residentIdNumber?: string; residentId?: string } | null) {
+  if (!r) return "Unknown resident";
+  if (r.displayName) return r.displayName;
+  const combined = `${r.firstName || ""} ${r.lastName || ""}`.trim();
+  return combined || r.residentIdNumber || r.residentId || "Resident";
 }
 
 export function initialsOf(name: string) {
@@ -116,13 +119,17 @@ export function filterRequests(
 
   return requests.filter((req) => {
     if (q) {
-      const resident = residentById.get(req.residentId);
+      const resident = req.resident || residentById.get(req.residentId);
       const hay = [
         req.code,
+        req.title,
+        req.categoryName,
         residentFullName(resident),
-        resident?.residentIdNumber,
-        req.fieldValues.propertyAddress,
-        req.fieldValues.lotNo,
+        (resident as any)?.residentIdNumber || (resident as any)?.residentId,
+        req.property?.address,
+        req.property?.lotNo,
+        req.fieldValues?.propertyAddress,
+        req.fieldValues?.lotNo,
       ]
         .filter(Boolean)
         .join(" ")

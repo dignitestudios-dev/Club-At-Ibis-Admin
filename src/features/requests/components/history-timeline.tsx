@@ -59,10 +59,12 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
   return (
     <ol className="space-y-0">
       {sorted.map((event, index) => {
-        const cfg = EVENT_CONFIG[event.type];
+        const cfg = EVENT_CONFIG[event.type] || { icon: Send, label: event.type?.replace(/_/g, " ") || "Update", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" };
         const failed = event.type === "letter_email" && event.message.toLowerCase().includes("failed");
         const Icon = failed ? MailWarning : cfg.icon;
         const isLast = index === sorted.length - 1;
+        const roleLabel = ROLE_LABEL[event.actor?.role] || event.actor?.role || "User";
+        const actorName = event.actor?.name || "User";
 
         return (
           <li key={event.id} className="group relative flex gap-4">
@@ -118,8 +120,8 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-1.5 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
-                  By <span className="font-semibold text-foreground">{event.actor.name}</span>
-                  <span className="rounded bg-muted px-1.5 py-px text-[10px] font-medium">{ROLE_LABEL[event.actor.role]}</span>
+                  By <span className="font-semibold text-foreground">{actorName}</span>
+                  <span className="rounded bg-muted px-1.5 py-px text-[10px] font-medium">{roleLabel}</span>
                 </span>
                 <span>{formatDateTime(event.createdAt)}</span>
               </div>

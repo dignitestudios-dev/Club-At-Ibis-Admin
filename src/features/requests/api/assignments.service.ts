@@ -1,10 +1,13 @@
+import axiosInstance from "@/lib/axios";
 import { db, delay } from "@/lib/mock/store";
 import { logActivity, currentAdminActor, pushAdminNotification } from "@/lib/mock/activity";
 import { IN_FLIGHT } from "@/lib/domain";
+import { toAdminRequestRecord } from "./requests.service";
 
 export interface AssignPayload {
   requestId: string;
   reviewerId: string;
+  expectedAssignmentVersion?: number;
 }
 
 /**
@@ -13,7 +16,19 @@ export interface AssignPayload {
  * moves to the chosen reviewer; the previous reviewer loses authority to act
  * on it, and earlier actions stay in the history.
  */
-export async function assignRequest({ requestId, reviewerId }: AssignPayload): Promise<RequestRecord> {
+export async function assignRequest({ requestId, reviewerId, expectedAssignmentVersion }: AssignPayload): Promise<RequestRecord> {
+  try {
+    const { data } = await axiosInstance.patch(`/admin/requests/${requestId}/assignment`, {
+      reviewerId,
+      expectedAssignmentVersion: expectedAssignmentVersion ?? 0,
+    });
+    return toAdminRequestRecord(data.data.request);
+  } catch (err: any) {
+    if (err?.response?.status || err?.message?.includes("assignment")) {
+      throw err;
+    }
+  }
+
   const requests = db.getRequests();
   const idx = requests.findIndex((r) => r.id === requestId);
   if (idx === -1) throw new Error("Request not found.");

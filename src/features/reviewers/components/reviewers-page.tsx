@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Info, MailPlus, Plus, RotateCcw, Route, UserCog, UserX, Users } from "lucide-react";
+import { Info, MailPlus, Plus, RefreshCw, RotateCcw, Route, UserCog, UserX, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -20,10 +20,13 @@ import { ReviewerRowMenu, ReviewerStatusChip } from "@/features/reviewers/compon
 import { useReviewerActions } from "@/features/reviewers/components/use-reviewer-actions";
 import { useReviewersPage } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
+import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
 import { formatRelative } from "@/utils/format";
+import { cn } from "@/utils/cn";
 
 export default function ReviewersPage() {
+  const toast = useToast();
   const [pageSize, setPageSize] = usePageSize();
   const [search, setSearch] = useUrlSearch("q");
   const { values, set } = useUrlParams({ page: "1", status: "all", defaultReviewer: "all" });
@@ -32,7 +35,7 @@ export default function ReviewersPage() {
   const defaultReviewer = values.defaultReviewer || "all";
 
   // Server-paginated and server-searched/filtered
-  const { data: pageResult, isLoading } = useReviewersPage({
+  const { data: pageResult, isLoading, isFetching, refetch } = useReviewersPage({
     page,
     limit: pageSize,
     search,
@@ -62,10 +65,31 @@ export default function ReviewersPage() {
         title="Reviewer Accounts"
         description="Create and manage ARB reviewer accounts, control who receives new requests, and activate or deactivate access."
         actions={
-          <Button onClick={() => setSheet({ open: true, reviewer: null })}>
-            <Plus className="size-4" />
-            Add Reviewer
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await refetch();
+                  toast.success("Reviewers refreshed");
+                } catch {
+                  toast.error("Failed to refresh reviewers");
+                }
+              }}
+              disabled={isFetching}
+              className="h-9 gap-1.5"
+              aria-label="Refresh reviewers"
+              title="Refresh reviewers"
+            >
+              <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+              <span>Refresh</span>
+            </Button>
+            <Button onClick={() => setSheet({ open: true, reviewer: null })}>
+              <Plus className="size-4" />
+              Add Reviewer
+            </Button>
+          </div>
         }
       />
 

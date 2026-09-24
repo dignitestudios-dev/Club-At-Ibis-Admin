@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { format, isToday, isYesterday } from "date-fns";
-import { Download, KeyRound, LayoutTemplate, Route, ScrollText, UserCog, type LucideIcon } from "lucide-react";
+import { Download, KeyRound, LayoutTemplate, RefreshCw, Route, ScrollText, UserCog, type LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FilterPills } from "@/components/shared/pill-tabs";
@@ -11,6 +11,7 @@ import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useActivity } from "@/hooks/use-admin-data";
+import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
 import { formatDateTime } from "@/utils/format";
 import { cn } from "@/utils/cn";
@@ -94,7 +95,8 @@ export function ActivityList({ entries, limit = entries.length }: { entries: Act
 }
 
 export default function ActivityPage() {
-  const { data, isLoading } = useActivity();
+  const toast = useToast();
+  const { data, isLoading, isFetching, refetch } = useActivity();
   const [search, setSearch] = useUrlSearch("q");
   const { values, set } = useUrlParams({ type: "all", limit: "25" });
   const category: ActivityCategory | "all" = values.type in ACTIVITY_META ? (values.type as ActivityCategory) : "all";
@@ -120,6 +122,27 @@ export default function ActivityPage() {
       <PageHeader
         title="System Activity"
         description="An audit trail of administrative changes. Every entry records the actual Super Admin who performed it."
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                await refetch();
+                toast.success("Activity log refreshed");
+              } catch {
+                toast.error("Failed to refresh activity log");
+              }
+            }}
+            disabled={isFetching}
+            className="h-8 gap-1.5"
+            aria-label="Refresh activity log"
+            title="Refresh activity log"
+          >
+            <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+            <span>Refresh</span>
+          </Button>
+        }
       />
 
       <FilterPills

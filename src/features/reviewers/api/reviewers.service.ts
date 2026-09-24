@@ -52,9 +52,20 @@ function splitName(name: string): { firstName: string; lastName: string } {
  * The Reviewer Accounts table uses `getReviewersPage` below instead, which
  * genuinely paginates server-side rather than truncating to one page's worth.
  */
-export async function getReviewers(limit = 100): Promise<PublicReviewer[]> {
-  const { data } = await axiosInstance.get("/admin/reviewers", { params: { limit } });
-  return (data.data.reviewers as ReviewerApiUser[]).map(toPublicReviewer);
+export async function getReviewers(
+  params?: { limit?: number; search?: string; status?: string } | number
+): Promise<PublicReviewer[]> {
+  const query =
+    typeof params === "number"
+      ? { limit: params }
+      : {
+          limit: params?.limit ?? 100,
+          search: params?.search?.trim() || undefined,
+          status: params?.status && params.status.toUpperCase() !== "ALL" ? params.status.toUpperCase() : undefined,
+        };
+  const { data } = await axiosInstance.get("/admin/reviewers", { params: query });
+  const list = data?.data?.reviewers ?? data?.reviewers ?? [];
+  return (list as ReviewerApiUser[]).map(toPublicReviewer);
 }
 
 export interface ApiPagination {
