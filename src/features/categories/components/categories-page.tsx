@@ -26,9 +26,8 @@ import { Pagination } from "@/components/shared/pagination";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useArchiveCategory, useCategories, useCategoriesPage, useRequests, useRestoreCategory } from "@/hooks/use-admin-data";
+import { useArchiveCategory, useCategories, useCategoriesPage, useRestoreCategory } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
-import { IN_FLIGHT } from "@/lib/domain";
 import { formatDate, formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
@@ -54,23 +53,11 @@ export default function CategoriesPage() {
 
   // Query full list for accurate counts on the Active / Archived tabs
   const { data: allCategories, refetch: refetchAll } = useCategories();
-  const { data: requests } = useRequests();
   const archive = useArchiveCategory();
   const restore = useRestoreCategory();
 
   const [archiving, setArchiving] = useState<Category | null>(null);
   const [restoring, setRestoring] = useState<Category | null>(null);
-
-  const usage = useMemo(() => {
-    const map = new Map<string, { total: number; active: number }>();
-    (requests ?? []).forEach((r) => {
-      const u = map.get(r.categoryId) ?? { total: 0, active: 0 };
-      u.total += 1;
-      if (IN_FLIGHT.includes(r.status)) u.active += 1;
-      map.set(r.categoryId, u);
-    });
-    return map;
-  }, [requests]);
 
   const shown = pageResult?.categories ?? [];
   const total = pageResult?.pagination.total ?? 0;
@@ -175,7 +162,6 @@ export default function CategoriesPage() {
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {shown.map((cat, i) => {
-              const u = usage.get(cat.id) ?? { total: 0, active: 0 };
               const docs = cat.fields.filter((f) => f.type === "file");
               const info = cat.fields.filter((f) => f.type !== "file");
               const archived = cat.status === "archived";
@@ -267,11 +253,7 @@ export default function CategoriesPage() {
                     </Link>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground">
-                    <span>
-                      <span className="font-semibold text-foreground tabular-nums">{u.total}</span> request{u.total === 1 ? "" : "s"}
-                      {u.active > 0 && <> · <span className="text-sky-700 dark:text-sky-300">{u.active} in progress</span></>}
-                    </span>
+                  <div className="mt-4 flex items-center justify-end border-t border-border/70 pt-3 text-xs text-muted-foreground">
                     <span title={formatDate(archived && cat.archivedAt ? cat.archivedAt : cat.updatedAt)}>
                       {archived && cat.archivedAt ? "Archived" : "Updated"} {formatRelative(archived && cat.archivedAt ? cat.archivedAt : cat.updatedAt)}
                     </span>
@@ -298,7 +280,7 @@ export default function CategoriesPage() {
         open={!!archiving}
         onOpenChange={(o) => !o && setArchiving(null)}
         title={`Archive “${archiving?.name}”?`}
-        description={`It will be removed from new-request selection. Existing requests (${usage.get(archiving?.id ?? "")?.total ?? 0}) continue their normal processing, the original name and history are preserved, and the category stays available in search and filters. You can restore it at any time.`}
+        description="It will be removed from new-request selection. Existing requests continue their normal processing, the original name and history are preserved, and the category stays available in search and filters. You can restore it at any time."
         confirmLabel="Archive category"
         destructive
         loading={archive.isPending}

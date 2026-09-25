@@ -144,11 +144,11 @@ export default function AssignmentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="pl-4 w-[180px] min-w-[180px]">Request</TableHead>
-                    <TableHead className="max-w-[120px]">Action</TableHead>
-                    <TableHead className="max-w-[220px]">Reviewer change</TableHead>
-                    <TableHead className="max-w-[160px]">Done by</TableHead>
-                    <TableHead className="max-w-[140px]">When</TableHead>
+                    <TableHead className="pl-4 w-[180px] min-w-[180px] max-w-[180px]">Request</TableHead>
+                    <TableHead className="w-[120px] min-w-[110px] max-w-[120px]">Action</TableHead>
+                    <TableHead className="w-[220px] min-w-[200px] max-w-[220px]">Reviewer change</TableHead>
+                    <TableHead className="w-[160px] min-w-[140px] max-w-[160px]">Done by</TableHead>
+                    <TableHead className="w-[140px] min-w-[130px] max-w-[140px]">When</TableHead>
                     <TableHead className="w-10 pr-4">
                       <span className="sr-only">Open</span>
                     </TableHead>
@@ -157,13 +157,13 @@ export default function AssignmentsPage() {
                 <TableBody>
                   {visibleActivity.map(({ event, request }) => (
                     <TableRow key={`${request.id}-${event.id}`} className="group cursor-pointer" onClick={() => router.push(`/requests/${request.id}`)}>
-                      <TableCell className="pl-4 w-[180px] min-w-[180px]">
-                        <Link href={`/requests/${request.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap" title={request.code}>
+                      <TableCell className="pl-4 w-[180px] min-w-[180px] max-w-[180px]">
+                        <Link href={`/requests/${request.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap truncate" title={request.code}>
                           {request.code}
                         </Link>
                         <span className="block truncate text-sm font-medium text-foreground" title={request.categoryName}>{request.categoryName}</span>
                       </TableCell>
-                      <TableCell className="max-w-[120px]">
+                      <TableCell className="w-[120px] min-w-[110px] max-w-[120px]">
                         <span
                           className={
                             event.type === "reassigned"
@@ -174,33 +174,33 @@ export default function AssignmentsPage() {
                           {event.type === "reassigned" ? "Reassigned" : "Assigned"}
                         </span>
                       </TableCell>
-                      <TableCell className="max-w-[220px]">
+                      <TableCell className="w-[220px] min-w-[200px] max-w-[220px]">
                         {event.assignment ? (
                           <div className="flex flex-wrap items-center gap-2 text-sm min-w-0">
                             {event.assignment.from && (
                               <>
-                                <span className="text-muted-foreground line-through decoration-muted-foreground/50 truncate max-w-[100px]" title={event.assignment.from}>{event.assignment.from}</span>
+                                <span className="text-muted-foreground line-through decoration-muted-foreground/50 truncate max-w-[90px]" title={event.assignment.from}>{event.assignment.from}</span>
                                 <ArrowRight className="size-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
                               </>
                             )}
                             <span className="inline-flex items-center gap-1.5 font-medium text-foreground min-w-0" title={event.assignment.to}>
                               <PersonAvatar name={event.assignment.to} className="size-6 shrink-0" fallbackClassName="text-[9px]" />
-                              <span className="truncate max-w-[100px]">{event.assignment.to}</span>
+                              <span className="truncate max-w-[90px]">{event.assignment.to}</span>
                             </span>
                           </div>
                         ) : (
                           <span className="text-sm text-muted-foreground truncate block" title={event.message}>{event.message}</span>
                         )}
                       </TableCell>
-                      <TableCell className="max-w-[160px]">
+                      <TableCell className="w-[160px] min-w-[140px] max-w-[160px]">
                         <span className="block text-sm truncate" title={event.actor.name}>{event.actor.name}</span>
                         <span className="block text-[11px] text-muted-foreground truncate">{event.actor.role === "super_admin" ? "Super Admin" : "Reviewer"}</span>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap max-w-[140px] truncate" title={formatDateTime(event.createdAt)}>
+                      <TableCell className="w-[140px] min-w-[130px] max-w-[140px] whitespace-nowrap truncate" title={formatDateTime(event.createdAt)}>
                         <span className="block text-sm truncate">{formatRelative(event.createdAt)}</span>
                         <span className="block text-[11px] text-muted-foreground truncate">{formatDateTime(event.createdAt)}</span>
                       </TableCell>
-                      <TableCell className="pr-4">
+                      <TableCell className="w-10 pr-4">
                         <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                       </TableCell>
                     </TableRow>
@@ -232,13 +232,13 @@ export default function AssignmentsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="pl-4 w-[180px] min-w-[180px]">Request</TableHead>
-                  <TableHead className="max-w-[180px]">Resident</TableHead>
-                  <TableHead className="max-w-[200px]">Property</TableHead>
-                  <TableHead className="max-w-[130px]">Status</TableHead>
-                  <TableHead className="max-w-[130px]">Submitted</TableHead>
-                  <TableHead className="max-w-[160px]">{tab === "intake" ? "Owner" : "Assigned reviewer"}</TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className="pl-4 w-[180px] min-w-[180px] max-w-[180px]">Request</TableHead>
+                  <TableHead className="w-[180px] min-w-[160px] max-w-[180px]">Resident</TableHead>
+                  <TableHead className="w-[200px] min-w-[180px] max-w-[200px]">Property</TableHead>
+                  <TableHead className="w-[130px] min-w-[120px] max-w-[130px]">Status</TableHead>
+                  <TableHead className="w-[130px] min-w-[120px] max-w-[130px]">Submitted</TableHead>
+                  <TableHead className="w-[180px] min-w-[160px] max-w-[180px]">{tab === "intake" ? "Owner" : "Assigned reviewer"}</TableHead>
+                  <TableHead className="w-[120px] min-w-[110px] max-w-[120px] text-right">
                     <span className="sr-only">Action</span>
                   </TableHead>
                   <TableHead className="w-10 pr-4">
@@ -252,46 +252,46 @@ export default function AssignmentsPage() {
                   const resName = residentFullName(residentById.get(req.residentId));
                   return (
                     <TableRow key={req.id} className="group cursor-pointer" onClick={() => router.push(`/requests/${req.id}`)}>
-                      <TableCell className="pl-4 w-[180px] min-w-[180px]">
+                      <TableCell className="pl-4 w-[180px] min-w-[180px] max-w-[180px]">
                         <div className="flex items-center gap-3 min-w-0">
                           <span className="min-w-0">
-                            <Link href={`/requests/${req.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap" title={req.code}>
+                            <Link href={`/requests/${req.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap truncate" title={req.code}>
                               {req.code}
                             </Link>
                             <span className="block truncate text-sm font-medium text-foreground" title={req.categoryName}>{req.categoryName}</span>
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm max-w-[180px]">
+                      <TableCell className="w-[180px] min-w-[160px] max-w-[180px] text-sm">
                         <span className="block truncate" title={resName}>{resName}</span>
                       </TableCell>
-                      <TableCell className="max-w-[200px]">
-                        <span className="block max-w-[200px] truncate text-sm text-muted-foreground" title={req.fieldValues.propertyAddress}>{req.fieldValues.propertyAddress}</span>
+                      <TableCell className="w-[200px] min-w-[180px] max-w-[200px]">
+                        <span className="block truncate text-sm text-muted-foreground" title={req.fieldValues.propertyAddress}>{req.fieldValues.propertyAddress}</span>
                       </TableCell>
-                      <TableCell className="max-w-[130px]">
+                      <TableCell className="w-[130px] min-w-[120px] max-w-[130px]">
                         <StatusBadge status={req.status} />
                       </TableCell>
-                      <TableCell className="whitespace-nowrap max-w-[130px] truncate" title={format(new Date(req.submittedAt), "PPP")}>
+                      <TableCell className="w-[130px] min-w-[120px] max-w-[130px] whitespace-nowrap truncate" title={format(new Date(req.submittedAt), "PPP")}>
                         <span className="block text-sm truncate">{formatRelative(req.submittedAt)}</span>
                         <span className="block text-[11px] text-muted-foreground truncate">{format(new Date(req.submittedAt), "MMM d, yyyy")}</span>
                       </TableCell>
-                      <TableCell className="max-w-[160px]">
+                      <TableCell className="w-[180px] min-w-[160px] max-w-[180px]">
                         {reviewer ? (
                           <div className="flex items-center gap-2 min-w-0" title={reviewer.name}>
                             <PersonAvatar name={reviewer.name} className="size-7 shrink-0" fallbackClassName="text-[10px]" />
-                            <span className="text-sm truncate">{reviewer.name}</span>
+                            <span className="text-sm truncate block">{reviewer.name}</span>
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground italic">Default reviewers&apos; intake</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="w-[120px] min-w-[110px] max-w-[120px] text-right" onClick={(e) => e.stopPropagation()}>
                         <Button size="sm" variant={tab === "intake" ? "default" : "outline"} onClick={() => setTarget(req)}>
                           <UserRoundPlus />
                           {tab === "intake" ? "Assign" : "Reassign"}
                         </Button>
                       </TableCell>
-                      <TableCell className="pr-4">
+                      <TableCell className="w-10 pr-4">
                         <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                       </TableCell>
                     </TableRow>

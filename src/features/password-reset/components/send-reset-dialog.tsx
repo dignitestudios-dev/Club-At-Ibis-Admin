@@ -94,32 +94,35 @@ export function SendResetDialog({
               <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
                 <CheckCircle2 className="size-5" aria-hidden="true" />
               </div>
-              <DialogTitle className="font-heading text-xl font-medium">Reset Link Sent</DialogTitle>
+              <DialogTitle className="font-heading text-xl font-medium">Reset Link Sent Successfully</DialogTitle>
               <DialogDescription>
-                {target.name} can now set a new password. This action was recorded in the activity log.
+                A password reset email has been sent with instructions to set a new password.
               </DialogDescription>
             </DialogHeader>
 
-            {/* Email preview */}
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xs">
-              <div className="border-b border-border bg-muted/50 px-4 py-2 text-[11px] text-muted-foreground">
-                <p><span className="font-semibold text-foreground">To:</span> {target.email}</p>
-                <p><span className="font-semibold text-foreground">Subject:</span> Reset your Club At Ibis password</p>
+            <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-medium">Recipient Name</span>
+                <span className="font-semibold text-foreground">{target.name}</span>
               </div>
-              <div className="space-y-3 px-4 py-4 text-xs leading-relaxed text-foreground/90">
-                <p>Hello {target.name.split(" ")[0]},</p>
-                <p>
-                  The Club at Ibis Architectural Review Board administrator requested a password reset for your account. Use the button below to choose a new password. The link expires in 24 hours and can only be used once.
-                </p>
-                <span className="inline-block rounded-md bg-[#112636] px-3.5 py-2 text-[11px] font-semibold text-white">
-                  Set a new password
+              <div className="flex items-center justify-between text-xs pt-2 border-t border-border/60">
+                <span className="text-muted-foreground font-medium">Email Address</span>
+                <span className="font-semibold text-foreground font-mono">{target.email}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs pt-2 border-t border-border/60">
+                <span className="text-muted-foreground font-medium">Account Role</span>
+                <span className="font-medium text-foreground capitalize">
+                  {target.kind === "reviewer" ? "ARB Reviewer" : "Resident"}
                 </span>
-                <p className="text-muted-foreground">If you didn&apos;t expect this email, you can safely ignore it.</p>
               </div>
             </div>
 
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {target.name.split(" ")[0]} can now follow the link in their email to choose a new password. This action was recorded in the activity log.
+            </p>
+
             <DialogFooter>
-              <Button onClick={() => onOpenChange(false)}>Done</Button>
+              <Button onClick={() => onOpenChange(false)} className="w-full sm:w-auto">Done</Button>
             </DialogFooter>
           </>
         )}

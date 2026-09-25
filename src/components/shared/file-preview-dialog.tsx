@@ -115,9 +115,9 @@ export function FilePreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden border border-border shadow-2xl">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] h-[85vh] flex flex-col p-0 overflow-hidden border border-border shadow-2xl rounded-2xl">
         {/* Header */}
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-border bg-slate-50/90 dark:bg-card px-5 py-3.5">
+        <DialogHeader className="flex flex-row items-center justify-between border-b border-border bg-slate-50/90 dark:bg-card px-5 py-3 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary">
               {isImage ? <ImageIcon className="size-4" /> : <FileText className="size-4" />}
@@ -175,12 +175,18 @@ export function FilePreviewDialog({
         </DialogHeader>
 
         {/* Viewport Content */}
-        <div className="relative flex-1 min-h-[420px] max-h-[72vh] overflow-auto bg-slate-950/95 dark:bg-[#070d17] flex items-center justify-center p-4">
+        <div className="relative flex-1 min-h-0 overflow-auto bg-slate-950/95 dark:bg-[#070d17] flex items-center justify-center p-4">
           {isPdf && objectUrl && file.file ? (
             <iframe
               src={objectUrl}
               title={file.name}
-              className="w-full h-[65vh] rounded-lg border-0 bg-white shadow-lg"
+              className="w-full h-full min-h-0 rounded-lg border-0 bg-white shadow-lg"
+            />
+          ) : isPdf && displayUrl ? (
+            <iframe
+              src={displayUrl}
+              title={file.name}
+              className="w-full h-full min-h-0 rounded-lg border-0 bg-white shadow-lg"
             />
           ) : imageError ? (
             <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
@@ -196,23 +202,23 @@ export function FilePreviewDialog({
                 alt={file.name}
                 onError={() => setImageError(true)}
                 style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
-                className="max-h-[65vh] max-w-full rounded-lg object-contain shadow-2xl transition-transform duration-200 border border-white/10"
+                className="max-h-full max-w-full rounded-lg object-contain shadow-2xl transition-transform duration-200 border border-white/10"
               />
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <DialogFooter className="border-t border-border bg-slate-50/90 dark:bg-card px-5 py-2.5 flex items-center justify-end">
+        <div className="border-t border-border bg-slate-50/90 dark:bg-card px-5 py-3 shrink-0 flex items-center justify-end">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
-            className="bg-white dark:bg-slate-800 border-border hover:bg-slate-100 dark:hover:bg-slate-700 text-foreground"
+            className="h-8 px-4 text-xs font-medium bg-white dark:bg-slate-800 border-border hover:bg-slate-100 dark:hover:bg-slate-700 text-foreground cursor-pointer shadow-2xs"
           >
             Close
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
