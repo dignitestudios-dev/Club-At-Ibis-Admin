@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z.string().trim().min(1, "Email is required").email("Enter a valid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().min(1, "Email is required").email("Enter a valid email address"),
+  password: z.string().min(1, "Password is required").max(128, "Password must not exceed 128 characters"),
 });
 
 export const forgotPasswordSchema = z.object({
@@ -12,7 +12,7 @@ export const forgotPasswordSchema = z.object({
 const strongAdminPassword = z
   .string()
   .min(8, "Password must contain at least 8 characters")
-  .max(128)
+  .max(128, "Password must not exceed 128 characters")
   .regex(/[a-z]/, "Password must contain a lowercase letter")
   .regex(/[A-Z]/, "Password must contain an uppercase letter")
   .regex(/\d/, "Password must contain a number")
@@ -21,7 +21,7 @@ const strongAdminPassword = z
 export const resetPasswordSchema = z
   .object({
     password: strongAdminPassword,
-    confirmPassword: z.string().min(1, "Please confirm your password"),
+    confirmPassword: z.string().min(1, "Please confirm your password").max(128, "Password must not exceed 128 characters"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -30,9 +30,9 @@ export const resetPasswordSchema = z
 
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, "Enter your current password"),
+    currentPassword: z.string().min(1, "Enter your current password").max(128, "Password must not exceed 128 characters"),
     newPassword: strongAdminPassword,
-    confirmNewPassword: z.string().min(1, "Please confirm your new password"),
+    confirmNewPassword: z.string().min(1, "Please confirm your new password").max(128, "Password must not exceed 128 characters"),
   })
   .refine((d) => d.newPassword === d.confirmNewPassword, {
     message: "Passwords do not match",

@@ -16,8 +16,21 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { useCreateReviewer, useReviewers, useUpdateReviewer } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
 
+const nameRegex = /^[A-Za-z\s]+$/;
+
 const baseSchema = {
-  name: z.string().trim().min(2, "Enter the reviewer's full name"),
+  firstName: z
+    .string()
+    .trim()
+    .min(1, "First name is required")
+    .max(50, "First name cannot exceed 50 characters")
+    .regex(nameRegex, "First name cannot contain numbers or special characters"),
+  lastName: z
+    .string()
+    .trim()
+    .min(1, "Last name is required")
+    .max(50, "Last name cannot exceed 50 characters")
+    .regex(nameRegex, "Last name cannot contain numbers or special characters"),
   designation: z.string().trim().min(2, "Designation is required"),
   email: z.string().trim().min(1, "Email is required").email("Enter a valid email address"),
   receiveNewRequests: z.boolean(),
@@ -29,6 +42,14 @@ const createSchema = z.object({ ...baseSchema, employeeNumber: z.string().trim()
 const editSchema = z.object({ ...baseSchema, employeeNumber: z.string().trim() });
 
 type FormValues = z.infer<typeof createSchema>;
+
+function splitReviewerName(name?: string): { firstName: string; lastName: string } {
+  if (!name) return { firstName: "", lastName: "" };
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const firstName = parts[0] ?? "";
+  const lastName = parts.slice(1).join(" ");
+  return { firstName, lastName };
+}
 
 /** Email preview of the invitation the reviewer receives. Shared with "Resend invitation". */
 export function InvitationSentDialog({
@@ -101,14 +122,17 @@ export function ReviewerFormSheet({
     watch,
     formState: { errors, isDirty },
   } = useForm<FormValues>({
+    mode: "onChange",
     resolver: zodResolver(editing ? editSchema : createSchema),
-    defaultValues: { name: "", employeeNumber: "", designation: "", email: "", receiveNewRequests: false },
+    defaultValues: { firstName: "", lastName: "", employeeNumber: "", designation: "", email: "", receiveNewRequests: false },
   });
 
   useEffect(() => {
     if (!open) return;
+    const { firstName, lastName } = splitReviewerName(reviewer?.name);
     reset({
-      name: reviewer?.name ?? "",
+      firstName,
+      lastName,
       employeeNumber: reviewer?.employeeNumber ?? "",
       designation: reviewer?.designation ?? "",
       email: reviewer?.email ?? "",
@@ -120,15 +144,23 @@ export function ReviewerFormSheet({
   const pending = create.isPending || update.isPending;
 
   function onSubmit(values: FormValues) {
+    const fullName = `${values.firstName.trim()} ${values.lastName.trim()}`.trim();
     if (editing && reviewer) {
       update.mutate(
         {
           id: reviewer.id,
-          updates: { name: values.name, employeeNumber: values.employeeNumber, designation: values.designation, email: values.email },
+          updates: {
+            name: fullName,
+            firstName: values.firstName.trim(),
+            lastName: values.lastName.trim(),
+            employeeNumber: values.employeeNumber,
+            designation: values.designation,
+            email: values.email,
+          },
         },
         {
           onSuccess: () => {
-            toast.success("Reviewer updated", `${values.name}'s account details were saved.`);
+            toast.success("Reviewer updated", `${fullName}'s account details were saved.`);
             onOpenChange(false);
           },
           onError: (e: Error) => toast.error("Could not save", e.message),
@@ -136,13 +168,21 @@ export function ReviewerFormSheet({
       );
       return;
     }
-    create.mutate(values, {
-      onSuccess: (created) => {
-        onOpenChange(false);
-        setInvited({ name: created.name, email: created.email });
+    create.mutate(
+      {
+        ...values,
+        name: fullName,
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
       },
-      onError: (e: Error) => toast.error("Could not create reviewer", e.message),
-    });
+      {
+        onSuccess: (created) => {
+          onOpenChange(false);
+          setInvited({ name: created.name, email: created.email });
+        },
+        onError: (e: Error) => toast.error("Could not create reviewer", e.message),
+      }
+    );
   }
 
   return (
@@ -161,13 +201,44 @@ export function ReviewerFormSheet({
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex min-h-0 flex-1 flex-col">
             <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5 custom-scrollbar">
               <FieldGroup>
-                <Field data-invalid={!!errors.name}>
-                  <FieldLabel htmlFor="rev-name">Full Name<RequiredMark /></FieldLabel>
-                  <FieldContent>
-                    <Input id="rev-name" placeholder="e.g. Jordan Whitfield" maxLength={100} disabled={pending} aria-invalid={!!errors.name} {...register("name")} />
-                    <FieldError errors={errors.name ? [errors.name] : []} />
-                  </FieldContent>
-                </Field>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field data-invalid={!!errors.firstName}>
+                    <FieldLabel htmlFor="rev-first-name">First Name<RequiredMark /></FieldLabel>
+                    <FieldContent>
+                      <Input
+                        id="rev-first-name"
+                        placeholder="e.g. Jordan"
+                        maxLength={50}
+                        disabled={pending}
+                        aria-invalid={!!errors.firstName}
+                        {...register("firstName", {
+                          onChange: (e) => {
+                            e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                          },
+                        })}
+                      />
+                      <FieldError errors={errors.firstName ? [errors.firstName] : []} />
+                    </FieldContent>
+                  </Field>
+                  <Field data-invalid={!!errors.lastName}>
+                    <FieldLabel htmlFor="rev-last-name">Last Name<RequiredMark /></FieldLabel>
+                    <FieldContent>
+                      <Input
+                        id="rev-last-name"
+                        placeholder="e.g. Whitfield"
+                        maxLength={50}
+                        disabled={pending}
+                        aria-invalid={!!errors.lastName}
+                        {...register("lastName", {
+                          onChange: (e) => {
+                            e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                          },
+                        })}
+                      />
+                      <FieldError errors={errors.lastName ? [errors.lastName] : []} />
+                    </FieldContent>
+                  </Field>
+                </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field data-invalid={!!errors.employeeNumber}>
                     <FieldLabel htmlFor="rev-emp">Employee Number{!editing && <RequiredMark />}</FieldLabel>
@@ -187,7 +258,7 @@ export function ReviewerFormSheet({
                 <Field data-invalid={!!errors.email}>
                   <FieldLabel htmlFor="rev-email">Work email (login)<RequiredMark /></FieldLabel>
                   <FieldContent>
-                    <Input id="rev-email" type="email" placeholder="name@clubatibis.com" maxLength={320} disabled={pending} aria-invalid={!!errors.email} {...register("email")} />
+                    <Input id="rev-email" type="email" placeholder="name@clubatibis.com" maxLength={100} disabled={pending} aria-invalid={!!errors.email} {...register("email")} />
                     <FieldError errors={errors.email ? [errors.email] : []} />
                   </FieldContent>
                 </Field>
@@ -197,7 +268,7 @@ export function ReviewerFormSheet({
                 <>
                   <div className="flex items-start gap-3 rounded-xl border border-sky-300/70 bg-sky-50 p-3.5 text-sm dark:border-sky-900/70 dark:bg-sky-950/30">
                     <Send className="mt-0.5 size-4 shrink-0 text-sky-700 dark:text-sky-300" aria-hidden="true" />
-                    <p className="text-sky-950 dark:text-sky-200">
+                    <p className="text-sky-950 break-all dark:text-sky-200">
                       An invitation link will be emailed to{" "}
                       <span className="font-semibold">{email || "the reviewer"}</span>. The link opens a page where they create their own password — no password is set or shared from here.
                     </p>

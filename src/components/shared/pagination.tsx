@@ -9,12 +9,16 @@ export function Pagination({
   page,
   pageSize,
   total,
+  pageSizeOptions = PAGE_SIZE_OPTIONS,
+  pageSizeLabel = "Rows per page",
   onPageChange,
   onPageSizeChange,
 }: {
   page: number;
   pageSize: number;
   total: number;
+  pageSizeOptions?: number[];
+  pageSizeLabel?: string;
   onPageChange: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
 }) {
@@ -28,7 +32,7 @@ export function Pagination({
     else if (numbers[numbers.length - 1] !== "…") numbers.push("…");
   }
 
-  const sizeItems = PAGE_SIZE_OPTIONS.map((n) => ({ label: String(n), value: String(n) }));
+  const sizeItems = pageSizeOptions.map((n) => ({ label: String(n), value: String(n) }));
 
   return (
     <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
@@ -39,9 +43,9 @@ export function Pagination({
         </p>
         {onPageSizeChange && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Rows per page</span>
+            <span className="text-xs text-muted-foreground">{pageSizeLabel}</span>
             <Select items={sizeItems} value={String(pageSize)} onValueChange={(v) => v && onPageSizeChange(Number(v))}>
-              <SelectTrigger size="sm" className="w-[4.5rem]" aria-label="Rows per page">
+              <SelectTrigger size="sm" className="w-[4.5rem]" aria-label={pageSizeLabel}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
