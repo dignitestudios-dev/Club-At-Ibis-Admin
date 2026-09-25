@@ -33,6 +33,33 @@ function clearSessionAndRedirect() {
   }
 }
 
+let isHandling403 = false;
+
+function handleForbidden() {
+  if (typeof window === "undefined") return;
+  if (isHandling403) return;
+  isHandling403 = true;
+
+  window.dispatchEvent(
+    new CustomEvent("app:toast", {
+      detail: {
+        variant: "error",
+        title: "Permission Denied",
+        description: "You do not have permission to this action, we are refreshing you account info",
+      },
+    })
+  );
+
+  setTimeout(() => {
+    isHandling403 = false;
+    if (window.location.pathname !== "/dashboard") {
+      window.location.href = "/dashboard";
+    } else {
+      window.location.reload();
+    }
+  }, 1500);
+}
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -44,6 +71,10 @@ axiosInstance.interceptors.response.use(
     // the login form, which should just show an error, not force a redirect loop.
     if (status === 401 && !isLoginAttempt && !isLogoutAttempt) {
       clearSessionAndRedirect();
+    }
+
+    if (status === 403) {
+      handleForbidden();
     }
 
     // Trigger server-error dialog on 5xx or network-down responses

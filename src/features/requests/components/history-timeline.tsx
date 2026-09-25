@@ -61,6 +61,7 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
         const cfg = EVENT_CONFIG[event.type] || { icon: Send, label: event.type?.replace(/_/g, " ") || "Update", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" };
         const failed = event.type === "letter_email" && event.message.toLowerCase().includes("failed");
         const Icon = failed ? MailWarning : cfg.icon;
+        const isLatest = index === 0;
         const isLast = index === list.length - 1;
         const roleLabel = ROLE_LABEL[event.actor?.role] || event.actor?.role || "User";
         const actorName = event.actor?.name || "User";
@@ -73,7 +74,7 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-card shadow-2xs transition-transform duration-200 group-hover:scale-110",
                   failed ? "bg-rose-600 text-white" : cfg.node,
-                  isLast && "ring-4 ring-primary/20"
+                  isLatest && "ring-4 ring-primary/20"
                 )}
               >
                 <Icon className="size-4" />
@@ -94,9 +95,9 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
                       Staff only
                     </span>
                   )}
-                  {isLast && (
+                  {isLatest && (
                     <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-primary uppercase dark:bg-primary/20 dark:text-amber-300">
-                      Latest
+                      LATEST
                     </span>
                   )}
                 </div>

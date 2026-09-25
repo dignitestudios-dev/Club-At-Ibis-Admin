@@ -51,7 +51,7 @@ function splitReviewerName(name?: string): { firstName: string; lastName: string
   return { firstName, lastName };
 }
 
-/** Email preview of the invitation the reviewer receives. Shared with "Resend invitation". */
+/** Success dialog shown after sending or resending an invitation to a reviewer. */
 export function InvitationSentDialog({
   target,
   onOpenChange,
@@ -68,28 +68,35 @@ export function InvitationSentDialog({
           <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
             <MailCheck className="size-5" aria-hidden="true" />
           </div>
-          <DialogTitle className="font-heading text-xl font-medium">{resent ? "Invitation Resent" : "Invitation Sent"}</DialogTitle>
+          <DialogTitle className="font-heading text-xl font-medium">
+            {resent ? "Invitation Resent" : "Invitation Sent Successfully"}
+          </DialogTitle>
           <DialogDescription>
-            An invitation link was emailed to <span className="font-semibold text-foreground">{target?.email}</span>. {target?.name.split(" ")[0]} opens it, creates their own password, and can then sign in. You never see or set that password.
+            {resent
+              ? "A new invitation email has been sent to the reviewer."
+              : "An invitation email has been sent to the reviewer to activate their account."}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xs">
-          <div className="border-b border-border bg-muted/50 px-4 py-2 text-[11px] text-muted-foreground">
-            <p><span className="font-semibold text-foreground">To:</span> {target?.email}</p>
-            <p><span className="font-semibold text-foreground">Subject:</span> You&apos;re invited to the Club At Ibis ARB portal</p>
+        <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-2.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground font-medium">Reviewer Name</span>
+            <span className="font-semibold text-foreground">{target?.name}</span>
           </div>
-          <div className="space-y-3 px-4 py-4 text-xs leading-relaxed text-foreground/90">
-            <p>Hello {target?.name.split(" ")[0]},</p>
-            <p>
-              You&apos;ve been added as an Architectural Review Board reviewer. Use the button below to create your password and activate your account. The link expires in 72 hours and can only be used once.
-            </p>
-            <span className="inline-block rounded-md select-none bg-[#112636] px-3.5 py-2 text-[11px] font-semibold text-white">Create Your Password</span>
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-border/60">
+            <span className="text-muted-foreground font-medium">Email Address</span>
+            <span className="font-semibold text-foreground font-mono">{target?.email}</span>
           </div>
         </div>
 
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {target?.name?.split(" ")[0] || "The reviewer"} will receive an email with instructions to create their password and access the ARB portal.
+        </p>
+
         <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>Done</Button>
+          <Button onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
+            Done
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

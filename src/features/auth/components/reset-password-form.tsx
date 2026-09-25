@@ -33,9 +33,14 @@ export default function ResetPasswordForm({ token }: { token: string }) {
         <p className="text-sm text-muted-foreground">
           This reset link is missing, invalid or has already been used. Request another one.
         </p>
-        <Link href="/auth/forgot-password" className="text-sm font-medium text-primary hover:underline dark:text-amber-300">
-          Request a New Link
-        </Link>
+        <div className="flex flex-col items-center gap-2 pt-2">
+          <Link href="/auth/forgot-password" className="text-sm font-medium text-primary hover:underline dark:text-amber-300">
+            Request a New Link
+          </Link>
+          <Link href="/auth/login" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+            Back to Sign In
+          </Link>
+        </div>
       </div>
     );
   }
@@ -94,6 +99,12 @@ export default function ResetPasswordForm({ token }: { token: string }) {
           </Button>
         </FieldGroup>
       </form>
+
+      <p className="text-center text-sm text-muted-foreground">
+        <Link href="/auth/login" className="font-medium text-primary hover:underline dark:text-amber-300">
+          Back to Sign In
+        </Link>
+      </p>
     </div>
   );
 }

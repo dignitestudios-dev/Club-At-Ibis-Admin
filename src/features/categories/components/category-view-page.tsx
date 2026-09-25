@@ -496,6 +496,8 @@ function DisabledFieldRenderer({ field }: { field: CategoryField }) {
         <Input
           id={field.id}
           type="number"
+          min={0}
+          maxLength={15}
           disabled
           placeholder="0"
           className="bg-muted/20 cursor-not-allowed"

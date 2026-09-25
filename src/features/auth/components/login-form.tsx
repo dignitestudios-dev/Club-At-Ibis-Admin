@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,14 @@ export default function LoginForm() {
     });
   }
 
+  function onInvalid(errors: FieldErrors<LoginCredentials>) {
+    if (errors.password?.message === "Invalid credentials") {
+      toast.error("Invalid credentials");
+    } else if (errors.email?.message || errors.password?.message) {
+      toast.error(errors.email?.message || errors.password?.message || "Invalid credentials");
+    }
+  }
+
   return (
     <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 sm:px-8 space-y-5">
       <div className="space-y-1 text-center auth-field-enter auth-stagger-1">
@@ -99,7 +107,7 @@ export default function LoginForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate>
         <FieldGroup>
           <div className="auth-field-enter auth-stagger-2">
             <Controller
