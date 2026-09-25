@@ -10,7 +10,7 @@ import { getRequests, getRequestsPage, getRequestById, recordExport, type Reques
 import { assignRequest, type AssignPayload } from "@/features/requests/api/assignments.service";
 import { getActivity } from "@/features/activity/api/activity.service";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "@/features/notifications/api/notifications.service";
-import { getResets, sendPasswordReset, setUserPassword, type SendResetPayload, type SetPasswordPayload } from "@/features/password-reset/api/password-reset.service";
+import { sendPasswordReset, setUserPassword, type SendResetPayload, type SetPasswordPayload } from "@/features/password-reset/api/password-reset.service";
 
 export const keys = {
   reviewers: ["reviewers"] as const,
@@ -20,7 +20,6 @@ export const keys = {
   requests: ["requests"] as const,
   activity: ["activity"] as const,
   notifications: ["notifications"] as const,
-  resets: ["resets"] as const,
 };
 
 /* ------------------------------ queries ------------------------------ */
@@ -104,7 +103,6 @@ export const useRequest = (id: string) =>
 export const useActivity = () => useQuery({ queryKey: keys.activity, queryFn: getActivity });
 export const useNotifications = () =>
   useQuery({ queryKey: keys.notifications, queryFn: () => getNotifications() });
-export const useResets = () => useQuery({ queryKey: keys.resets, queryFn: getResets });
 
 /* ----------------------------- mutations ----------------------------- */
 
@@ -193,7 +191,7 @@ export function useSendPasswordReset() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (payload: SendResetPayload) => sendPasswordReset(payload),
-    onSuccess: () => invalidate(keys.resets, keys.activity),
+    onSuccess: () => invalidate(keys.activity),
   });
 }
 

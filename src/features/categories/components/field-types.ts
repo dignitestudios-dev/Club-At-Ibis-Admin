@@ -42,14 +42,13 @@ export const isChoiceType = (t: CategoryFieldType) => CHOICE_TYPES.includes(t);
 
 /** Groups of file types a document field can be limited to. */
 export const FILE_GROUPS: { id: string; label: string; detail: string }[] = [
-  { id: "images", label: "Images", detail: "PNG, JPG / JPEG" },
-  { id: "pdf", label: "PDF", detail: "PDF documents" },
-  { id: "word", label: "Word", detail: "DOC, DOCX" },
-  { id: "excel", label: "Spreadsheets", detail: "XLS, XLSX, CSV" },
+  { id: "images", label: "Images", detail: "PNG, JPG, JPEG, WEBP" },
+  { id: "pdf", label: "PDF", detail: "PDF documents (.pdf)" },
+  { id: "word", label: "Word", detail: "Word documents (.doc, .docx)" },
 ];
 
 export function describeAccept(accept?: string[]): string {
-  if (!accept || accept.length === 0) return "Any file type";
+  if (!accept || accept.length === 0) return "Images (PNG, JPG, JPEG, WEBP), PDF, Word (DOC, DOCX)";
   return accept
     .map((id) => FILE_GROUPS.find((g) => g.id === id)?.label)
     .filter(Boolean)
