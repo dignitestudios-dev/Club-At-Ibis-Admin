@@ -17,6 +17,21 @@ export interface CategoryVersionsResult {
   versions: CategoryVersion[];
 }
 
+function toActivityEntry(raw: any): CategoryActivityEntry {
+  return {
+    id: raw.id || raw._id || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Math.random())),
+    type: raw.type ?? "category.updated",
+    actor: {
+      id: raw.actor?.id ?? null,
+      role: raw.actor?.role ?? "SYSTEM",
+      displayName: raw.actor?.displayName ?? "System",
+    },
+    message: raw.message ?? "",
+    details: raw.details ?? {},
+    occurredAt: raw.occurredAt || raw.createdAt || new Date().toISOString(),
+  };
+}
+
 function toCategory(raw: any): Category {
   if (!raw) return {} as Category;
   const currentVersion = raw.currentVersion ?? raw.version ?? 1;
@@ -41,6 +56,11 @@ function toCategory(raw: any): Category {
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
     archivedAt: raw.archivedAt ?? null,
+    activityHistory: Array.isArray(raw.activityHistory)
+      ? raw.activityHistory.map(toActivityEntry)
+      : Array.isArray(raw.activity)
+      ? raw.activity.map(toActivityEntry)
+      : undefined,
   };
 }
 

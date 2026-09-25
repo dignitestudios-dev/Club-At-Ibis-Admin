@@ -10,6 +10,7 @@ import {
   Copy,
   Eye,
   GripVertical,
+  History,
   Info,
   Lock,
   Pencil,
@@ -47,8 +48,9 @@ export function CategoryBuilderSkeleton({ editing = false }: { editing?: boolean
           <Skeleton className="h-6 w-48 rounded" />
           <Skeleton className="h-3.5 w-64 rounded" />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Skeleton className="h-9 w-24 rounded-xl" />
+          {editing && <Skeleton className="h-9 w-28 rounded-xl" />}
           {editing && <Skeleton className="h-9 w-24 rounded-xl" />}
           <Skeleton className="h-9 w-16 rounded-xl" />
           <Skeleton className="h-9 w-28 rounded-xl" />
@@ -809,15 +811,15 @@ function BuilderForm({
       </Link>
 
       {/* Sticky action bar (kept clear of the top bar) */}
-      <div className="sticky top-[4.5rem] z-20 flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/95 px-4 py-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="font-heading text-xl font-medium text-foreground">{editing ? `Edit ${existing?.name}` : "Add Category"}</h1>
-          <p className="text-xs text-muted-foreground">
+      <div className="sticky top-[4.5rem] z-20 flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/95 px-4 py-3 shadow-sm backdrop-blur">
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate font-heading text-xl font-medium text-foreground">{editing ? `Edit ${existing?.name}` : "Add Category"}</h1>
+          <p className="truncate text-xs text-muted-foreground">
             {editing ? `Saving creates form v${currentVer + 1} — v${currentVer} is kept` : "Configure the resident form, then save."}
             {dirty && <span className="ml-2 font-medium text-amber-700 dark:text-amber-300">· Unsaved changes</span>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="outline" disabled={saving} />}>
               <Plus className="size-4" />
@@ -843,10 +845,16 @@ function BuilderForm({
             </DropdownMenuContent>
           </DropdownMenu>
           {editing && existing && (
-            <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href={`/categories/${existing.id}`} />}>
-              <Eye className="size-4" />
-              Preview Form
-            </Button>
+            <>
+              <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href={`/categories/${existing.id}/activity`} />}>
+                <History className="size-4" />
+                View Activity
+              </Button>
+              <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href={`/categories/${existing.id}`} />}>
+                <Eye className="size-4" />
+                Preview Form
+              </Button>
+            </>
           )}
           <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href="/categories" />}>
             Cancel
