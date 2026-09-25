@@ -29,7 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { InView } from "@/components/shared/in-view";
 import { StatCard, type StatAccent } from "@/components/shared/stat-card";
 import type { DashboardChartData } from "@/features/dashboard/components/dashboard-charts";
-import { useActivity, useNotifications, useRequests, useMockReviewers } from "@/hooks/use-admin-data";
+import { useActivity, useNotifications, useRequests, useReviewers } from "@/hooks/use-admin-data";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { IN_FLIGHT, STATUS_LABEL, STATUS_ORDER, attentionBuckets } from "@/lib/domain";
 import { formatRelative } from "@/utils/format";
@@ -94,7 +94,7 @@ interface AttentionItem {
 export default function DashboardOverview() {
   const user = useCurrentUser();
   const { data: requests, isLoading } = useRequests();
-  const { data: reviewers } = useMockReviewers();
+  const { data: reviewers } = useReviewers();
   const { data: activity } = useActivity();
   const { data: notifications } = useNotifications();
 

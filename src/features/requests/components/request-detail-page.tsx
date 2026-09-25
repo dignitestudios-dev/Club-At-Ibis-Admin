@@ -34,7 +34,7 @@ import { AssignReviewerDialog } from "@/features/requests/components/assign-revi
 import { HistoryTimeline } from "@/features/requests/components/history-timeline";
 import { RequestJourney } from "@/features/requests/components/request-journey";
 import { DepositChip, RefundChip } from "@/features/requests/components/request-chips";
-import { useCategories, useRequests, useMockResidents, useMockReviewers } from "@/hooks/use-admin-data";
+import { useCategories, useRequest, useResidents, useReviewers } from "@/hooks/use-admin-data";
 import { IN_FLIGHT, REFUND_LABEL, residentFullName } from "@/lib/domain";
 import { formatDate, formatDateTime, formatFileSize } from "@/utils/format";
 import { cn } from "@/utils/cn";
@@ -71,9 +71,9 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 export default function RequestDetailPage({ id }: { id: string }) {
-  const { data: requests, isLoading } = useRequests();
-  const { data: residents } = useMockResidents();
-  const { data: reviewers } = useMockReviewers();
+  const { data: req, isLoading } = useRequest(id);
+  const { data: residents } = useResidents();
+  const { data: reviewers } = useReviewers();
   const { data: categories } = useCategories();
   const [preview, setPreview] = useState<PreviewableFile | null>(null);
   const [assigning, setAssigning] = useState<RequestRecord | null>(null);
@@ -88,7 +88,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
     );
   }
 
-  const req = requests?.find((r) => r.id === id);
   if (!req) {
     return (
       <EmptyState
@@ -104,17 +103,34 @@ export default function RequestDetailPage({ id }: { id: string }) {
     );
   }
 
-  const resident = residents?.find((r) => r.id === req.residentId);
+  const resident = req.resident
+    ? {
+        id: req.resident.id,
+        residentIdNumber: req.resident.residentId || req.resident.residentIdNumber || "",
+        firstName: req.resident.firstName || "",
+        lastName: req.resident.lastName || "",
+        displayName: req.resident.displayName || "",
+        email: req.resident.email || "",
+        phone: req.resident.phone || "",
+        active: true,
+        address: req.property?.address || req.fieldValues?.propertyAddress || "",
+        lotNo: req.property?.lotNo || req.fieldValues?.lotNo || "",
+        createdAt: "",
+      }
+    : residents?.find((r) => r.id === req.residentId);
   const reviewer = reviewers?.find((r) => r.id === req.assignedReviewerId);
   const category = categories?.find((c) => c.id === req.categoryId);
   const currentCategoryVersion = category?.version ?? req.formVersion;
   const reviewed = req.status !== "submitted";
 
-  const infoFields = req.formSnapshot.filter((f) => f.type !== "file").sort((a, b) => a.order - b.order);
-  const fileFields = req.formSnapshot.filter((f) => f.type === "file").sort((a, b) => a.order - b.order);
+  const infoFields = (req.formSnapshot || []).filter((f) => f.type !== "file").sort((a, b) => a.order - b.order);
+  const fileFields = (req.formSnapshot || []).filter((f) => f.type === "file").sort((a, b) => a.order - b.order);
 
-  const docCount = fileFields.reduce((n, f) => n + (req.uploads[f.id]?.length ?? 0), 0);
-  const flaggedCount = Object.values(req.itemReviews).filter((r) => r.state === "flagged").length;
+  const docCount = fileFields.reduce((n, f) => n + (req.uploads?.[f.id]?.length ?? 0), 0);
+  const flaggedCount = Object.values(req.itemReviews || {}).filter((r) => r.state === "flagged").length;
+
+  const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
+  const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -139,9 +155,9 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 </span>
               )}
               <span aria-hidden="true">·</span>
-              <span>{req.fieldValues.propertyAddress}</span>
+              <span>{propAddress}</span>
               <span aria-hidden="true">·</span>
-              <span>{req.fieldValues.lotNo}</span>
+              <span>{propLot}</span>
             </div>
           </div>
 
@@ -178,8 +194,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
       {/* Summary cards */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="shadow-2xs">
-          <CardContent className="space-y-2 pt-1">
+        <Card className="shadow-2xs h-full flex flex-col justify-center">
+          <CardContent className="space-y-2 py-2 flex flex-1 flex-col justify-center">
             <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Resident</p>
             {resident ? (
               <Link href={`/residents/${resident.id}`} className="group flex items-center gap-3">
@@ -195,8 +211,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
           </CardContent>
         </Card>
 
-        <Card className="shadow-2xs">
-          <CardContent className="space-y-2 pt-1">
+        <Card className="shadow-2xs h-full flex flex-col justify-center">
+          <CardContent className="space-y-2 py-2 flex flex-1 flex-col justify-center">
             <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Assigned reviewer</p>
             {reviewer ? (
               <div className="space-y-2">
@@ -227,8 +243,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
           </CardContent>
         </Card>
 
-        <Card className="shadow-2xs">
-          <CardContent className="space-y-2 pt-1">
+        <Card className="shadow-2xs h-full flex flex-col justify-center">
+          <CardContent className="space-y-2 py-2 flex flex-1 flex-col justify-center">
             <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Key dates</p>
             <dl className="space-y-1.5 text-sm">
               <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Submitted</dt><dd className="font-medium">{formatDate(req.submittedAt)}</dd></div>
@@ -240,8 +256,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
           </CardContent>
         </Card>
 
-        <Card className="shadow-2xs">
-          <CardContent className="space-y-2 pt-1">
+        <Card className="shadow-2xs h-full flex flex-col justify-center">
+          <CardContent className="space-y-2 py-2 flex flex-1 flex-col justify-center">
             <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Form configuration</p>
             <div className="flex items-center gap-2">
               <span className="flex size-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
@@ -292,17 +308,17 @@ export default function RequestDetailPage({ id }: { id: string }) {
                   const value = req.fieldValues[field.id];
                   const review = req.itemReviews[field.id];
                   return (
-                    <div key={field.id} className={cn("space-y-1.5", field.type === "textarea" && "md:col-span-2")}>
-                      <dt className="flex flex-wrap items-center gap-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                    <div key={field.id} className={cn("space-y-1.5 min-w-0", field.type === "textarea" && "md:col-span-2")}>
+                      <dt className="flex flex-wrap items-center gap-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase break-words [overflow-wrap:anywhere]">
                         {field.label}
                         {!field.required && <span className="font-normal tracking-normal normal-case">(optional)</span>}
                         <ReviewState review={review} reviewed={reviewed && field.required} />
                       </dt>
-                      <dd className="text-sm leading-relaxed text-foreground">
+                      <dd className="text-sm leading-relaxed text-foreground break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap min-w-0">
                         {value ? value : <span className="text-muted-foreground italic">Not provided</span>}
                       </dd>
                       {review?.state === "flagged" && review.reason && (
-                        <p className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200">
+                        <p className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200 break-words [overflow-wrap:anywhere]">
                           <span className="font-semibold">Reviewer note:</span> {review.reason}
                         </p>
                       )}
@@ -584,7 +600,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
             <CardHeader className="border-b border-border/70 pb-3">
               <CardTitle className="font-heading text-lg font-medium">Activity timeline</CardTitle>
               <p className="text-xs text-muted-foreground">
-                Oldest to newest. Every event records the action, the actual person, the date and time, and relevant details.
+                Most recent to oldest. Every event records the action, the actual person, the date and time, and relevant details.
                 Staff-only records are hidden from the resident.
               </p>
             </CardHeader>

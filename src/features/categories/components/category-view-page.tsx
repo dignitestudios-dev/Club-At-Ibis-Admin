@@ -13,7 +13,6 @@ import {
   FileText,
   History,
   Pencil,
-  Send,
   ShieldCheck,
   Upload,
 } from "lucide-react";
@@ -55,7 +54,7 @@ export default function CategoryViewPage({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-in fade-in duration-300">
+      <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in duration-300">
         <Skeleton className="h-6 w-36 rounded-md" />
         <Skeleton className="h-14 w-1/3 rounded-lg" />
         <Skeleton className="h-10 w-full rounded-lg" />
@@ -66,21 +65,23 @@ export default function CategoryViewPage({ id }: { id: string }) {
 
   if (!category) {
     return (
-      <EmptyState
-        icon={FileText}
-        title="Category not found"
-        description="The category you requested could not be found or may have been deleted."
-        action={
-          <Button nativeButton={false} render={<Link href="/categories" />}>
-            Back to categories
-          </Button>
-        }
-      />
+      <div className="mx-auto max-w-3xl">
+        <EmptyState
+          icon={FileText}
+          title="Category not found"
+          description="The category you requested could not be found or may have been deleted."
+          action={
+            <Button nativeButton={false} render={<Link href="/categories" />}>
+              Back to categories
+            </Button>
+          }
+        />
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in duration-500">
       {/* Top action bar with back link, version selector, and edit links */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 pb-3">
         <Link
@@ -286,14 +287,9 @@ function ResidentWizardView({
               </p>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="space-y-5">
               {standardFields.map((field) => (
-                <div
-                  key={field.id}
-                  className={cn(
-                    field.type === "textarea" ? "sm:col-span-2" : undefined
-                  )}
-                >
+                <div key={field.id}>
                   <DisabledFieldRenderer field={field} />
                 </div>
               ))}
@@ -325,16 +321,9 @@ function ResidentWizardView({
                 </p>
               </div>
             ) : (
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-5">
                 {dynamicFields.map((field) => (
-                  <div
-                    key={field.id}
-                    className={cn(
-                      field.type === "textarea" || field.type === "file" || field.type === "checkbox"
-                        ? "sm:col-span-2"
-                        : undefined
-                    )}
-                  >
+                  <div key={field.id}>
                     <DisabledFieldRenderer field={field} />
                   </div>
                 ))}
@@ -361,10 +350,10 @@ function ResidentWizardView({
             <div className="space-y-6">
               {/* Common info summary */}
               <div className="space-y-2.5">
-                <p className="text-sm font-medium text-foreground">Project Information</p>
-                <dl className="grid gap-3 rounded-xl border border-border bg-card p-4 shadow-2xs sm:grid-cols-2">
+                <p className="text-sm font-semibold text-foreground">Project Information</p>
+                <dl className="grid gap-3.5 rounded-xl border border-border bg-card p-4 shadow-2xs">
                   {standardFields.map((field) => (
-                    <div key={field.id} className={field.type === "textarea" ? "sm:col-span-2" : ""}>
+                    <div key={field.id} className="space-y-0.5">
                       <dt className="text-xs font-medium text-muted-foreground">{field.label}</dt>
                       <dd className="mt-0.5 text-sm font-medium text-foreground">—</dd>
                     </div>
@@ -375,13 +364,10 @@ function ResidentWizardView({
               {/* Dynamic fields summary */}
               {dynamicFields.length > 0 && (
                 <div className="space-y-2.5">
-                  <p className="text-sm font-medium text-foreground">{categoryName} Specifications</p>
-                  <dl className="grid gap-3 rounded-xl border border-border bg-card p-4 shadow-2xs sm:grid-cols-2">
+                  <p className="text-sm font-semibold text-foreground">{categoryName} Specifications</p>
+                  <dl className="grid gap-3.5 rounded-xl border border-border bg-card p-4 shadow-2xs">
                     {dynamicFields.map((field) => (
-                      <div
-                        key={field.id}
-                        className={field.type === "textarea" || field.type === "file" ? "sm:col-span-2" : ""}
-                      >
+                      <div key={field.id} className="space-y-0.5">
                         <dt className="text-xs font-medium text-muted-foreground">{field.label}</dt>
                         <dd className="mt-0.5 text-sm font-medium text-foreground">
                           {field.type === "file" ? "No documents attached" : "—"}
@@ -439,33 +425,30 @@ function ResidentWizardView({
           </div>
         )}
 
-        {/* Bottom Action Bar (No Save Draft button, Back/Next navigation only) */}
-        <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+      </Card>
+
+      {/* Sticky Bottom Navigation Bar */}
+      <div className="sticky bottom-0 z-20 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-border/80 bg-[#F8FAFC] dark:bg-[#0D1522] px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+        {stepIndex > 0 ? (
           <Button
             type="button"
             variant="outline"
             onClick={handleBack}
-            disabled={stepIndex === 0}
           >
             <ArrowLeft className="size-4" />
             Back
           </Button>
+        ) : (
+          <span />
+        )}
 
-          <div>
-            {stepIndex < stepperSteps.length - 1 ? (
-              <Button type="button" onClick={handleNext}>
-                Next
-                <ArrowRight className="size-4" />
-              </Button>
-            ) : (
-              <Button disabled>
-                <Send className="size-4" />
-                Submit Request
-              </Button>
-            )}
-          </div>
-        </div>
-      </Card>
+        {stepIndex < stepperSteps.length - 1 && (
+          <Button type="button" onClick={handleNext}>
+            Next
+            <ArrowRight className="size-4" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -513,6 +496,8 @@ function DisabledFieldRenderer({ field }: { field: CategoryField }) {
         <Input
           id={field.id}
           type="number"
+          min={0}
+          maxLength={15}
           disabled
           placeholder="0"
           className="bg-muted/20 cursor-not-allowed"

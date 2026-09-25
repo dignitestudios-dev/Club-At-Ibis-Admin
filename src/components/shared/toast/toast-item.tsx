@@ -40,7 +40,8 @@ export function ToastItem({
     <div
       role="status"
       className={cn(
-        "animate-in slide-in-from-bottom-2 fade-in zoom-in-95 pointer-events-auto flex w-80 items-start gap-3 rounded-lg border border-border bg-card p-3.5 shadow-lg duration-200"
+        "animate-in slide-in-from-bottom-2 fade-in zoom-in-95 pointer-events-auto flex w-80 gap-3 rounded-lg border border-border bg-card p-3.5 shadow-lg duration-200",
+        toast.description ? "items-start" : "items-center"
       )}
     >
       <span
@@ -51,16 +52,19 @@ export function ToastItem({
       >
         <Icon className={cn("size-4.5", iconClass)} />
       </span>
-      <div className="min-w-0 flex-1 pt-0.5">
-        <p className="text-sm font-medium text-foreground">{toast.title}</p>
+      <div className={cn("min-w-0 flex-1", toast.description ? "pt-0.5" : "flex flex-col justify-center")}>
+        <p className="text-sm font-medium text-foreground leading-snug">{toast.title}</p>
         {toast.description && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{toast.description}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{toast.description}</p>
         )}
       </div>
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground"
+        className={cn(
+          "shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors",
+          toast.description && "mt-0.5"
+        )}
         aria-label="Dismiss notification"
       >
         <X className="size-3.5" />

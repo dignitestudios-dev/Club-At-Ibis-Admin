@@ -12,7 +12,6 @@ export const PROTECTED_ROUTES = [
   "/reviewers",
   "/residents",
   "/categories",
-  "/password-reset",
   "/activity",
   "/notifications",
   "/profile",

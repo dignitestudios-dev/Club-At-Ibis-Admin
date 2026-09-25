@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,9 +61,14 @@ export default function LoginForm() {
     };
   }, [setValue]);
 
+  const isSubmittingRef = useRef(false);
+
   function onSubmit(data: LoginCredentials) {
+    if (isSubmittingRef.current || isPending) return;
+    isSubmittingRef.current = true;
     login(data, {
       onSuccess: ({ token, admin }) => {
+        isSubmittingRef.current = false;
         localStorage.removeItem("caia.logged-out");
         localStorage.setItem("auth-token", token);
         localStorage.setItem("auth-user", JSON.stringify(admin));
@@ -72,8 +77,22 @@ export default function LoginForm() {
         toast.success(`Welcome back, ${admin.firstName}.`);
         window.location.href = returnUrl ? decodeURIComponent(returnUrl) : DEFAULT_REDIRECT;
       },
-      onError: (error: Error) => toast.error(error.message || "Unable to sign in."),
+      onError: (error: Error) => {
+        isSubmittingRef.current = false;
+        toast.error(error.message || "Unable to sign in.");
+      },
+      onSettled: () => {
+        isSubmittingRef.current = false;
+      },
     });
+  }
+
+  function onInvalid(errors: FieldErrors<LoginCredentials>) {
+    if (errors.password?.message === "Invalid credentials") {
+      toast.error("Invalid credentials");
+    } else if (errors.email?.message || errors.password?.message) {
+      toast.error(errors.email?.message || errors.password?.message || "Invalid credentials");
+    }
   }
 
   return (
@@ -88,7 +107,7 @@ export default function LoginForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate>
         <FieldGroup>
           <div className="auth-field-enter auth-stagger-2">
             <Controller

@@ -8,6 +8,10 @@ export function formatDateTime(iso: string): string {
   return format(new Date(iso), "MMM d, yyyy 'at' h:mm a");
 }
 
+export function formatTime(iso: string): string {
+  return format(new Date(iso), "h:mm a");
+}
+
 export function formatRelative(iso: string): string {
   return formatDistanceToNow(new Date(iso), { addSuffix: true });
 }

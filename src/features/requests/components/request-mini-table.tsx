@@ -53,7 +53,7 @@ export function RequestMiniTable({
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
-            <TableHead className="pl-5 max-w-[180px]">Request</TableHead>
+            <TableHead className="pl-5 w-[180px] min-w-[180px]">Request</TableHead>
             {showResident && <TableHead className="max-w-[180px]">Resident</TableHead>}
             <TableHead className="max-w-[200px]">Property</TableHead>
             {showReviewer && <TableHead className="max-w-[160px]">Reviewer</TableHead>}
@@ -69,10 +69,10 @@ export function RequestMiniTable({
             const resName = residentFullName(resident);
             return (
               <TableRow key={req.id} className="group cursor-pointer" onClick={() => router.push(`/requests/${req.id}`)}>
-                <TableCell className="pl-5 max-w-[180px]">
+                <TableCell className="pl-5 w-[180px] min-w-[180px]">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="min-w-0">
-                      <span className="block font-mono text-xs font-semibold text-primary group-hover:underline dark:text-amber-300 truncate" title={req.code}>{req.code}</span>
+                      <span className="block font-mono text-xs font-semibold text-primary group-hover:underline dark:text-amber-300 whitespace-nowrap" title={req.code}>{req.code}</span>
                       <span className="block truncate text-sm font-medium text-foreground" title={req.categoryName}>{req.categoryName}</span>
                     </span>
                   </div>

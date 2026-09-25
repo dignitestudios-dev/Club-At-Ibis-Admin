@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, ScrollText, ShieldCheck, UserRound } from "lucide-react";
@@ -45,6 +45,7 @@ const ACCOUNT_ACTIVITY_TYPES = new Set([
 function ChangePasswordForm({ userId }: { userId: string }) {
   const toast = useToast();
   const { logout } = useLogout();
+  const isSubmittingRef = useRef(false);
   const { mutate, isPending } = useChangePasswordMutation();
   const {
     control,
@@ -66,8 +67,10 @@ function ChangePasswordForm({ userId }: { userId: string }) {
           <FieldContent>
             <PasswordInput
               id={name}
+              maxLength={128}
               autoComplete={extra?.autoComplete}
               showStrength={extra?.showStrength}
+              disabled={isPending}
               value={f.value}
               onChange={f.onChange}
               onBlur={f.onBlur}
@@ -85,21 +88,30 @@ function ChangePasswordForm({ userId }: { userId: string }) {
     <form
       noValidate
       className="max-w-md"
-      onSubmit={handleSubmit((payload) =>
+      onSubmit={handleSubmit((payload) => {
+        if (isSubmittingRef.current || isPending) return;
+        isSubmittingRef.current = true;
         mutate(
           { id: userId, payload },
           {
             onSuccess: () => {
+              isSubmittingRef.current = false;
               toast.success("Password updated", "Please sign in with your new password.");
               reset();
               setTimeout(() => {
                 logout();
               }, 1200);
             },
-            onError: (e: Error) => toast.error("Could not update password", e.message),
+            onError: (e: Error) => {
+              isSubmittingRef.current = false;
+              toast.error("Could not update password", e.message);
+            },
+            onSettled: () => {
+              isSubmittingRef.current = false;
+            },
           }
-        )
-      )}
+        );
+      })}
     >
       <FieldGroup>
         {field("currentPassword", "Current password", { autoComplete: "current-password" })}

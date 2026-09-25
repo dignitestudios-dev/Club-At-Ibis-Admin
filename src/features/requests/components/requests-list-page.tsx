@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { ChevronRight, Download, FileSearch, Filter, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, Download, FileSearch, Filter, RefreshCw, RotateCcw, SlidersHorizontal, UserRoundPlus } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FilterSelect } from "@/components/shared/filter-select";
@@ -19,12 +19,17 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DepositChip, RefundChip } from "@/features/requests/components/request-chips";
+import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
 import { ExportDialog } from "@/features/requests/components/export-dialog";
-import { useCategories, useRequests, useMockResidents, useMockReviewers } from "@/hooks/use-admin-data";
+import { useCategories, useRequests, useRequestsPage, useResidents, useReviewers } from "@/hooks/use-admin-data";
+import type { RequestsQueryParams } from "@/features/requests/api/requests.service";
 import { usePageSize } from "@/hooks/use-page-size";
+import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
+import { cn } from "@/utils/cn";
 import {
   DEFAULT_FILTERS,
+  IN_FLIGHT,
   STATUS_LABEL,
   STATUS_ORDER,
   countActiveFilters,
@@ -41,7 +46,6 @@ const URL_DEFAULTS = {
   reviewer: "all",
   deposit: "all",
   refund: "all",
-  year: "all",
   from: "",
   to: "",
   page: "1",
@@ -49,14 +53,39 @@ const URL_DEFAULTS = {
 
 export default function RequestsListPage() {
   const router = useRouter();
+  const toast = useToast();
   const { values: url, set: setUrl } = useUrlParams(URL_DEFAULTS);
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
 
-  const { data: requests, isLoading } = useRequests();
-  const { data: residents } = useMockResidents();
+  const page = Math.max(1, Number(url.page) || 1);
+
+  const queryParams = useMemo<RequestsQueryParams>(
+    () => ({
+      page,
+      limit: pageSize,
+      search: search.trim() || undefined,
+      status: url.status !== "all" && STATUS_ORDER.includes(url.status as RequestStatus) ? url.status : undefined,
+      categoryId: url.category !== "all" ? url.category : undefined,
+      categoryStatus: url.categoryStatus === "active" || url.categoryStatus === "archived" ? url.categoryStatus : undefined,
+      assignedReviewerId: url.reviewer !== "all" ? url.reviewer : undefined,
+      depositStatus: ["not_required", "required", "received", "partially_refunded", "fully_refunded", "retained"].includes(url.deposit)
+        ? url.deposit
+        : undefined,
+      refundOutcome: ["refunded", "no_refund"].includes(url.refund) ? url.refund : undefined,
+      submittedFrom: url.from || undefined,
+      submittedTo: url.to || undefined,
+    }),
+    [page, pageSize, search, url]
+  );
+
+  const { data: pageData, isLoading, isFetching, refetch } = useRequestsPage(queryParams);
+  const { data: residents } = useResidents();
   const { data: categories } = useCategories();
-  const { data: reviewers } = useMockReviewers();
+  const { data: reviewers } = useReviewers();
+
+  const requests = pageData?.requests ?? [];
+  const totalCount = pageData?.pagination?.total ?? 0;
 
   const applied = useMemo<RequestFilters>(
     () => ({
@@ -65,9 +94,10 @@ export default function RequestsListPage() {
       categoryId: url.category,
       categoryStatus: url.categoryStatus === "active" || url.categoryStatus === "archived" ? url.categoryStatus : "all",
       reviewerId: url.reviewer,
-      depositStatus: ["not_required", "pending", "received"].includes(url.deposit) ? (url.deposit as RequestFilters["depositStatus"]) : "all",
-      refund: ["awaiting", "refunded", "no_refund", "none"].includes(url.refund) ? (url.refund as RequestFilters["refund"]) : "all",
-      year: url.year,
+      depositStatus: ["not_required", "required", "received", "partially_refunded", "fully_refunded", "retained"].includes(url.deposit)
+        ? (url.deposit as RequestFilters["depositStatus"])
+        : "all",
+      refund: ["refunded", "no_refund"].includes(url.refund) ? (url.refund as RequestFilters["refund"]) : "all",
       from: url.from,
       to: url.to,
     }),
@@ -78,6 +108,7 @@ export default function RequestsListPage() {
   const [draft, setDraft] = useState<RequestFilters>(applied);
   const [showFilters, setShowFilters] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [assigning, setAssigning] = useState<RequestRecord | null>(null);
 
   const appliedKey = JSON.stringify(applied);
   useEffect(() => {
@@ -94,7 +125,6 @@ export default function RequestsListPage() {
       reviewer: f.reviewerId,
       deposit: f.depositStatus,
       refund: f.refund,
-      year: f.year,
       from: f.from,
       to: f.to,
       page: "1",
@@ -111,26 +141,6 @@ export default function RequestsListPage() {
   const reviewerById = useMemo(() => new Map((reviewers ?? []).map((r) => [r.id, r])), [reviewers]);
   const categoryById = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c])), [categories]);
 
-  const ctx = useMemo(() => ({ residents: residents ?? [], categories: categories ?? [] }), [residents, categories]);
-  const matching = useMemo(() => filterRequests(requests ?? [], applied, ctx), [requests, applied, ctx]);
-
-  // Counts for the status pills respect every filter except status.
-  const statusCounts = useMemo(() => {
-    const base = filterRequests(requests ?? [], { ...applied, status: "all" }, ctx);
-    const counts = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])) as Record<RequestStatus, number>;
-    base.forEach((r) => (counts[r.status] += 1));
-    return { counts, total: base.length };
-  }, [requests, applied, ctx]);
-
-  const years = useMemo(() => {
-    const set = new Set((requests ?? []).map((r) => new Date(r.submittedAt).getFullYear().toString()));
-    return [...set].sort().reverse();
-  }, [requests]);
-
-  const pageCount = Math.max(1, Math.ceil(matching.length / pageSize));
-  const page = Math.min(Math.max(1, Number(url.page) || 1), pageCount);
-  const visible = matching.slice((page - 1) * pageSize, page * pageSize);
-
   const activeFilterCount = countActiveFilters(applied);
   const hasAnyFilter = activeFilterCount > 0 || applied.search.trim() !== "";
 
@@ -140,10 +150,9 @@ export default function RequestsListPage() {
     if (applied.status !== "all") parts.push(`status ${STATUS_LABEL[applied.status]}`);
     if (applied.categoryId !== "all") parts.push(`category ${categoryById.get(applied.categoryId)?.name ?? applied.categoryId}`);
     if (applied.categoryStatus !== "all") parts.push(`${applied.categoryStatus} categories`);
-    if (applied.reviewerId !== "all") parts.push(applied.reviewerId === "unassigned" ? "unassigned" : `reviewer ${reviewerById.get(applied.reviewerId)?.name ?? ""}`);
+    if (applied.reviewerId !== "all") parts.push(`reviewer ${reviewerById.get(applied.reviewerId)?.name ?? ""}`);
     if (applied.depositStatus !== "all") parts.push(`deposit ${applied.depositStatus.replace("_", " ")}`);
     if (applied.refund !== "all") parts.push(`refund ${applied.refund.replace("_", " ")}`);
-    if (applied.year !== "all") parts.push(`year ${applied.year}`);
     if (applied.from || applied.to) parts.push(`submitted ${applied.from || "…"} → ${applied.to || "…"}`);
     return parts.join(", ");
   }, [applied, categoryById, reviewerById]);
@@ -156,8 +165,9 @@ export default function RequestsListPage() {
   ];
   const reviewerOptions = [
     { label: "All reviewers", value: "all" },
-    { label: "Unassigned (intake)", value: "unassigned" },
-    ...(reviewers ?? []).map((r) => ({ label: r.name, value: r.id })),
+    ...(reviewers ?? [])
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((r) => ({ label: r.name, value: r.id })),
   ];
 
   return (
@@ -166,13 +176,34 @@ export default function RequestsListPage() {
         title="All Requests"
         description="Search, filter and track every architectural request across all categories."
         actions={
-          <Button onClick={() => setExportOpen(true)} disabled={isLoading || matching.length === 0}>
-            <Download className="size-4" />
-            Export CSV
-            <span className="ml-0.5 rounded-full bg-white/20 px-1.5 text-[10px] font-semibold tabular-nums dark:bg-black/15">
-              {matching.length}
-            </span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await refetch();
+                  toast.success("Requests refreshed");
+                } catch {
+                  toast.error("Failed to refresh requests");
+                }
+              }}
+              disabled={isFetching}
+              className="h-9 gap-1.5"
+              aria-label="Refresh requests"
+              title="Refresh requests"
+            >
+              <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+              <span>Refresh</span>
+            </Button>
+            <Button onClick={() => setExportOpen(true)} disabled={isLoading || totalCount === 0}>
+              <Download className="size-4" />
+              Export CSV
+              <span className="ml-0.5 rounded-full bg-white/20 px-1.5 text-[10px] font-semibold tabular-nums dark:bg-black/15">
+                {totalCount}
+              </span>
+            </Button>
+          </div>
         }
       />
 
@@ -181,8 +212,8 @@ export default function RequestsListPage() {
         value={applied.status}
         onChange={(status) => writeFilters({ ...applied, status })}
         options={[
-          { value: "all", label: "All", count: statusCounts.total },
-          ...STATUS_ORDER.map((s) => ({ value: s, label: STATUS_LABEL[s], count: statusCounts.counts[s] })),
+          { value: "all", label: "All" },
+          ...STATUS_ORDER.map((s) => ({ value: s, label: STATUS_LABEL[s] })),
         ]}
       />
 
@@ -220,12 +251,6 @@ export default function RequestsListPage() {
                 <Input id="f-to" type="date" value={draft.to} onChange={(e) => setDraft({ ...draft, to: e.target.value })} />
               </div>
               <FilterSelect
-                label="Year"
-                value={draft.year}
-                onChange={(year) => setDraft({ ...draft, year })}
-                options={[{ label: "All years", value: "all" }, ...years.map((y) => ({ label: y, value: y }))]}
-              />
-              <FilterSelect
                 label="Request status"
                 value={draft.status}
                 onChange={(status) => setDraft({ ...draft, status })}
@@ -250,8 +275,11 @@ export default function RequestsListPage() {
                 options={[
                   { label: "Any deposit status", value: "all" },
                   { label: "Not required", value: "not_required" },
-                  { label: "Pending", value: "pending" },
+                  { label: "Required", value: "required" },
                   { label: "Received", value: "received" },
+                  { label: "Partially refunded", value: "partially_refunded" },
+                  { label: "Fully refunded", value: "fully_refunded" },
+                  { label: "Retained", value: "retained" },
                 ]}
               />
               <FilterSelect
@@ -260,10 +288,8 @@ export default function RequestsListPage() {
                 onChange={(refund) => setDraft({ ...draft, refund })}
                 options={[
                   { label: "Any refund outcome", value: "all" },
-                  { label: "Awaiting refund action", value: "awaiting" },
                   { label: "Refunded", value: "refunded" },
-                  { label: "No Refund (-)", value: "no_refund" },
-                  { label: "No refund record", value: "none" },
+                  { label: "No refund (-)", value: "no_refund" },
                 ]}
               />
             </div>
@@ -288,7 +314,7 @@ export default function RequestsListPage() {
             <Skeleton key={i} className="h-14 w-full rounded-xl" />
           ))}
         </div>
-      ) : matching.length === 0 ? (
+      ) : requests.length === 0 ? (
         <EmptyState
           icon={FileSearch}
           title="No requests match"
@@ -308,39 +334,58 @@ export default function RequestsListPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="pl-4 max-w-[120px]">Reference</TableHead>
-                  <TableHead className="max-w-[200px]">Category</TableHead>
-                  <TableHead className="max-w-[180px]">Resident</TableHead>
-                  <TableHead className="max-w-[200px]">Property</TableHead>
-                  <TableHead className="max-w-[130px]">Submitted</TableHead>
-                  <TableHead className="max-w-[140px]">Status</TableHead>
-                  <TableHead className="max-w-[160px]">Reviewer</TableHead>
-                  <TableHead className="max-w-[140px]">Deposit / refund</TableHead>
+                  <TableHead className="pl-4 w-[150px] min-w-[150px] max-w-[150px] whitespace-nowrap">Reference</TableHead>
+                  <TableHead className="w-[180px] min-w-[160px] max-w-[180px]">Category</TableHead>
+                  <TableHead className="w-[170px] min-w-[150px] max-w-[170px]">Resident</TableHead>
+                  <TableHead className="w-[190px] min-w-[160px] max-w-[190px]">Property</TableHead>
+                  <TableHead className="w-[130px] min-w-[120px] max-w-[130px]">Submitted</TableHead>
+                  <TableHead className="w-[140px] min-w-[130px] max-w-[140px]">Status</TableHead>
+                  <TableHead className="w-[160px] min-w-[150px] max-w-[160px]">Reviewer</TableHead>
+                  <TableHead className="w-[140px] min-w-[130px] max-w-[140px]">Deposit / refund</TableHead>
+                  <TableHead className="w-[120px] min-w-[110px] max-w-[120px] text-right">
+                    <span className="sr-only">Action</span>
+                  </TableHead>
                   <TableHead className="w-10 pr-4">
                     <span className="sr-only">Open</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visible.map((req) => {
-                  const resident = residentById.get(req.residentId);
+                {requests.map((req) => {
+                  const resident = req.resident
+                    ? {
+                        id: req.resident.id,
+                        residentIdNumber: req.resident.residentId || req.resident.residentIdNumber || "",
+                        firstName: req.resident.firstName || "",
+                        lastName: req.resident.lastName || "",
+                        displayName: req.resident.displayName || "",
+                        email: req.resident.email || "",
+                        phone: req.resident.phone || "",
+                        active: true,
+                        address: req.property?.address || req.fieldValues?.propertyAddress || "",
+                        lotNo: req.property?.lotNo || req.fieldValues?.lotNo || "",
+                        createdAt: "",
+                      }
+                    : residentById.get(req.residentId);
                   const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
                   const category = categoryById.get(req.categoryId);
+                  const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
+                  const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
                   return (
                     <TableRow key={req.id} onClick={() => router.push(`/requests/${req.id}`)} className="group cursor-pointer">
-                      <TableCell className="pl-4 max-w-[120px]">
+                      <TableCell className="pl-4 w-[150px] min-w-[150px] max-w-[150px] whitespace-nowrap">
                         <Link
                           href={`/requests/${req.id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 truncate block"
+                          className="font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap block truncate"
                           title={req.code}
                         >
                           {req.code}
                         </Link>
                       </TableCell>
-                      <TableCell className="max-w-[200px]">
+                      <TableCell className="w-[180px] min-w-[160px] max-w-[180px]">
                         <div className="flex flex-col gap-0.5 min-w-0">
-                          <span className="text-sm font-medium truncate text-foreground" title={req.categoryName}>{req.categoryName}</span>
+                          <span className="text-sm font-medium truncate text-foreground block" title={req.categoryName}>{req.categoryName}</span>
                           {category?.status === "archived" && (
                             <span className="w-fit rounded-full bg-slate-200 px-1.5 text-[9px] font-bold tracking-wider text-slate-700 uppercase dark:bg-slate-700 dark:text-slate-200">
                               Archived
@@ -348,35 +393,43 @@ export default function RequestsListPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="max-w-[180px]">
-                        <div className="text-sm font-medium truncate" title={`${residentFullName(resident)} (${resident?.residentIdNumber || ''})`}>{residentFullName(resident)}</div>
-                        <div className="text-[11px] text-muted-foreground truncate">{resident?.residentIdNumber}</div>
+                      <TableCell className="w-[170px] min-w-[150px] max-w-[170px]">
+                        <div className="text-sm font-medium truncate block" title={`${residentFullName(resident)} (${resident?.residentIdNumber || ''})`}>{residentFullName(resident)}</div>
+                        <div className="text-[11px] text-muted-foreground truncate block">{resident?.residentIdNumber}</div>
                       </TableCell>
-                      <TableCell className="max-w-[200px]">
-                        <div className="max-w-[200px] truncate text-sm" title={`${req.fieldValues.propertyAddress || ''} (Lot: ${req.fieldValues.lotNo || ''})`}>{req.fieldValues.propertyAddress}</div>
-                        <div className="text-[11px] text-muted-foreground truncate">{req.fieldValues.lotNo}</div>
+                      <TableCell className="w-[190px] min-w-[160px] max-w-[190px]">
+                        <div className="truncate text-sm block" title={`${propAddress} (Lot: ${propLot})`}>{propAddress}</div>
+                        <div className="text-[11px] text-muted-foreground truncate block">{propLot}</div>
                       </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap text-muted-foreground max-w-[130px] truncate" title={format(new Date(req.submittedAt), "PPP")}>{format(new Date(req.submittedAt), "MMM d, yyyy")}</TableCell>
-                      <TableCell className="max-w-[140px]">
+                      <TableCell className="w-[130px] min-w-[120px] max-w-[130px] text-sm whitespace-nowrap text-muted-foreground truncate" title={format(new Date(req.submittedAt), "PPP")}>{format(new Date(req.submittedAt), "MMM d, yyyy")}</TableCell>
+                      <TableCell className="w-[140px] min-w-[130px] max-w-[140px]">
                         <StatusBadge status={req.status} />
                       </TableCell>
-                      <TableCell className="max-w-[160px]">
+                      <TableCell className="w-[160px] min-w-[150px] max-w-[160px]">
                         {reviewer ? (
                           <div className="flex items-center gap-2 min-w-0" title={reviewer.name}>
                             <PersonAvatar name={reviewer.name} className="size-6 shrink-0" fallbackClassName="text-[9px]" />
-                            <span className="text-sm truncate">{reviewer.name}</span>
+                            <span className="text-sm truncate block">{reviewer.name}</span>
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground italic">Unassigned</span>
                         )}
                       </TableCell>
-                      <TableCell className="max-w-[140px]">
+                      <TableCell className="w-[140px] min-w-[130px] max-w-[140px]">
                         <div className="flex flex-col items-start gap-1">
                           <DepositChip deposit={req.deposit} />
                           {req.refund && <RefundChip refund={req.refund} />}
                         </div>
                       </TableCell>
-                      <TableCell className="pr-4">
+                      <TableCell className="w-[120px] min-w-[110px] max-w-[120px] text-right" onClick={(e) => e.stopPropagation()}>
+                        {IN_FLIGHT.includes(req.status) && (
+                          <Button size="sm" variant={reviewer ? "outline" : "default"} onClick={() => setAssigning(req)}>
+                            <UserRoundPlus />
+                            {reviewer ? "Reassign" : "Assign"}
+                          </Button>
+                        )}
+                      </TableCell>
+                      <TableCell className="w-10 pr-4">
                         <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                       </TableCell>
                     </TableRow>
@@ -388,7 +441,7 @@ export default function RequestsListPage() {
           <Pagination
             page={page}
             pageSize={pageSize}
-            total={matching.length}
+            total={totalCount}
             onPageChange={(p) => setUrl({ page: String(p) })}
             onPageSizeChange={(n) => {
               setPageSize(n);
@@ -401,9 +454,14 @@ export default function RequestsListPage() {
       <ExportDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
-        requests={matching}
+        requests={requests}
         context={{ residents: residents ?? [], categories: categories ?? [], reviewers: reviewers ?? [] }}
         filterSummary={filterSummary}
+      />
+
+      <AssignReviewerDialog
+        request={assigning}
+        onOpenChange={(open) => !open && setAssigning(null)}
       />
     </div>
   );

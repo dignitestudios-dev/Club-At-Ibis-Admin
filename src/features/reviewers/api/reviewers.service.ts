@@ -52,9 +52,20 @@ function splitName(name: string): { firstName: string; lastName: string } {
  * The Reviewer Accounts table uses `getReviewersPage` below instead, which
  * genuinely paginates server-side rather than truncating to one page's worth.
  */
-export async function getReviewers(limit = 100): Promise<PublicReviewer[]> {
-  const { data } = await axiosInstance.get("/admin/reviewers", { params: { limit } });
-  return (data.data.reviewers as ReviewerApiUser[]).map(toPublicReviewer);
+export async function getReviewers(
+  params?: { limit?: number; search?: string; status?: string } | number
+): Promise<PublicReviewer[]> {
+  const query =
+    typeof params === "number"
+      ? { limit: params }
+      : {
+          limit: params?.limit ?? 100,
+          search: params?.search?.trim() || undefined,
+          status: params?.status && params.status.toUpperCase() !== "ALL" ? params.status.toUpperCase() : undefined,
+        };
+  const { data } = await axiosInstance.get("/admin/reviewers", { params: query });
+  const list = data?.data?.reviewers ?? data?.reviewers ?? [];
+  return (list as ReviewerApiUser[]).map(toPublicReviewer);
 }
 
 export interface ApiPagination {
@@ -172,7 +183,9 @@ export function getReviewerFrontendOrigin(): string {
 }
 
 export async function createReviewer(payload: ReviewerFormPayload): Promise<PublicReviewer> {
-  const { firstName, lastName } = splitName(payload.name);
+  const { firstName, lastName } = payload.firstName && payload.lastName
+    ? { firstName: payload.firstName.trim(), lastName: payload.lastName.trim() }
+    : splitName(payload.name);
   const reviewerOrigin = getReviewerFrontendOrigin();
   const { data } = await axiosInstance.post(
     "/admin/reviewer-invitations",
@@ -195,9 +208,14 @@ export async function createReviewer(payload: ReviewerFormPayload): Promise<Publ
 
 export async function updateReviewer(
   id: string,
-  updates: Pick<ReviewerFormPayload, "name" | "employeeNumber" | "designation" | "email">
+  updates: Pick<ReviewerFormPayload, "name" | "employeeNumber" | "designation" | "email"> & {
+    firstName?: string;
+    lastName?: string;
+  }
 ): Promise<PublicReviewer> {
-  const { firstName, lastName } = splitName(updates.name);
+  const { firstName, lastName } = updates.firstName && updates.lastName
+    ? { firstName: updates.firstName.trim(), lastName: updates.lastName.trim() }
+    : splitName(updates.name);
   const employeeNumber = updates.employeeNumber.trim();
   const { data } = await axiosInstance.patch(`/admin/reviewers/${id}`, {
     firstName,

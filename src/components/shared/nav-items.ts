@@ -4,7 +4,6 @@ import {
   UserRoundCheck,
   UserCog,
   Users,
-  KeyRound,
   LayoutTemplate,
   ScrollText,
   Bell,
@@ -39,7 +38,6 @@ export const navGroups: NavGroup[] = [
     items: [
       { href: "/reviewers", label: "Reviewers", icon: UserCog },
       { href: "/residents", label: "Residents", icon: Users },
-      { href: "/password-reset", label: "Password Reset", icon: KeyRound },
     ],
   },
   {

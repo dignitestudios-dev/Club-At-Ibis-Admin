@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   description: "Super Admin console for the Club At Ibis Architectural Review Board.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"

@@ -46,7 +46,7 @@ export async function logoutUser(): Promise<void> {
   const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
   if (!token) return;
   try {
-    await axiosInstance.post("/admin/logout", null, {
+    await axiosInstance.post("/admin/logout", {}, {
       headers: { Authorization: `Bearer ${token}` },
     });
   } catch {

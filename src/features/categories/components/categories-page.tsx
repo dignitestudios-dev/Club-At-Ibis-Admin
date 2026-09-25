@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  RefreshCw,
   Type,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -25,15 +26,16 @@ import { Pagination } from "@/components/shared/pagination";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useArchiveCategory, useCategories, useCategoriesPage, useRequests, useRestoreCategory } from "@/hooks/use-admin-data";
+import { useArchiveCategory, useCategories, useCategoriesPage, useRestoreCategory } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
-import { IN_FLIGHT } from "@/lib/domain";
 import { formatDate, formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
+const CATEGORY_PAGE_SIZE_OPTIONS = [12, 26, 36];
+
 export default function CategoriesPage() {
   const toast = useToast();
-  const [pageSize, setPageSize] = usePageSize();
+  const [pageSize, setPageSize] = usePageSize(CATEGORY_PAGE_SIZE_OPTIONS, 12, "caia.categories-page-size");
   const [search, setSearch] = useUrlSearch("q");
   const { values, set } = useUrlParams({ tab: "active", page: "1" });
 
@@ -42,7 +44,7 @@ export default function CategoriesPage() {
   const setTab = (t: "active" | "archived") => set({ tab: t, page: "1" });
 
   // Server-side filtered by status, searched, and paginated via API
-  const { data: pageResult, isLoading } = useCategoriesPage({
+  const { data: pageResult, isLoading, isFetching, refetch } = useCategoriesPage({
     page,
     limit: pageSize,
     search,
@@ -50,24 +52,12 @@ export default function CategoriesPage() {
   });
 
   // Query full list for accurate counts on the Active / Archived tabs
-  const { data: allCategories } = useCategories();
-  const { data: requests } = useRequests();
+  const { data: allCategories, refetch: refetchAll } = useCategories();
   const archive = useArchiveCategory();
   const restore = useRestoreCategory();
 
   const [archiving, setArchiving] = useState<Category | null>(null);
   const [restoring, setRestoring] = useState<Category | null>(null);
-
-  const usage = useMemo(() => {
-    const map = new Map<string, { total: number; active: number }>();
-    (requests ?? []).forEach((r) => {
-      const u = map.get(r.categoryId) ?? { total: 0, active: 0 };
-      u.total += 1;
-      if (IN_FLIGHT.includes(r.status)) u.active += 1;
-      map.set(r.categoryId, u);
-    });
-    return map;
-  }, [requests]);
 
   const shown = pageResult?.categories ?? [];
   const total = pageResult?.pagination.total ?? 0;
@@ -81,10 +71,31 @@ export default function CategoriesPage() {
         title="Categories & Forms"
         description="Define the categories residents can request and the form each one collects. Changes apply to new requests only — existing submissions keep their original form."
         actions={
-          <Button nativeButton={false} render={<Link href="/categories/new" />}>
-            <Plus className="size-4" />
-            Add category
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await Promise.all([refetch(), refetchAll()]);
+                  toast.success("Categories refreshed");
+                } catch {
+                  toast.error("Failed to refresh categories");
+                }
+              }}
+              disabled={isFetching}
+              className="h-9 gap-1.5"
+              aria-label="Refresh categories"
+              title="Refresh categories"
+            >
+              <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+              <span>Refresh</span>
+            </Button>
+            <Button nativeButton={false} render={<Link href="/categories/new" />}>
+              <Plus className="size-4" />
+              Add category
+            </Button>
+          </div>
         }
       />
 
@@ -151,7 +162,6 @@ export default function CategoriesPage() {
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {shown.map((cat, i) => {
-              const u = usage.get(cat.id) ?? { total: 0, active: 0 };
               const docs = cat.fields.filter((f) => f.type === "file");
               const info = cat.fields.filter((f) => f.type !== "file");
               const archived = cat.status === "archived";
@@ -224,7 +234,7 @@ export default function CategoriesPage() {
 
                   <div className="mt-4 flex-1 space-y-1.5">
                     <h3 className="font-heading text-lg font-medium text-foreground">
-                      <Link href={`/categories/${cat.id}`} className="transition-colors hover:text-primary">
+                      <Link href={`/categories/${cat.id}`} className="transition-colors hover:text-primary break-all">
                         {cat.name}
                       </Link>
                     </h3>
@@ -243,11 +253,7 @@ export default function CategoriesPage() {
                     </Link>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground">
-                    <span>
-                      <span className="font-semibold text-foreground tabular-nums">{u.total}</span> request{u.total === 1 ? "" : "s"}
-                      {u.active > 0 && <> · <span className="text-sky-700 dark:text-sky-300">{u.active} in progress</span></>}
-                    </span>
+                  <div className="mt-4 flex items-center justify-end border-t border-border/70 pt-3 text-xs text-muted-foreground">
                     <span title={formatDate(archived && cat.archivedAt ? cat.archivedAt : cat.updatedAt)}>
                       {archived && cat.archivedAt ? "Archived" : "Updated"} {formatRelative(archived && cat.archivedAt ? cat.archivedAt : cat.updatedAt)}
                     </span>
@@ -261,6 +267,8 @@ export default function CategoriesPage() {
             page={page}
             pageSize={pageSize}
             total={total}
+            pageSizeOptions={CATEGORY_PAGE_SIZE_OPTIONS}
+            pageSizeLabel="Cards per page"
             onPageChange={(p) => set({ page: String(p) })}
             onPageSizeChange={setPageSize}
           />
@@ -272,7 +280,7 @@ export default function CategoriesPage() {
         open={!!archiving}
         onOpenChange={(o) => !o && setArchiving(null)}
         title={`Archive “${archiving?.name}”?`}
-        description={`It will be removed from new-request selection. Existing requests (${usage.get(archiving?.id ?? "")?.total ?? 0}) continue their normal processing, the original name and history are preserved, and the category stays available in search and filters. You can restore it at any time.`}
+        description="It will be removed from new-request selection. Existing requests continue their normal processing, the original name and history are preserved, and the category stays available in search and filters. You can restore it at any time."
         confirmLabel="Archive category"
         destructive
         loading={archive.isPending}

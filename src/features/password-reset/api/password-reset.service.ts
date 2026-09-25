@@ -1,9 +1,5 @@
 import axiosInstance from "@/lib/axios";
 
-/** The backend has no password-reset history endpoint yet, so this list stays empty. */
-export async function getResets(): Promise<PasswordResetRecord[]> {
-  return [];
-}
 
 export interface SendResetPayload {
   userKind: "resident" | "reviewer";

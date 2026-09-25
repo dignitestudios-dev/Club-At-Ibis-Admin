@@ -331,7 +331,7 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
                           {state === "added" && <span className="rounded-full bg-emerald-100 px-2 py-px text-[10px] font-bold tracking-wider text-emerald-800 uppercase dark:bg-emerald-950 dark:text-emerald-300">New</span>}
                           {state === "changed" && <span className="rounded-full bg-amber-100 px-2 py-px text-[10px] font-bold tracking-wider text-amber-900 uppercase dark:bg-amber-950 dark:text-amber-300">Changed</span>}
                         </div>
-                        {f.helpText && <p className="text-xs text-muted-foreground">{f.helpText}</p>}
+                        {f.helpText && <p className="text-xs break-all text-muted-foreground">{f.helpText}</p>}
                         {isChoiceType(f.type) && <p className="text-xs text-muted-foreground">Options: {(f.options ?? []).join(" · ")}</p>}
                         {f.type === "file" && (
                           <p className="text-xs text-muted-foreground">

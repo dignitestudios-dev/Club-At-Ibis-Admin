@@ -35,15 +35,21 @@ function toActivityEntry(raw: any): CategoryActivityEntry {
 function toCategory(raw: any): Category {
   if (!raw) return {} as Category;
   const currentVersion = raw.currentVersion ?? raw.version ?? 1;
+  const fields = raw.fields
+    ? raw.fields.map(toField)
+    : raw.currentForm?.fields
+    ? raw.currentForm.fields.map(toField)
+    : [];
+
   return {
-    id: raw.id || raw._id,
+    id: raw.id || raw._id || "",
     slug: raw.slug,
     name: raw.name ?? "",
     description: raw.description ?? "",
     status: raw.status ?? "active",
     currentVersion,
     version: currentVersion,
-    fields: raw.fields ? raw.fields.map(toField) : (raw.currentForm?.fields ? raw.currentForm.fields.map(toField) : []),
+    fields,
     versions: raw.versions ? raw.versions.map(toVersion) : undefined,
     currentForm: raw.currentForm ? toVersion(raw.currentForm) : undefined,
     createdBy: raw.createdBy,
@@ -59,8 +65,9 @@ function toCategory(raw: any): Category {
 }
 
 function toField(f: any): CategoryField {
+  if (!f) return { id: "", label: "", type: "text", required: false, order: 0 };
   return {
-    id: f.id,
+    id: f.id || f._id || "",
     label: f.label ?? "",
     type: f.type,
     required: !!f.required,
@@ -146,7 +153,7 @@ export async function getCategories(limit = 100): Promise<Category[]> {
  */
 export async function getCategory(categoryId: string): Promise<Category> {
   const { data } = await axiosInstance.get(`/admin/categories/${categoryId}`);
-  return toCategory(data.data.category);
+  return toCategory(data?.data?.category || data?.data);
 }
 
 /**
@@ -169,7 +176,7 @@ export async function createCategory(payload: CategoryDraftPayload): Promise<Cat
   };
 
   const { data } = await axiosInstance.post("/admin/categories", body);
-  return toCategory(data.data.category);
+  return toCategory(data?.data?.category || data?.data);
 }
 
 /**
@@ -194,7 +201,7 @@ export async function updateCategory(categoryId: string, payload: CategoryDraftP
   };
 
   const { data } = await axiosInstance.patch(`/admin/categories/${categoryId}`, body);
-  return toCategory(data.data.category);
+  return toCategory(data?.data?.category || data?.data);
 }
 
 /**
@@ -202,7 +209,7 @@ export async function updateCategory(categoryId: string, payload: CategoryDraftP
  */
 export async function setCategoryStatus(categoryId: string, status: "active" | "archived"): Promise<Category> {
   const { data } = await axiosInstance.patch(`/admin/categories/${categoryId}/status`, { status });
-  return toCategory(data.data.category);
+  return toCategory(data?.data?.category || data?.data);
 }
 
 export async function archiveCategory(categoryId: string): Promise<Category> {
@@ -219,8 +226,8 @@ export async function restoreCategory(categoryId: string): Promise<Category> {
 export async function getCategoryVersions(categoryId: string): Promise<CategoryVersionsResult> {
   const { data } = await axiosInstance.get(`/admin/categories/${categoryId}/versions`);
   return {
-    category: toCategory(data.data.category),
-    versions: (data.data.versions as any[]).map(toVersion),
+    category: toCategory(data?.data?.category || data?.data),
+    versions: ((data?.data?.versions || data?.data) as any[]).map(toVersion),
   };
 }
 
@@ -229,7 +236,7 @@ export async function getCategoryVersions(categoryId: string): Promise<CategoryV
  */
 export async function getCategoryVersion(categoryId: string, version: number): Promise<CategoryVersion> {
   const { data } = await axiosInstance.get(`/admin/categories/${categoryId}/versions/${version}`);
-  return toVersion(data.data.version);
+  return toVersion(data?.data?.version || data?.data);
 }
 
 /**
@@ -243,7 +250,7 @@ export async function compareCategoryVersions(
   const { data } = await axiosInstance.get(`/admin/categories/${categoryId}/version-comparison`, {
     params: { fromVersion, toVersion },
   });
-  return data.data.comparison;
+  return data?.data?.comparison || data?.data;
 }
 
 /**
@@ -259,5 +266,5 @@ export async function restoreCategoryVersion(
     note: payload?.note?.trim() || undefined,
   };
   const { data } = await axiosInstance.post(`/admin/categories/${categoryId}/versions/${version}/restore`, body);
-  return toCategory(data.data.category);
+  return toCategory(data?.data?.category || data?.data);
 }

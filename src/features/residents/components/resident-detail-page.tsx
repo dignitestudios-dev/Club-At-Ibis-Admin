@@ -33,7 +33,7 @@ import { SendResetDialog } from "@/features/password-reset/components/send-reset
 import { useResident, useSetResidentActive } from "@/hooks/use-admin-data";
 import { type ResidentActivityEntry } from "@/features/residents/api/residents.service";
 import { residentFullName } from "@/lib/domain";
-import { formatDate, formatDateTime, formatRelative } from "@/utils/format";
+import { formatDate, formatDateTime, formatRelative, formatTime } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
 function getActivityMeta(activity: ResidentActivityEntry) {
@@ -242,8 +242,8 @@ export default function ResidentDetailPage({ id }: { id: string }) {
                         </p>
                       </div>
                       <time className="shrink-0 text-right text-xs text-muted-foreground" dateTime={a.occurredAt} title={formatDateTime(a.occurredAt)}>
-                        <span className="block">{formatRelative(a.occurredAt)}</span>
-                        <span className="block text-[11px]">{formatDate(a.occurredAt)}</span>
+                        <span className="block font-medium text-foreground">{formatDate(a.occurredAt)}</span>
+                        <span className="block text-[11px] text-muted-foreground">{formatTime(a.occurredAt)}</span>
                       </time>
                     </li>
                   );

@@ -52,17 +52,19 @@ const ROLE_LABEL: Record<ActorRole, string> = {
   system: "System",
 };
 
-/** Events are shown oldest → newest, per the request-history spec. */
 export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
-  const sorted = [...events].sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  const list = events ?? [];
 
   return (
     <ol className="space-y-0">
-      {sorted.map((event, index) => {
-        const cfg = EVENT_CONFIG[event.type];
+      {list.map((event, index) => {
+        const cfg = EVENT_CONFIG[event.type] || { icon: Send, label: event.type?.replace(/_/g, " ") || "Update", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" };
         const failed = event.type === "letter_email" && event.message.toLowerCase().includes("failed");
         const Icon = failed ? MailWarning : cfg.icon;
-        const isLast = index === sorted.length - 1;
+        const isLatest = index === 0;
+        const isLast = index === list.length - 1;
+        const roleLabel = ROLE_LABEL[event.actor?.role] || event.actor?.role || "User";
+        const actorName = event.actor?.name || "User";
 
         return (
           <li key={event.id} className="group relative flex gap-4">
@@ -72,7 +74,7 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-card shadow-2xs transition-transform duration-200 group-hover:scale-110",
                   failed ? "bg-rose-600 text-white" : cfg.node,
-                  isLast && "ring-4 ring-primary/20"
+                  isLatest && "ring-4 ring-primary/20"
                 )}
               >
                 <Icon className="size-4" />
@@ -93,9 +95,9 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
                       Staff only
                     </span>
                   )}
-                  {isLast && (
+                  {isLatest && (
                     <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-primary uppercase dark:bg-primary/20 dark:text-amber-300">
-                      Latest
+                      LATEST
                     </span>
                   )}
                 </div>
@@ -109,17 +111,17 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
                 </time>
               </div>
 
-              <p className="text-sm leading-relaxed text-foreground/85">{event.message}</p>
+              <p className="text-sm leading-relaxed text-foreground/85 break-words">{event.message}</p>
               {event.detail && (
-                <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground break-words">
                   {event.detail}
                 </p>
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-1.5 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
-                  By <span className="font-semibold text-foreground">{event.actor.name}</span>
-                  <span className="rounded bg-muted px-1.5 py-px text-[10px] font-medium">{ROLE_LABEL[event.actor.role]}</span>
+                  By <span className="font-semibold text-foreground">{actorName}</span>
+                  <span className="rounded bg-muted px-1.5 py-px text-[10px] font-medium">{roleLabel}</span>
                 </span>
                 <span>{formatDateTime(event.createdAt)}</span>
               </div>
@@ -127,7 +129,7 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
           </li>
         );
       })}
-      {sorted.length === 0 && <p className="text-sm text-muted-foreground">No history recorded.</p>}
+      {list.length === 0 && <p className="text-sm text-muted-foreground">No history recorded.</p>}
     </ol>
   );
 }

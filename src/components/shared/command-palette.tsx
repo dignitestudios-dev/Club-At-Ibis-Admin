@@ -6,7 +6,6 @@ import {
   Bell,
   CornerDownLeft,
   FileText,
-  KeyRound,
   LayoutDashboard,
   LayoutTemplate,
   ListChecks,
@@ -19,7 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { useCategories, useRequests, useMockResidents, useMockReviewers } from "@/hooks/use-admin-data";
+import { useCategories, useRequests, useResidents, useReviewers } from "@/hooks/use-admin-data";
 import { residentFullName } from "@/lib/domain";
 import { cn } from "@/utils/cn";
 
@@ -38,7 +37,6 @@ const PAGES: PaletteItem[] = [
   { id: "p-assign", group: "Go to", label: "Assignments", href: "/assignments", icon: UserRoundCheck },
   { id: "p-reviewers", group: "Go to", label: "Reviewers", href: "/reviewers", icon: UserCog },
   { id: "p-residents", group: "Go to", label: "Residents", href: "/residents", icon: Users },
-  { id: "p-reset", group: "Go to", label: "Password Reset", href: "/password-reset", icon: KeyRound },
   { id: "p-categories", group: "Go to", label: "Categories & Forms", href: "/categories", icon: LayoutTemplate },
   { id: "p-new-category", group: "Go to", label: "Add new category", href: "/categories/new", icon: LayoutTemplate },
   { id: "p-activity", group: "Go to", label: "Activity Log", href: "/activity", icon: ScrollText },
@@ -53,8 +51,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const listRef = useRef<HTMLDivElement>(null);
 
   const { data: requests } = useRequests();
-  const { data: residents } = useMockResidents();
-  const { data: reviewers } = useMockReviewers();
+  const { data: residents } = useResidents();
+  const { data: reviewers } = useReviewers();
   const { data: categories } = useCategories();
 
   useEffect(() => {

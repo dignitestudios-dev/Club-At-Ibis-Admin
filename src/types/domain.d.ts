@@ -80,6 +80,8 @@ interface Resident {
 
 interface ReviewerFormPayload {
   name: string;
+  firstName?: string;
+  lastName?: string;
   employeeNumber: string;
   designation: string;
   email: string;
@@ -226,6 +228,9 @@ interface AttachedFile {
   name: string;
   size: number;
   uploadedAt: string;
+  url?: string;
+  mimeType?: string;
+  originalName?: string;
 }
 
 type HistoryEventType =
@@ -302,21 +307,48 @@ interface LetterEmailRecord {
   error?: string;
 }
 
+interface RequestResidentSnapshot {
+  id: string;
+  residentId?: string;
+  residentIdNumber?: string;
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
+  email?: string;
+  phone?: string;
+}
+
+interface RequestPropertySnapshot {
+  address?: string | null;
+  lotNo?: string | null;
+  subDivision?: string | null;
+  parcelId?: string | null;
+}
+
 interface RequestRecord {
   id: string;
   code: string;
+  title?: string;
   categoryId: string;
   /** Category name at time of submission — preserved when categories change. */
   categoryName: string;
+  categorySlug?: string;
+  category?: { id: string; slug: string; name: string };
   formVersion: number;
   formSnapshot: CategoryField[];
   residentId: string;
+  resident?: RequestResidentSnapshot;
+  property?: RequestPropertySnapshot;
   status: RequestStatus;
   assignedReviewerId: string | null;
+  assignmentVersion?: number;
+  draftRevision?: number | null;
+  currentStep?: number | null;
   fieldValues: Record<string, string>;
   uploads: Record<string, AttachedFile[]>;
   itemReviews: Record<string, ItemReview>;
   revisions: RequestRevision[];
+  previousSubmissions?: Array<Record<string, unknown>>;
   hoaApproved: boolean;
   hoaConfirmedAt: string;
   submittedAt: string;
