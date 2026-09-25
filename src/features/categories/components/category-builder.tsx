@@ -202,6 +202,38 @@ export default function CategoryBuilder({ categoryId }: { categoryId?: string })
 
 function OptionsEditor({ field, onChange, disabled = false }: { field: DraftField; onChange: (options: string[]) => void; disabled?: boolean }) {
   const options = field.options ?? [];
+  /** Index of the option input that should receive focus on mount/reattach. -1 = none. */
+  const pendingFocusIdx = useRef(-1);
+
+  const handleAddOption = () => {
+    pendingFocusIdx.current = options.length; // will match the newly-created input
+    onChange([...options, ""]);
+  };
+
+  const handleRemoveOption = (indexToRemove: number) => {
+    if (options.length <= 1) return;
+    pendingFocusIdx.current = Math.max(0, indexToRemove - 1);
+    onChange(options.filter((_, j) => j !== indexToRemove));
+  };
+
+  /**
+   * Ref callback — fires at the exact moment React attaches the DOM node.
+   * If this input's index matches `pendingFocusIdx`, focus it immediately.
+   */
+  const makeInputRef = (i: number) => (el: HTMLInputElement | null) => {
+    if (!el || pendingFocusIdx.current !== i) return;
+    pendingFocusIdx.current = -1; // consume — only focus once
+    // Immediate attempt (works in most browsers during commit phase)
+    el.focus();
+    try { el.setSelectionRange(el.value.length, el.value.length); } catch {}
+    // Belt-and-suspenders: retry before the next paint in case the
+    // immediate call was a no-op (e.g. element not yet visible).
+    requestAnimationFrame(() => {
+      el.focus();
+      try { el.setSelectionRange(el.value.length, el.value.length); } catch {}
+    });
+  };
+
   const marker = (i: number) =>
     field.type === "radio" ? (
       <span className="size-4 shrink-0 rounded-full border-2 border-muted-foreground/50" />
@@ -217,18 +249,27 @@ function OptionsEditor({ field, onChange, disabled = false }: { field: DraftFiel
         <div key={i} className="group/opt flex items-center gap-2.5">
           {marker(i)}
           <Input
+            ref={makeInputRef(i)}
+            data-option-input="true"
             value={opt}
             maxLength={60}
             disabled={disabled}
             onChange={(e) => onChange(options.map((o, j) => (j === i ? e.target.value : o)))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAddOption();
+              }
+            }}
             placeholder={`Option ${i + 1}`}
             aria-label={`Option ${i + 1}`}
-            className="h-9 rounded-none border-0 border-b border-border/70 bg-transparent px-1 shadow-none focus-visible:border-primary focus-visible:ring-0"
+            className="h-9 rounded-none border-0 border-b border-border/70 bg-transparent px-1 shadow-none focus:border-primary focus:border-b-2 focus:ring-0 focus-visible:border-primary focus-visible:ring-0 outline-none transition-colors"
           />
           <Button
+            type="button"
             variant="ghost"
             size="icon-xs"
-            onClick={() => onChange(options.filter((_, j) => j !== i))}
+            onClick={() => handleRemoveOption(i)}
             disabled={disabled || options.length <= 1}
             aria-label={`Remove option ${i + 1}`}
             className="text-muted-foreground"
@@ -240,10 +281,16 @@ function OptionsEditor({ field, onChange, disabled = false }: { field: DraftFiel
       <button
         type="button"
         disabled={disabled}
-        onClick={() => onChange([...options, ""])}
-        className="ml-6.5 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary dark:hover:text-amber-300 disabled:opacity-50"
+        onMouseDown={(e) => {
+          e.preventDefault();
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          handleAddOption();
+        }}
+        className="ml-6.5 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary dark:hover:text-amber-300 disabled:opacity-50 cursor-pointer"
       >
-        <Plus className="size-3.5" />
+        {/* <Plus className="size-3.5" /> */}
         Add option
       </button>
     </div>
@@ -417,7 +464,7 @@ function FieldCard({
                 Edit
               </span>
             </div>
-            {field.helpText && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+            {field.helpText && <p className="text-xs break-all text-muted-foreground">{field.helpText}</p>}
             <FieldPreview field={field} />
             {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
           </div>
@@ -443,7 +490,6 @@ function FieldCard({
                   onChange={(e) => onPatch({ label: e.target.value })}
                   placeholder="Shown to the resident, e.g. Site plan / survey"
                   aria-invalid={!!error}
-                  autoFocus={!field.label}
                   className="h-11 rounded-none border-0 border-b-2 border-border bg-muted/40 px-3 text-base font-medium shadow-none focus-visible:border-primary focus-visible:ring-0 dark:bg-muted/30"
                 />
                 <div className="flex items-center justify-between pt-1">
@@ -577,7 +623,7 @@ function BuilderForm({
       required: type === "file",
       helpText: "",
       order: 0,
-      options: isChoiceType(type) ? ["Option 1"] : undefined,
+      options: isChoiceType(type) ? [""] : undefined,
       accept: type === "file" ? [] : undefined,
       multiple: type === "file" ? false : undefined,
     };
@@ -590,7 +636,11 @@ function BuilderForm({
       return next;
     });
     setActiveKey(key);
-    requestAnimationFrame(() => document.getElementById(`label-${key}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`label-${key}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      el?.focus();
+    });
   }
 
   function patch(key: string, changes: Partial<CategoryField>) {
@@ -603,12 +653,12 @@ function BuilderForm({
       prev.map((f) =>
         f.key === key
           ? {
-              ...f,
-              type,
-              options: isChoiceType(type) ? (f.options && f.options.length ? f.options : ["Option 1"]) : undefined,
-              accept: type === "file" ? f.accept ?? [] : undefined,
-              multiple: type === "file" ? f.multiple : undefined,
-            }
+            ...f,
+            type,
+            options: isChoiceType(type) ? (f.options && f.options.length ? f.options : [""]) : undefined,
+            accept: type === "file" ? f.accept ?? [] : undefined,
+            multiple: type === "file" ? f.multiple : undefined,
+          }
           : f
       )
     );

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Clock, KeyRound, LockKeyhole, Mail, MailPlus, Pencil, Route, ScrollText, UserCog } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, KeyRound, LockKeyhole, Mail, MailPlus, Pencil, Power, Route, ScrollText, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { StatCard } from "@/components/shared/stat-card";
 import { ReviewerFormSheet } from "@/features/reviewers/components/reviewer-form-sheet";
-import { ReviewerRowMenu, ReviewerStatusChip } from "@/features/reviewers/components/reviewer-row-menu";
+import { ReviewerStatusChip } from "@/features/reviewers/components/reviewer-row-menu";
 import { useReviewerActions } from "@/features/reviewers/components/use-reviewer-actions";
 import { useReviewer } from "@/hooks/use-admin-data";
 import { formatDate, formatDateTime, formatTime } from "@/utils/format";
@@ -66,7 +66,7 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
             <PersonAvatar name={reviewer.name} className="size-16" fallbackClassName="text-xl" />
             <div className="space-y-1.5">
               <h1 className="font-heading text-2xl font-medium text-foreground sm:text-3xl">{reviewer.name}</h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground truncate">
                 {reviewer.designation || "—"} · <span className="font-mono text-xs">{reviewer.employeeNumber}</span>
               </p>
               <div className="flex flex-wrap items-center gap-2">
@@ -80,35 +80,46 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {reviewer.inviteStatus === "invited" ? (
-              <Button onClick={() => actions.resendInvite(reviewer)} disabled={!reviewer.loginEnabled || resendPending}>
-                {resendPending ? <Spinner className="size-4" /> : <MailPlus className="size-4" />}
-                Resend invitation
+
+          <div className="flex flex-col items-start gap-3 md:items-end">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={reviewer.loginEnabled ? "outline" : "default"}
+                onClick={() => actions.requestLoginChange(reviewer)}
+                disabled={loginPending || actions.routingLocked}
+              >
+                {loginPending ? <Spinner className="size-4" /> : <Power className="size-4" />}
+                {reviewer.loginEnabled ? "Deactivate" : "Activate"}
               </Button>
-            ) : (
-              <>
-                <Button variant="outline" onClick={() => actions.sendReset(reviewer)} disabled={!reviewer.loginEnabled}>
-                  <KeyRound className="size-4" />
-                  Send reset link
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setEditing(true)}
+                aria-label="Edit reviewer"
+              >
+                <Pencil className="size-4" />
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {reviewer.inviteStatus === "invited" ? (
+                <Button onClick={() => actions.resendInvite(reviewer)} disabled={!reviewer.loginEnabled || resendPending}>
+                  {resendPending ? <Spinner className="size-4" /> : <MailPlus className="size-4" />}
+                  Resend invitation
                 </Button>
-                <Button onClick={() => actions.changePassword(reviewer)} disabled={!reviewer.loginEnabled}>
-                  <LockKeyhole className="size-4" />
-                  Change password
-                </Button>
-              </>
-            )}
-            <ReviewerRowMenu
-              reviewer={reviewer}
-              showDetails={false}
-              onEdit={() => setEditing(true)}
-              onReset={() => actions.sendReset(reviewer)}
-              onChangePassword={() => actions.changePassword(reviewer)}
-              onResendInvite={() => actions.resendInvite(reviewer)}
-              onToggleLogin={() => actions.requestLoginChange(reviewer)}
-              resendPending={resendPending}
-              loginPending={loginPending}
-            />
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => actions.sendReset(reviewer)} disabled={!reviewer.loginEnabled}>
+                    <KeyRound className="size-4" />
+                    Send reset link
+                  </Button>
+                  <Button onClick={() => actions.changePassword(reviewer)} disabled={!reviewer.loginEnabled}>
+                    <LockKeyhole className="size-4" />
+                    Change password
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
