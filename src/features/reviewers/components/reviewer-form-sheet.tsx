@@ -84,7 +84,7 @@ export function InvitationSentDialog({
             <p>
               You&apos;ve been added as an Architectural Review Board reviewer. Use the button below to create your password and activate your account. The link expires in 72 hours and can only be used once.
             </p>
-            <span className="inline-block rounded-md bg-[#112636] px-3.5 py-2 text-[11px] font-semibold text-white">Create Your Password</span>
+            <span className="inline-block rounded-md select-none bg-[#112636] px-3.5 py-2 text-[11px] font-semibold text-white">Create Your Password</span>
           </div>
         </div>
 
