@@ -101,7 +101,11 @@ export function AssignReviewerDialog({
           )}
         </div>
 
-        <RadioGroup value={selected} onValueChange={(v) => setSelected(String(v))} className="grid max-h-64 w-full min-w-0 max-w-full gap-2 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
+        <RadioGroup
+          value={selected}
+          onValueChange={(v) => setSelected(String(v))}
+          className="flex flex-col max-h-72 w-full min-w-0 max-w-full gap-2 overflow-y-auto overflow-x-hidden pr-1.5 custom-scrollbar"
+        >
           {isLoadingReviewers && options.length === 0 ? (
             <div className="flex items-center justify-center py-8">
               <Spinner className="size-6 text-primary" />
@@ -115,25 +119,33 @@ export function AssignReviewerDialog({
                 <label
                   key={r.id}
                   className={cn(
-                    "flex w-full min-w-0 max-w-full box-border items-center gap-3 rounded-xl border p-3 transition-colors overflow-hidden",
+                    "flex w-full min-w-0 max-w-full shrink-0 items-center gap-3 rounded-xl border p-3 transition-colors",
                     isCurrent ? "cursor-not-allowed opacity-55" : "cursor-pointer",
-                    selected === r.id ? "border-primary bg-primary/5 dark:border-amber-400 dark:bg-amber-400/5" : "border-border hover:border-foreground/30"
+                    selected === r.id
+                      ? "border-primary bg-primary/5 dark:border-amber-400 dark:bg-amber-400/5 shadow-xs"
+                      : "border-border hover:border-foreground/30 bg-card"
                   )}
                 >
                   <div className="shrink-0 flex items-center">
                     <RadioGroupItem value={r.id} disabled={isCurrent} />
                   </div>
                   <div className="shrink-0">
-                    <PersonAvatar name={r.name} />
+                    <PersonAvatar name={r.name} className="size-10" />
                   </div>
-                  <span className="min-w-0 flex-1 overflow-hidden">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-sm font-medium">{r.name}</span>
-                      {r.receiveNewRequests && <span className="shrink-0 rounded-full bg-brand-gold/15 px-1.5 py-px text-[9px] font-bold tracking-wider text-brand-gold uppercase">Default</span>}
-                    </span>
-                    <span className="block truncate text-xs text-muted-foreground font-mono">{r.email}</span>
-                    {r.designation && <span className="block truncate text-[11px] text-muted-foreground/80">{r.designation}</span>}
-                  </span>
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-foreground leading-tight">{r.name}</span>
+                      {r.receiveNewRequests && (
+                        <span className="shrink-0 rounded-full bg-brand-gold/15 px-1.5 py-px text-[9px] font-bold tracking-wider text-brand-gold uppercase">
+                          Default
+                        </span>
+                      )}
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground font-mono leading-tight">{r.email}</p>
+                    {r.designation && (
+                      <p className="truncate text-[11px] text-muted-foreground/80 leading-tight">{r.designation}</p>
+                    )}
+                  </div>
                   {isCurrent ? (
                     <span className="shrink-0 text-right text-xs font-semibold text-foreground">
                       Current
