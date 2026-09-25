@@ -172,7 +172,9 @@ export function getReviewerFrontendOrigin(): string {
 }
 
 export async function createReviewer(payload: ReviewerFormPayload): Promise<PublicReviewer> {
-  const { firstName, lastName } = splitName(payload.name);
+  const { firstName, lastName } = payload.firstName && payload.lastName
+    ? { firstName: payload.firstName.trim(), lastName: payload.lastName.trim() }
+    : splitName(payload.name);
   const reviewerOrigin = getReviewerFrontendOrigin();
   const { data } = await axiosInstance.post(
     "/admin/reviewer-invitations",
@@ -195,9 +197,14 @@ export async function createReviewer(payload: ReviewerFormPayload): Promise<Publ
 
 export async function updateReviewer(
   id: string,
-  updates: Pick<ReviewerFormPayload, "name" | "employeeNumber" | "designation" | "email">
+  updates: Pick<ReviewerFormPayload, "name" | "employeeNumber" | "designation" | "email"> & {
+    firstName?: string;
+    lastName?: string;
+  }
 ): Promise<PublicReviewer> {
-  const { firstName, lastName } = splitName(updates.name);
+  const { firstName, lastName } = updates.firstName && updates.lastName
+    ? { firstName: updates.firstName.trim(), lastName: updates.lastName.trim() }
+    : splitName(updates.name);
   const employeeNumber = updates.employeeNumber.trim();
   const { data } = await axiosInstance.patch(`/admin/reviewers/${id}`, {
     firstName,

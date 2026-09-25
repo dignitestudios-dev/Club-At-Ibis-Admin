@@ -80,6 +80,8 @@ interface Resident {
 
 interface ReviewerFormPayload {
   name: string;
+  firstName?: string;
+  lastName?: string;
   employeeNumber: string;
   designation: string;
   email: string;

@@ -66,6 +66,7 @@ function ChangePasswordForm({ userId }: { userId: string }) {
           <FieldContent>
             <PasswordInput
               id={name}
+              maxLength={128}
               autoComplete={extra?.autoComplete}
               showStrength={extra?.showStrength}
               value={f.value}

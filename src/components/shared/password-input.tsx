@@ -12,7 +12,7 @@ export interface PasswordInputProps extends React.ComponentProps<"input"> {
 
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
   function PasswordInput(
-    { className, showStrength = false, placeholder = "Enter password", onFocus, onBlur, onChange, ...props },
+    { className, showStrength = false, placeholder = "Enter password", maxLength = 128, onFocus, onBlur, onChange, ...props },
     ref
   ) {
     const [visible, setVisible] = useState(false);
@@ -37,6 +37,8 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           <Input
             ref={ref}
             type={visible ? "text" : "password"}
+            placeholder={placeholder}
+            maxLength={maxLength}
             className={cn("pr-10", className)}
             onFocus={(e) => {
               setIsFocused(true);
@@ -58,7 +60,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             className="absolute top-1/2 right-2.5 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-label={visible ? "Hide password" : "Show password"}
           >
-            {visible ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+            {visible ? <Eye className="size-4" aria-hidden="true" /> : <EyeOff className="size-4" aria-hidden="true" />}
           </button>
         </div>
 

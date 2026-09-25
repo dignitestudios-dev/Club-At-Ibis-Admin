@@ -15,7 +15,7 @@ import { ReviewerFormSheet } from "@/features/reviewers/components/reviewer-form
 import { ReviewerRowMenu, ReviewerStatusChip } from "@/features/reviewers/components/reviewer-row-menu";
 import { useReviewerActions } from "@/features/reviewers/components/use-reviewer-actions";
 import { useReviewer } from "@/hooks/use-admin-data";
-import { formatDate, formatDateTime, formatRelative } from "@/utils/format";
+import { formatDate, formatDateTime, formatTime } from "@/utils/format";
 
 export default function ReviewerDetailPage({ id }: { id: string }) {
   const { data, isLoading } = useReviewer(id);
@@ -191,8 +191,8 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
                       </p>
                     </div>
                     <time className="shrink-0 text-right text-xs text-muted-foreground" dateTime={a.occurredAt} title={formatDateTime(a.occurredAt)}>
-                      <span className="block">{formatRelative(a.occurredAt)}</span>
-                      <span className="block text-[11px]">{formatDate(a.occurredAt)}</span>
+                      <span className="block font-medium text-foreground">{formatDate(a.occurredAt)}</span>
+                      <span className="block text-[11px] text-muted-foreground">{formatTime(a.occurredAt)}</span>
                     </time>
                   </li>
                 ))}

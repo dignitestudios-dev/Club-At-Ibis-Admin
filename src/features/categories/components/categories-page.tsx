@@ -31,9 +31,11 @@ import { IN_FLIGHT } from "@/lib/domain";
 import { formatDate, formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
+const CATEGORY_PAGE_SIZE_OPTIONS = [12, 26, 36];
+
 export default function CategoriesPage() {
   const toast = useToast();
-  const [pageSize, setPageSize] = usePageSize();
+  const [pageSize, setPageSize] = usePageSize(CATEGORY_PAGE_SIZE_OPTIONS, 12, "caia.categories-page-size");
   const [search, setSearch] = useUrlSearch("q");
   const { values, set } = useUrlParams({ tab: "active", page: "1" });
 
@@ -261,6 +263,8 @@ export default function CategoriesPage() {
             page={page}
             pageSize={pageSize}
             total={total}
+            pageSizeOptions={CATEGORY_PAGE_SIZE_OPTIONS}
+            pageSizeLabel="Cards per page"
             onPageChange={(p) => set({ page: String(p) })}
             onPageSizeChange={setPageSize}
           />
