@@ -10,6 +10,7 @@ import {
   Copy,
   Eye,
   GripVertical,
+  History,
   Info,
   Lock,
   Pencil,
@@ -793,10 +794,16 @@ function BuilderForm({
             </DropdownMenuContent>
           </DropdownMenu>
           {editing && existing && (
-            <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href={`/categories/${existing.id}`} />}>
-              <Eye className="size-4" />
-              Preview Form
-            </Button>
+            <>
+              <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href={`/categories/${existing.id}/activity`} />}>
+                <History className="size-4" />
+                View Activity
+              </Button>
+              <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href={`/categories/${existing.id}`} />}>
+                <Eye className="size-4" />
+                Preview Form
+              </Button>
+            </>
           )}
           <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href="/categories" />}>
             Cancel
