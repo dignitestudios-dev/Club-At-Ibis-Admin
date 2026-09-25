@@ -305,15 +305,15 @@ function FileConfig({ field, onPatch, disabled = false }: { field: DraftField; o
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-foreground">Accepted file types</p>
-          <p className="text-xs text-muted-foreground">{any ? "Any file type is accepted (default)." : "Only the selected types can be uploaded."}</p>
+          <p className="text-xs text-muted-foreground">{any ? "All allowed formats (Images, PDF, Word) are accepted." : "Only the selected formats can be uploaded."}</p>
         </div>
         <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground">
-          <Switch checked={any} disabled={disabled} onCheckedChange={(v) => onPatch({ accept: v ? [] : ["images", "pdf"] })} aria-label="Accept any file type" />
-          Any type
+          <Switch checked={any} disabled={disabled} onCheckedChange={(v) => onPatch({ accept: v ? [] : ["images", "pdf", "word"] })} aria-label="Accept all allowed file types" />
+          All types
         </label>
       </div>
       {!any && (
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-3">
           {FILE_GROUPS.map((g) => {
             const on = accept.includes(g.id);
             return (
