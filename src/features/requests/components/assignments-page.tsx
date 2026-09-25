@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { ArrowRight, ChevronRight, History, Inbox, ListChecks, Route, UserRoundCheck, UserRoundPlus, Users } from "lucide-react";
+import { ArrowRight, ChevronRight, History, Inbox, ListChecks, RefreshCw, Route, UserRoundCheck, UserRoundPlus, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Pagination } from "@/components/shared/pagination";
@@ -17,17 +17,20 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
-import { useRequests, useMockResidents, useMockReviewers } from "@/hooks/use-admin-data";
+import { useRequests, useResidents, useReviewers } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
+import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
 import { IN_FLIGHT, residentFullName } from "@/lib/domain";
 import { formatDateTime, formatRelative } from "@/utils/format";
+import { cn } from "@/utils/cn";
 
 export default function AssignmentsPage() {
   const router = useRouter();
-  const { data: requests, isLoading } = useRequests();
-  const { data: residents } = useMockResidents();
-  const { data: reviewers } = useMockReviewers();
+  const toast = useToast();
+  const { data: requests, isLoading, isFetching, refetch } = useRequests();
+  const { data: residents } = useResidents();
+  const { data: reviewers } = useReviewers();
   const { values, set } = useUrlParams({ tab: "intake", page: "1" });
   const tab: "intake" | "assigned" | "activity" = values.tab === "assigned" || values.tab === "activity" ? values.tab : "intake";
   const [search, setSearch] = useUrlSearch("q");
@@ -40,7 +43,7 @@ export default function AssignmentsPage() {
   const all = requests ?? [];
   const intake = all.filter((r) => r.status === "submitted" && !r.assignedReviewerId);
   const assigned = all.filter((r) => r.assignedReviewerId && IN_FLIGHT.includes(r.status));
-  const activeReviewers = (reviewers ?? []).filter((r) => r.loginEnabled);
+  const activeReviewers = (reviewers ?? []).filter((r) => r.loginEnabled && r.inviteStatus === "active");
 
   const q = search.trim().toLowerCase();
 
@@ -77,6 +80,27 @@ export default function AssignmentsPage() {
       <PageHeader
         title="Assignments"
         description="Route requests to reviewers. Assign anything waiting in the default reviewers' intake, or reassign a request that is already in progress."
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                await refetch();
+                toast.success("Assignments refreshed");
+              } catch {
+                toast.error("Failed to refresh assignments");
+              }
+            }}
+            disabled={isFetching}
+            className="h-8 gap-1.5"
+            aria-label="Refresh assignments"
+            title="Refresh assignments"
+          >
+            <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+            <span>Refresh</span>
+          </Button>
+        }
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -120,7 +144,7 @@ export default function AssignmentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="pl-4 max-w-[180px]">Request</TableHead>
+                    <TableHead className="pl-4 w-[180px] min-w-[180px]">Request</TableHead>
                     <TableHead className="max-w-[120px]">Action</TableHead>
                     <TableHead className="max-w-[220px]">Reviewer change</TableHead>
                     <TableHead className="max-w-[160px]">Done by</TableHead>
@@ -133,8 +157,8 @@ export default function AssignmentsPage() {
                 <TableBody>
                   {visibleActivity.map(({ event, request }) => (
                     <TableRow key={`${request.id}-${event.id}`} className="group cursor-pointer" onClick={() => router.push(`/requests/${request.id}`)}>
-                      <TableCell className="pl-4 max-w-[180px]">
-                        <Link href={`/requests/${request.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 truncate" title={request.code}>
+                      <TableCell className="pl-4 w-[180px] min-w-[180px]">
+                        <Link href={`/requests/${request.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap" title={request.code}>
                           {request.code}
                         </Link>
                         <span className="block truncate text-sm font-medium text-foreground" title={request.categoryName}>{request.categoryName}</span>
@@ -208,7 +232,7 @@ export default function AssignmentsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="pl-4 max-w-[180px]">Request</TableHead>
+                  <TableHead className="pl-4 w-[180px] min-w-[180px]">Request</TableHead>
                   <TableHead className="max-w-[180px]">Resident</TableHead>
                   <TableHead className="max-w-[200px]">Property</TableHead>
                   <TableHead className="max-w-[130px]">Status</TableHead>
@@ -228,10 +252,10 @@ export default function AssignmentsPage() {
                   const resName = residentFullName(residentById.get(req.residentId));
                   return (
                     <TableRow key={req.id} className="group cursor-pointer" onClick={() => router.push(`/requests/${req.id}`)}>
-                      <TableCell className="pl-4 max-w-[180px]">
+                      <TableCell className="pl-4 w-[180px] min-w-[180px]">
                         <div className="flex items-center gap-3 min-w-0">
                           <span className="min-w-0">
-                            <Link href={`/requests/${req.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 truncate" title={req.code}>
+                            <Link href={`/requests/${req.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap" title={req.code}>
                               {req.code}
                             </Link>
                             <span className="block truncate text-sm font-medium text-foreground" title={req.categoryName}>{req.categoryName}</span>

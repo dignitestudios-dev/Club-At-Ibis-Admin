@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { useCategories, useRequests, useMockResidents, useMockReviewers } from "@/hooks/use-admin-data";
+import { useCategories, useRequests, useResidents, useReviewers } from "@/hooks/use-admin-data";
 import { residentFullName } from "@/lib/domain";
 import { cn } from "@/utils/cn";
 
@@ -53,8 +53,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const listRef = useRef<HTMLDivElement>(null);
 
   const { data: requests } = useRequests();
-  const { data: residents } = useMockResidents();
-  const { data: reviewers } = useMockReviewers();
+  const { data: residents } = useResidents();
+  const { data: reviewers } = useReviewers();
   const { data: categories } = useCategories();
 
   useEffect(() => {

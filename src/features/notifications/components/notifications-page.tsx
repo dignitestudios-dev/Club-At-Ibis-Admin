@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Bell, CheckCheck, Layers } from "lucide-react";
+import { AlertTriangle, Bell, CheckCheck, Layers, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FilterPills } from "@/components/shared/pill-tabs";
@@ -10,12 +10,13 @@ import { NotificationItem } from "@/features/notifications/components/notificati
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from "@/hooks/use-admin-data";
 import { useUrlParams } from "@/hooks/use-url-params";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/utils/cn";
 
 type Filter = "all" | "unread" | "attention";
 
 export default function NotificationsPage() {
   const toast = useToast();
-  const { data, isLoading } = useNotifications();
+  const { data, isLoading, isFetching, refetch } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAll = useMarkAllNotificationsRead();
   const { values, set } = useUrlParams({ filter: "all" });
@@ -32,22 +33,43 @@ export default function NotificationsPage() {
         title="Notifications"
         description="Oversight alerts for new submissions, resubmissions, request updates and items that need attention."
         actions={
-          unread > 0 ? (
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                markAll.mutate();
-                toast.success("All notifications marked as read");
+              onClick={async () => {
+                try {
+                  await refetch();
+                  toast.success("Notifications refreshed");
+                } catch {
+                  toast.error("Failed to refresh notifications");
+                }
               }}
-              disabled={markAll.isPending}
-              className="bg-white dark:bg-card gap-1.5 shadow-2xs hover:border-primary/40 hover:bg-slate-50 dark:hover:bg-slate-800"
-              aria-label={`Mark all ${unread} unread notifications as read`}
+              disabled={isFetching}
+              className="h-8 gap-1.5"
+              aria-label="Refresh notifications"
+              title="Refresh notifications"
             >
-              <CheckCheck className="size-4 text-primary" aria-hidden="true" />
-              Mark All As Read ({unread})
+              <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+              <span>Refresh</span>
             </Button>
-          ) : undefined
+            {unread > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  markAll.mutate();
+                  toast.success("All notifications marked as read");
+                }}
+                disabled={markAll.isPending}
+                className="bg-white dark:bg-card gap-1.5 shadow-2xs hover:border-primary/40 hover:bg-slate-50 dark:hover:bg-slate-800"
+                aria-label={`Mark all ${unread} unread notifications as read`}
+              >
+                <CheckCheck className="size-4 text-primary" aria-hidden="true" />
+                Mark All As Read ({unread})
+              </Button>
+            )}
+          </div>
         }
       />
 

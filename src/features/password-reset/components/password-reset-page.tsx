@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, KeyRound, LockKeyhole, Mail, Search, Send, ShieldCheck, UserCog, Users } from "lucide-react";
+import { CheckCircle2, KeyRound, LockKeyhole, Mail, RefreshCw, Search, Send, ShieldCheck, UserCog, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
 import { SendResetDialog, type ResetTarget } from "@/features/password-reset/components/send-reset-dialog";
 import { useResets, useResidents, useReviewers } from "@/hooks/use-admin-data";
+import { useToast } from "@/hooks/use-toast";
 import { residentFullName } from "@/lib/domain";
 import { formatDateTime, formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
@@ -34,9 +35,12 @@ function resetChip(r: PasswordResetRecord) {
 }
 
 export default function PasswordResetPage() {
-  const { data: residents } = useResidents();
-  const { data: reviewers } = useReviewers();
-  const { data: resets } = useResets();
+  const toast = useToast();
+  const { data: residents, isFetching: isFetchingResidents, refetch: refetchResidents } = useResidents();
+  const { data: reviewers, isFetching: isFetchingReviewers, refetch: refetchReviewers } = useReviewers();
+  const { data: resets, isFetching: isFetchingResets, refetch: refetchResets } = useResets();
+
+  const isFetching = isFetchingResets || isFetchingResidents || isFetchingReviewers;
 
   const [kind, setKind] = useState<"resident" | "reviewer">("resident");
   const [search, setSearch] = useState("");
@@ -68,6 +72,27 @@ export default function PasswordResetPage() {
       <PageHeader
         title="Password Reset & Change"
         description="Email a password-reset link so the user chooses a new password, or set a new password for an active account directly."
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                await Promise.all([refetchResets(), refetchResidents(), refetchReviewers()]);
+                toast.success("Password reset records refreshed");
+              } catch {
+                toast.error("Failed to refresh password reset records");
+              }
+            }}
+            disabled={isFetching}
+            className="h-8 gap-1.5"
+            aria-label="Refresh password resets"
+            title="Refresh password resets"
+          >
+            <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+            <span>Refresh</span>
+          </Button>
+        }
       />
 
       {/* Flow strip */}

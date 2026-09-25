@@ -34,7 +34,7 @@ import { AssignReviewerDialog } from "@/features/requests/components/assign-revi
 import { HistoryTimeline } from "@/features/requests/components/history-timeline";
 import { RequestJourney } from "@/features/requests/components/request-journey";
 import { DepositChip, RefundChip } from "@/features/requests/components/request-chips";
-import { useCategories, useRequests, useMockResidents, useMockReviewers } from "@/hooks/use-admin-data";
+import { useCategories, useRequest, useResidents, useReviewers } from "@/hooks/use-admin-data";
 import { IN_FLIGHT, REFUND_LABEL, residentFullName } from "@/lib/domain";
 import { formatDate, formatDateTime, formatFileSize } from "@/utils/format";
 import { cn } from "@/utils/cn";
@@ -71,9 +71,9 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 export default function RequestDetailPage({ id }: { id: string }) {
-  const { data: requests, isLoading } = useRequests();
-  const { data: residents } = useMockResidents();
-  const { data: reviewers } = useMockReviewers();
+  const { data: req, isLoading } = useRequest(id);
+  const { data: residents } = useResidents();
+  const { data: reviewers } = useReviewers();
   const { data: categories } = useCategories();
   const [preview, setPreview] = useState<PreviewableFile | null>(null);
   const [assigning, setAssigning] = useState<RequestRecord | null>(null);
@@ -88,7 +88,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
     );
   }
 
-  const req = requests?.find((r) => r.id === id);
   if (!req) {
     return (
       <EmptyState
@@ -104,17 +103,34 @@ export default function RequestDetailPage({ id }: { id: string }) {
     );
   }
 
-  const resident = residents?.find((r) => r.id === req.residentId);
+  const resident = req.resident
+    ? {
+        id: req.resident.id,
+        residentIdNumber: req.resident.residentId || req.resident.residentIdNumber || "",
+        firstName: req.resident.firstName || "",
+        lastName: req.resident.lastName || "",
+        displayName: req.resident.displayName || "",
+        email: req.resident.email || "",
+        phone: req.resident.phone || "",
+        active: true,
+        address: req.property?.address || req.fieldValues?.propertyAddress || "",
+        lotNo: req.property?.lotNo || req.fieldValues?.lotNo || "",
+        createdAt: "",
+      }
+    : residents?.find((r) => r.id === req.residentId);
   const reviewer = reviewers?.find((r) => r.id === req.assignedReviewerId);
   const category = categories?.find((c) => c.id === req.categoryId);
   const currentCategoryVersion = category?.version ?? req.formVersion;
   const reviewed = req.status !== "submitted";
 
-  const infoFields = req.formSnapshot.filter((f) => f.type !== "file").sort((a, b) => a.order - b.order);
-  const fileFields = req.formSnapshot.filter((f) => f.type === "file").sort((a, b) => a.order - b.order);
+  const infoFields = (req.formSnapshot || []).filter((f) => f.type !== "file").sort((a, b) => a.order - b.order);
+  const fileFields = (req.formSnapshot || []).filter((f) => f.type === "file").sort((a, b) => a.order - b.order);
 
-  const docCount = fileFields.reduce((n, f) => n + (req.uploads[f.id]?.length ?? 0), 0);
-  const flaggedCount = Object.values(req.itemReviews).filter((r) => r.state === "flagged").length;
+  const docCount = fileFields.reduce((n, f) => n + (req.uploads?.[f.id]?.length ?? 0), 0);
+  const flaggedCount = Object.values(req.itemReviews || {}).filter((r) => r.state === "flagged").length;
+
+  const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
+  const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -139,9 +155,9 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 </span>
               )}
               <span aria-hidden="true">·</span>
-              <span>{req.fieldValues.propertyAddress}</span>
+              <span>{propAddress}</span>
               <span aria-hidden="true">·</span>
-              <span>{req.fieldValues.lotNo}</span>
+              <span>{propLot}</span>
             </div>
           </div>
 

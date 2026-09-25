@@ -57,8 +57,11 @@ export const REFUND_LABEL: Record<RefundOutcome, string> = {
 /* People                                                              */
 /* ------------------------------------------------------------------ */
 
-export function residentFullName(r?: Pick<Resident, "firstName" | "lastName"> | null) {
-  return r ? `${r.firstName} ${r.lastName}`.trim() : "Unknown resident";
+export function residentFullName(r?: { firstName?: string; lastName?: string; displayName?: string; residentIdNumber?: string; residentId?: string } | null) {
+  if (!r) return "Unknown resident";
+  if (r.displayName) return r.displayName;
+  const combined = `${r.firstName || ""} ${r.lastName || ""}`.trim();
+  return combined || r.residentIdNumber || r.residentId || "Resident";
 }
 
 export function initialsOf(name: string) {
@@ -79,10 +82,9 @@ export interface RequestFilters {
   status: RequestStatus | "all";
   categoryId: string;
   categoryStatus: "all" | CategoryStatus;
-  reviewerId: string; // "all" | "unassigned" | reviewer id
-  depositStatus: "all" | DepositStatus;
-  refund: "all" | RefundOutcome | "none";
-  year: string; // "all" | "2026"
+  reviewerId: string; // "all" | reviewer id
+  depositStatus: "all" | "not_required" | "required" | "received" | "partially_refunded" | "fully_refunded" | "retained";
+  refund: "all" | "refunded" | "no_refund";
   from: string; // yyyy-mm-dd
   to: string;
 }
@@ -95,7 +97,6 @@ export const DEFAULT_FILTERS: RequestFilters = {
   reviewerId: "all",
   depositStatus: "all",
   refund: "all",
-  year: "all",
   from: "",
   to: "",
 };
@@ -116,13 +117,17 @@ export function filterRequests(
 
   return requests.filter((req) => {
     if (q) {
-      const resident = residentById.get(req.residentId);
+      const resident = req.resident || residentById.get(req.residentId);
       const hay = [
         req.code,
+        req.title,
+        req.categoryName,
         residentFullName(resident),
-        resident?.residentIdNumber,
-        req.fieldValues.propertyAddress,
-        req.fieldValues.lotNo,
+        (resident as any)?.residentIdNumber || (resident as any)?.residentId,
+        req.property?.address,
+        req.property?.lotNo,
+        req.fieldValues?.propertyAddress,
+        req.fieldValues?.lotNo,
       ]
         .filter(Boolean)
         .join(" ")
@@ -141,14 +146,7 @@ export function filterRequests(
       return false;
     }
     if (filters.depositStatus !== "all" && req.deposit.status !== filters.depositStatus) return false;
-    if (filters.refund !== "all") {
-      if (filters.refund === "none") {
-        if (req.refund) return false;
-      } else if (req.refund?.outcome !== filters.refund) {
-        return false;
-      }
-    }
-    if (filters.year !== "all" && new Date(req.submittedAt).getFullYear().toString() !== filters.year) return false;
+    if (filters.refund !== "all" && req.refund?.outcome !== filters.refund) return false;
     if (filters.from && req.submittedAt.slice(0, 10) < filters.from) return false;
     if (filters.to && req.submittedAt.slice(0, 10) > filters.to) return false;
     return true;

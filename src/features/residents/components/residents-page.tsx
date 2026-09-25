@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, LockKeyhole, MoreHorizontal, Power, RotateCcw, UserCheck, UserX, Users } from "lucide-react";
+import { KeyRound, LockKeyhole, MoreHorizontal, Power, RefreshCw, RotateCcw, UserCheck, UserX, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
 import { residentFullName } from "@/lib/domain";
 import { formatDate, formatRelative } from "@/utils/format";
+import { cn } from "@/utils/cn";
 
 export default function ResidentsPage() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function ResidentsPage() {
 
   // Genuinely server-paginated: page/limit/search/status go to the API as-is, so
   // what's requested always matches what's on screen.
-  const { data: pageResult, isLoading } = useResidentsPage({
+  const { data: pageResult, isLoading, isFetching, refetch } = useResidentsPage({
     page,
     limit: pageSize,
     search,
@@ -79,6 +80,27 @@ export default function ResidentsPage() {
       <PageHeader
         title="Resident Records"
         description="Search residents, send password-reset links, and activate or deactivate accounts."
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                await refetch();
+                toast.success("Residents refreshed");
+              } catch {
+                toast.error("Failed to refresh residents");
+              }
+            }}
+            disabled={isFetching}
+            className="h-8 gap-1.5"
+            aria-label="Refresh residents"
+            title="Refresh residents"
+          >
+            <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+            <span>Refresh</span>
+          </Button>
+        }
       />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">

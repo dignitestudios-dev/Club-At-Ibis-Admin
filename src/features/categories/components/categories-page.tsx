@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  RefreshCw,
   Type,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -44,7 +45,7 @@ export default function CategoriesPage() {
   const setTab = (t: "active" | "archived") => set({ tab: t, page: "1" });
 
   // Server-side filtered by status, searched, and paginated via API
-  const { data: pageResult, isLoading } = useCategoriesPage({
+  const { data: pageResult, isLoading, isFetching, refetch } = useCategoriesPage({
     page,
     limit: pageSize,
     search,
@@ -52,7 +53,7 @@ export default function CategoriesPage() {
   });
 
   // Query full list for accurate counts on the Active / Archived tabs
-  const { data: allCategories } = useCategories();
+  const { data: allCategories, refetch: refetchAll } = useCategories();
   const { data: requests } = useRequests();
   const archive = useArchiveCategory();
   const restore = useRestoreCategory();
@@ -83,10 +84,31 @@ export default function CategoriesPage() {
         title="Categories & Forms"
         description="Define the categories residents can request and the form each one collects. Changes apply to new requests only — existing submissions keep their original form."
         actions={
-          <Button nativeButton={false} render={<Link href="/categories/new" />}>
-            <Plus className="size-4" />
-            Add category
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await Promise.all([refetch(), refetchAll()]);
+                  toast.success("Categories refreshed");
+                } catch {
+                  toast.error("Failed to refresh categories");
+                }
+              }}
+              disabled={isFetching}
+              className="h-9 gap-1.5"
+              aria-label="Refresh categories"
+              title="Refresh categories"
+            >
+              <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+              <span>Refresh</span>
+            </Button>
+            <Button nativeButton={false} render={<Link href="/categories/new" />}>
+              <Plus className="size-4" />
+              Add category
+            </Button>
+          </div>
         }
       />
 
