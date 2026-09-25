@@ -146,6 +146,21 @@ interface CategoryVersion {
   note?: string | null;
 }
 
+interface CategoryActivityActor {
+  id: string | null;
+  role: string;
+  displayName: string;
+}
+
+interface CategoryActivityEntry {
+  id: string;
+  type: string;
+  actor: CategoryActivityActor;
+  message: string;
+  details?: Record<string, unknown>;
+  occurredAt: string;
+}
+
 interface Category {
   id: string;
   slug?: string;
@@ -164,6 +179,7 @@ interface Category {
   updatedAt: string;
   archivedAt?: string | null;
   currentForm?: CategoryVersion;
+  activityHistory?: CategoryActivityEntry[];
 }
 
 interface CommonForm {

@@ -248,7 +248,7 @@ export default function CategoriesPage() {
 
                   <div className="mt-4 flex-1 space-y-1.5">
                     <h3 className="font-heading text-lg font-medium text-foreground">
-                      <Link href={`/categories/${cat.id}`} className="transition-colors hover:text-primary">
+                      <Link href={`/categories/${cat.id}`} className="transition-colors hover:text-primary break-all">
                         {cat.name}
                       </Link>
                     </h3>

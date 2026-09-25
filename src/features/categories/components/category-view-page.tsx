@@ -13,7 +13,6 @@ import {
   FileText,
   History,
   Pencil,
-  Send,
   ShieldCheck,
   Upload,
 } from "lucide-react";
@@ -439,33 +438,30 @@ function ResidentWizardView({
           </div>
         )}
 
-        {/* Bottom Action Bar (No Save Draft button, Back/Next navigation only) */}
-        <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+      </Card>
+
+      {/* Sticky Bottom Navigation Bar */}
+      <div className="sticky bottom-0 z-20 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-border/80 bg-[#F8FAFC] dark:bg-[#0D1522] px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+        {stepIndex > 0 ? (
           <Button
             type="button"
             variant="outline"
             onClick={handleBack}
-            disabled={stepIndex === 0}
           >
             <ArrowLeft className="size-4" />
             Back
           </Button>
+        ) : (
+          <span />
+        )}
 
-          <div>
-            {stepIndex < stepperSteps.length - 1 ? (
-              <Button type="button" onClick={handleNext}>
-                Next
-                <ArrowRight className="size-4" />
-              </Button>
-            ) : (
-              <Button disabled>
-                <Send className="size-4" />
-                Submit Request
-              </Button>
-            )}
-          </div>
-        </div>
-      </Card>
+        {stepIndex < stepperSteps.length - 1 && (
+          <Button type="button" onClick={handleNext}>
+            Next
+            <ArrowRight className="size-4" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
