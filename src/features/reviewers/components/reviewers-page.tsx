@@ -184,7 +184,7 @@ export default function ReviewersPage() {
               <TableBody>
                 {visible.map((rev) => {
                   const receivePending = actions.pendingReceiveId === rev.id;
-                  // A different reviewer's routing/login change is in flight — lock this
+                  // A different reviewer's routing/login change is in flight: lock this
                   // row's own toggle until it settles, so two rows can't race the "at
                   // least one Default Reviewer" check against stale data.
                   const routingLocked = actions.routingLocked && !receivePending && actions.pendingLoginId !== rev.id;

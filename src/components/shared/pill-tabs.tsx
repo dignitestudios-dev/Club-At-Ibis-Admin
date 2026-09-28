@@ -10,7 +10,7 @@ export interface PillTabOption<T extends string> {
 }
 
 /**
- * Filter pills — the same look as the resident portal's notification filters
+ * Filter pills: matching the look of notification filters
  * (rounded pills over a bottom rule, count chip inside).
  */
 export function FilterPills<T extends string>({
@@ -65,8 +65,8 @@ export function FilterPills<T extends string>({
 }
 
 /**
- * Segmented switcher — same as the resident portal's "My Requests" tab
- * switcher (pill container, raised active tab).
+ * Segmented switcher: matching the "My Requests" tab switcher
+ * (pill container, raised active tab).
  */
 export function SegmentedTabs<T extends string>({
   value,

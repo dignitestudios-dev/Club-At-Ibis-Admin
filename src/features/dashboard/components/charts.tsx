@@ -38,7 +38,7 @@ function useCountUp(target: number, duration = 1000) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Donut — segments draw themselves around the ring                    */
+/* Donut: segments draw themselves around the ring                     */
 /* ------------------------------------------------------------------ */
 
 export interface DonutSegment {
@@ -105,7 +105,7 @@ export function DonutChart({
 }
 
 /* ------------------------------------------------------------------ */
-/* Stacked monthly bars — gridlines, y-axis, hover tooltip             */
+/* Stacked monthly bars: gridlines, y-axis, hover tooltip              */
 /* ------------------------------------------------------------------ */
 
 export interface MonthBar {
@@ -230,7 +230,7 @@ export function StackedMonthBars({ months }: { months: MonthBar[] }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Horizontal bars — fill from the left                                */
+/* Horizontal bars: fill from the left                                 */
 /* ------------------------------------------------------------------ */
 
 export function GrowBar({
@@ -239,7 +239,7 @@ export function GrowBar({
   className,
   trackClassName,
 }: {
-  /** 0–1 */
+  /** 0-1 */
   fraction: number;
   index?: number;
   className?: string;

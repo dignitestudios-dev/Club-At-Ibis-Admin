@@ -142,7 +142,7 @@ function toDraft(fields: CategoryField[]): DraftField[] {
   return fields.map((f) => ({ ...f, key: f.id || crypto.randomUUID() }));
 }
 
-/** Stable string of everything the user can edit — used to detect unsaved changes. */
+/** Stable string of everything the user can edit: used to detect unsaved changes. */
 function snapshot(name: string, description: string, fields: DraftField[]) {
   return JSON.stringify({
     name: name.trim(),
@@ -185,21 +185,25 @@ export default function CategoryBuilder({ categoryId }: { categoryId?: string })
 
   return (
     <BuilderForm
-      key={existing?.id ?? "new"}
+      key={existing?.id ? `${existing.id}-v${existing.currentVersion ?? existing.version ?? 1}` : "new"}
       existing={existing}
       commonForm={commonFormData}
       existingRequestCount={(requests ?? []).filter((r) => r.categoryId === categoryId).length}
       create={create}
       update={update}
       toast={toast}
-      onDone={() => router.push("/categories")}
+      onSaved={(savedCategory) => {
+        if (!categoryId && savedCategory?.id) {
+          router.replace(`/categories/${savedCategory.id}/edit`);
+        }
+      }}
       allNames={(categories ?? []).filter((c) => c.id !== categoryId).map((c) => c.name.toLowerCase())}
     />
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Field card — collapsed preview / expanded editor                     */
+/* Field card: collapsed preview / expanded editor                     */
 /* ------------------------------------------------------------------ */
 
 function OptionsEditor({ field, onChange, disabled = false }: { field: DraftField; onChange: (options: string[]) => void; disabled?: boolean }) {
@@ -219,12 +223,12 @@ function OptionsEditor({ field, onChange, disabled = false }: { field: DraftFiel
   };
 
   /**
-   * Ref callback — fires at the exact moment React attaches the DOM node.
+   * Ref callback: fires at the exact moment React attaches the DOM node.
    * If this input's index matches `pendingFocusIdx`, focus it immediately.
    */
   const makeInputRef = (i: number) => (el: HTMLInputElement | null) => {
     if (!el || pendingFocusIdx.current !== i) return;
-    pendingFocusIdx.current = -1; // consume — only focus once
+    pendingFocusIdx.current = -1; // consume: only focus once
     // Immediate attempt (works in most browsers during commit phase)
     el.focus();
     try { el.setSelectionRange(el.value.length, el.value.length); } catch {}
@@ -345,7 +349,7 @@ function FileConfig({ field, onPatch, disabled = false }: { field: DraftField; o
   );
 }
 
-/** What the resident's control looks like — shown when a card is collapsed. */
+/** What the resident's control looks like (shown when a card is collapsed). */
 function FieldPreview({ field }: { field: DraftField }) {
   const line = "h-7 border-b border-dashed border-border text-xs leading-7 text-muted-foreground/70";
   if (field.type === "select" || field.type === "radio" || field.type === "checkbox") {
@@ -450,7 +454,7 @@ function FieldCard({
 
       <div className="min-w-0 flex-1">
         {!active ? (
-          /* Collapsed — click to edit */
+          /* Collapsed: click to edit */
           <div role="button" tabIndex={0} onClick={disabled ? undefined : onActivate} onKeyDown={(e) => !disabled && (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onActivate())} className="w-full cursor-pointer space-y-2 px-5 py-4 text-left outline-none focus-visible:bg-muted/40">
             <div className="flex flex-wrap items-center gap-2">
               <span className={cn("text-base font-medium", field.label ? "text-foreground" : "text-muted-foreground italic")}>
@@ -576,7 +580,7 @@ function BuilderForm({
   create,
   update,
   toast,
-  onDone,
+  onSaved,
   allNames,
 }: {
   existing?: Category;
@@ -585,7 +589,7 @@ function BuilderForm({
   create: ReturnType<typeof useCreateCategory>;
   update: ReturnType<typeof useUpdateCategory>;
   toast: ReturnType<typeof useToast>;
-  onDone: () => void;
+  onSaved?: (savedCategory: Category) => void;
   allNames: string[];
 }) {
   const editing = !!existing;
@@ -627,7 +631,7 @@ function BuilderForm({
       order: 0,
       options: isChoiceType(type) ? [""] : undefined,
       accept: type === "file" ? [] : undefined,
-      multiple: type === "file" ? false : undefined,
+      multiple: type === "file" ? true : undefined,
     };
     // New fields land right below the one being edited (like Google Forms).
     setFields((prev) => {
@@ -659,7 +663,7 @@ function BuilderForm({
             type,
             options: isChoiceType(type) ? (f.options && f.options.length ? f.options : [""]) : undefined,
             accept: type === "file" ? f.accept ?? [] : undefined,
-            multiple: type === "file" ? f.multiple : undefined,
+            multiple: type === "file" ? (f.multiple !== undefined ? f.multiple : true) : undefined,
           }
           : f
       )
@@ -725,7 +729,7 @@ function BuilderForm({
       else if (seen.has(label)) next.fields[f.key] = "Field labels must be unique within a form.";
       else if (isChoiceType(f.type)) {
         const opts = (f.options ?? []).map((o) => o.trim());
-        if (opts.length === 0 || opts.some((o) => !o)) next.fields[f.key] = "Every option needs a value — fill in or remove empty options.";
+        if (opts.length === 0 || opts.some((o) => !o)) next.fields[f.key] = "Every option needs a value. Please fill in or remove empty options.";
         else if (new Set(opts.map((o) => o.toLowerCase())).size !== opts.length) next.fields[f.key] = "Options must be unique.";
       }
       seen.add(label);
@@ -758,10 +762,6 @@ function BuilderForm({
         order: i + 1,
       })),
     };
-    const finish = () => {
-      guard.allowLeave();
-      onDone();
-    };
     if (existing) {
       update.mutate(
         { id: existing.id, payload },
@@ -771,7 +771,14 @@ function BuilderForm({
               "Category updated",
               `“${updated.name}” is now form v${updated.currentVersion ?? updated.version}. Applies to new requests only.`
             );
-            finish();
+            guard.allowLeave();
+            const updatedDraft = toDraft(updated.fields ?? updated.currentForm?.fields ?? fields);
+            setFields(updatedDraft);
+            setName(updated.name);
+            setDescription(updated.description ?? "");
+            setNote("");
+            initial.current = snapshot(updated.name, updated.description ?? "", updatedDraft);
+            onSaved?.(updated);
           },
           onError: (e: any) => {
             const code = e?.response?.data?.error?.code || e?.code;
@@ -793,7 +800,8 @@ function BuilderForm({
       create.mutate(payload, {
         onSuccess: (created) => {
           toast.success("Category created", `“${created.name}” is Active and available to residents.`);
-          finish();
+          guard.allowLeave();
+          onSaved?.(created);
         },
         onError: (e: any) => {
           const msg = e?.response?.data?.message || e?.message || "Could not save category";
@@ -815,7 +823,7 @@ function BuilderForm({
         <div className="min-w-0 flex-1">
           <h1 className="truncate font-heading text-xl font-medium text-foreground">{editing ? `Edit ${existing?.name}` : "Add Category"}</h1>
           <p className="truncate text-xs text-muted-foreground">
-            {editing ? `Saving creates form v${currentVer + 1} — v${currentVer} is kept` : "Configure the resident form, then save."}
+            {editing ? `Saving creates form v${currentVer + 1} while preserving v${currentVer}.` : "Configure the resident form, then save."}
             {dirty && <span className="ml-2 font-medium text-amber-700 dark:text-amber-300">· Unsaved changes</span>}
           </p>
         </div>
@@ -874,7 +882,7 @@ function BuilderForm({
             {existingRequestCount > 0
               ? `The ${existingRequestCount} existing submission${existingRequestCount === 1 ? "" : "s"} keep their original form and data.`
               : "No requests have used this category yet."}
-            {existing?.status === "archived" && " This category is archived — restore it from the list to make it available to residents again."}
+            {existing?.status === "archived" && " This category is archived. Restore it from the list to make it available to residents again."}
           </p>
         </div>
       )}
@@ -938,7 +946,7 @@ function BuilderForm({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label htmlFor="cat-note" className="block text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                  Version Note <span className="font-normal tracking-normal normal-case">(optional — saved with v{currentVer + 1})</span>
+                  Version Note <span className="font-normal tracking-normal normal-case">(optional, saved with v{currentVer + 1})</span>
                 </label>
                 <span className="text-[10px] text-muted-foreground/70 tabular-nums">
                   {note.length}/200

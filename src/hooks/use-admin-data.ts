@@ -2,13 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getReviewers, getReviewersPage, getReviewer, createReviewer, updateReviewer, setReceiveNewRequests, setLoginEnabled, resendInvitation } from "@/features/reviewers/api/reviewers.service";
-import { getMockReviewers } from "@/features/reviewers/api/reviewers.mock";
 import { getResidents, getResidentsPage, getResident, setResidentActive } from "@/features/residents/api/residents.service";
-import { getMockResidents } from "@/features/residents/api/residents.mock";
 import { getCategories, getCategoriesPage, getCategory, getCommonForm, getCategoryVersions, getCategoryVersion, compareCategoryVersions, createCategory, updateCategory, archiveCategory, restoreCategory, restoreCategoryVersion } from "@/features/categories/api/categories.service";
 import { getRequests, getRequestsPage, getRequestById, recordExport, type RequestsQueryParams } from "@/features/requests/api/requests.service";
 import { assignRequest, type AssignPayload } from "@/features/requests/api/assignments.service";
-import { getActivity } from "@/features/activity/api/activity.service";
+import { getActivity, getActivitiesPage } from "@/features/activity/api/activity.service";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "@/features/notifications/api/notifications.service";
 import { sendPasswordReset, setUserPassword, type SendResetPayload, type SetPasswordPayload } from "@/features/password-reset/api/password-reset.service";
 
@@ -57,17 +55,9 @@ export const useResidentsPage = (params: { page: number; limit: number; search: 
   return useQuery({ queryKey: [...keys.residents, "page", normalized], queryFn: () => getResidentsPage(normalized) });
 };
 
-/** Single-account fetches for the detail pages — hits the real "get by id" endpoint, not a fetch-all. */
+/** Single-account fetches for the detail pages (hits the real "get by id" endpoint, not a fetch-all). */
 export const useReviewer = (id: string) => useQuery({ queryKey: [...keys.reviewers, id], queryFn: () => getReviewer(id), enabled: !!id });
 export const useResident = (id: string) => useQuery({ queryKey: [...keys.residents, id], queryFn: () => getResident(id), enabled: !!id });
-
-/**
- * Mock-backed reviewer/resident data for features still working against mock
- * Requests (assignment, dashboard, global search) — see reviewers.mock.ts /
- * residents.mock.ts for why these stay separate from the real API above.
- */
-export const useMockReviewers = () => useQuery({ queryKey: ["reviewers", "mock"], queryFn: getMockReviewers });
-export const useMockResidents = () => useQuery({ queryKey: ["residents", "mock"], queryFn: getMockResidents });
 
 export const useCategories = (limit?: number) =>
   useQuery({ queryKey: [...keys.categories, limit ?? "all"], queryFn: () => getCategories(limit) });
@@ -100,7 +90,16 @@ export const useRequestsPage = (params: RequestsQueryParams) =>
   useQuery({ queryKey: [...keys.requests, "page", params], queryFn: () => getRequestsPage(params) });
 export const useRequest = (id: string) =>
   useQuery({ queryKey: [...keys.requests, id], queryFn: () => getRequestById(id), enabled: !!id });
-export const useActivity = () => useQuery({ queryKey: keys.activity, queryFn: getActivity });
+export const useActivitiesPage = (params?: ActivityQueryParams) =>
+  useQuery({
+    queryKey: params ? [...keys.activity, "page", params] : [...keys.activity, "page"],
+    queryFn: () => getActivitiesPage(params),
+  });
+export const useActivity = (params?: ActivityQueryParams) =>
+  useQuery({
+    queryKey: params ? [...keys.activity, params] : keys.activity,
+    queryFn: () => getActivity(params),
+  });
 export const useNotifications = () =>
   useQuery({ queryKey: keys.notifications, queryFn: () => getNotifications() });
 

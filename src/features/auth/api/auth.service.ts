@@ -36,7 +36,7 @@ export async function getCurrentUser(): Promise<PublicAdmin | null> {
   }
 }
 
-/** Real login. Callers store `token` (as `auth-token`) themselves — see login-form.tsx. */
+/** Real login. Callers store `token` (as `auth-token`) themselves (see login-form.tsx). */
 export async function loginUser(credentials: LoginCredentials): Promise<{ token: string; admin: PublicAdmin }> {
   const { data } = await axiosInstance.post("/admin/login", credentials);
   return { token: data.data.token, admin: toPublicAdmin(data.data.admin) };
@@ -50,7 +50,7 @@ export async function logoutUser(): Promise<void> {
       headers: { Authorization: `Bearer ${token}` },
     });
   } catch {
-    // Best-effort — the caller clears the local session regardless.
+    // Best-effort: the caller clears the local session regardless.
   }
 }
 

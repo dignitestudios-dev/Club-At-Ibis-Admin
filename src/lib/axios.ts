@@ -1,7 +1,8 @@
 import axios from "axios";
+import { ApiError, fieldNameFromPath } from "./api-error";
 
 const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "https://416zwbs6-3050.inc1.devtunnels.ms/api/v1",
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "https://api.clubatibis.dignitestudios.com/api/v1",
   timeout: 10000,
   headers: { "Content-Type": "application/json" },
 });
@@ -66,8 +67,8 @@ axiosInstance.interceptors.response.use(
     const status = error.response?.status;
     const isLoginAttempt = typeof error.config?.url === "string" && error.config.url.includes("/admin/login");
     const isLogoutAttempt = typeof error.config?.url === "string" && error.config.url.includes("/admin/logout");
-    // A 401 on an authenticated call means the session itself is invalid — expired,
-    // revoked, or the account got deactivated — not the same as a wrong password on
+    // A 401 on an authenticated call means the session itself is invalid (expired,
+    // revoked, or the account got deactivated), unlike a wrong password on
     // the login form, which should just show an error, not force a redirect loop.
     if (status === 401 && !isLoginAttempt && !isLogoutAttempt) {
       clearSessionAndRedirect();
@@ -82,8 +83,16 @@ axiosInstance.interceptors.response.use(
       window.dispatchEvent(new CustomEvent("app:server-error"));
     }
 
-    const message = error.response?.data?.message ?? error.message;
-    return Promise.reject(new Error(message));
+    const body = error.response?.data;
+    const details = Array.isArray(body?.details) ? body.details : undefined;
+    // The top-level message on a validation error is a generic "Request
+    // validation failed" — not useful on its own in a toast, so any caller
+    // that doesn't map `details` onto its own form fields (via
+    // applyServerFieldErrors) still gets the actual per-field reason here.
+    const message = details?.length
+      ? details.map((d: { path: string; message: string }) => `${fieldNameFromPath(d.path)}: ${d.message}`).join("; ")
+      : (body?.message ?? error.message);
+    return Promise.reject(new ApiError(message, body?.code, details));
   }
 );
 

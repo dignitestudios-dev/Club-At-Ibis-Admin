@@ -33,7 +33,7 @@ export function ReviewerRowMenu({
   showDetails?: boolean;
   resendPending?: boolean;
   loginPending?: boolean;
-  /** Another reviewer's routing/login change is in flight — block this one until it settles. */
+  /** Another reviewer's routing/login change is in flight: block this one until it settles. */
   routingLocked?: boolean;
 }) {
   return (

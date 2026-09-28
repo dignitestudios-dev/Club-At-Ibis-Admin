@@ -42,10 +42,14 @@ export function SearchInput({
       isFirstMount.current = false;
       return;
     }
+    // Only emit once the debounced value has caught up with what's typed. After
+    // a clear, `debouncedValue` still holds the old text for a moment; emitting
+    // it then would put the cleared search right back.
+    if (debouncedValue !== internalValue) return;
     if (debouncedValue !== value) {
       latestOnChange.current(debouncedValue);
     }
-  }, [debouncedValue, value]);
+  }, [debouncedValue, internalValue, value]);
 
   const handleClear = () => {
     setInternalValue("");

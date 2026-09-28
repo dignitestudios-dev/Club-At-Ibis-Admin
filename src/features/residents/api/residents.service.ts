@@ -19,7 +19,7 @@ function toResident(u: ResidentApiUser): Resident {
     firstName: u.firstName ?? "",
     lastName: u.lastName ?? "",
     email: u.email,
-    // The backend doesn't track these yet — see chat notes.
+    // The backend doesn't track these yet (see chat notes).
     phone: undefined,
     address: undefined,
     lotNo: undefined,
@@ -58,7 +58,7 @@ export interface ResidentsPageResult {
   pagination: ApiPagination;
 }
 
-/** Real server-side pagination — the request's `page`/`limit`/`search`/`status` match what the table actually shows. */
+/** Real server-side pagination: the request's `page`/`limit`/`search`/`status` match what the table actually shows. */
 export async function getResidentsPage({
   page = 1,
   limit = 50,
@@ -113,7 +113,7 @@ interface ResidentActivityApiEntry {
   metadata?: Record<string, unknown>;
 }
 
-/** The single-resident endpoint — used by the resident detail page instead of fetching everyone and filtering. */
+/** The single-resident endpoint (used by the resident detail page instead of fetching everyone and filtering). */
 export async function getResident(id: string): Promise<ResidentDetail> {
   const { data } = await axiosInstance.get(`/admin/residents/${id}`);
   const rawResident = data.data.resident;

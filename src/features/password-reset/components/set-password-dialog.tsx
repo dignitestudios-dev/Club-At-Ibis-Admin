@@ -42,8 +42,9 @@ export function SetPasswordDialog({
   const hasSymbol = /[^A-Za-z0-9]/.test(password);
   const isComplex = hasLower && hasUpper && hasDigit && hasSymbol;
   const tooShort = password.length < 8;
+  const tooLong = password.length > 128;
   const mismatch = confirm !== password;
-  const invalid = tooShort || !isComplex || mismatch;
+  const invalid = tooShort || tooLong || !isComplex || mismatch;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();

@@ -10,6 +10,7 @@ interface AdminUser {
   password: string;
   employeeNumber: string;
   designation: string;
+  role?: string;
   createdAt: string;
 }
 
@@ -52,7 +53,7 @@ interface Reviewer {
   designation: string;
   email: string;
   password: string;
-  /** "Receive New Requests" — the reviewer is a Default Reviewer. */
+  /** "Receive New Requests": the reviewer is a Default Reviewer. */
   receiveNewRequests: boolean;
   /** Account status. Inactive reviewers cannot sign in. */
   loginEnabled: boolean;
@@ -330,7 +331,7 @@ interface RequestRecord {
   code: string;
   title?: string;
   categoryId: string;
-  /** Category name at time of submission — preserved when categories change. */
+  /** Category name at time of submission (preserved when categories change). */
   categoryName: string;
   categorySlug?: string;
   category?: { id: string; slug: string; name: string };
@@ -387,22 +388,57 @@ interface AdminNotification {
   createdAt: string;
 }
 
+type ActivityType = "all" | "accounts" | "routing" | "categories" | "security";
+
 type ActivityCategory =
-  | "account"
+  | "accounts"
   | "routing"
-  | "category"
+  | "categories"
   | "security"
+  | "account"
+  | "category"
   | "export";
+
+interface ActivityActor {
+  id: string | null;
+  name: string;
+  role: string;
+}
+
+interface ActivityTarget {
+  kind: string;
+  id: string | null;
+  label: string;
+  role?: string;
+}
 
 interface ActivityLogEntry {
   id: string;
   category: ActivityCategory;
   type: string;
+  action?: string;
   message: string;
-  /** The actual person who performed the action. */
-  actor: { id: string; name: string; role: "super_admin" };
-  target?: { kind: "reviewer" | "resident" | "category" | "request" | "system"; id: string; label: string };
+  actor: ActivityActor;
+  target?: ActivityTarget;
+  details?: Record<string, unknown>;
   createdAt: string;
+  occurredAt?: string;
+}
+
+interface ActivityQueryParams {
+  type?: ActivityType;
+  page?: number;
+  limit?: number;
+}
+
+interface ActivityPageResponse {
+  activities: ActivityLogEntry[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 interface PasswordResetRecord {

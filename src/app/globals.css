@@ -253,3 +253,16 @@
     stroke-dashoffset: -125px;
   }
 }
+
+/* Hide the browsers' built-in password reveal / clear / autofill icons: PasswordInput renders its own
+   show/hide toggle, and a second native one makes a single click look like it toggles twice. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+}

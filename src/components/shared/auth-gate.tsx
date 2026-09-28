@@ -7,12 +7,25 @@ import { GlobalAuthLoader } from "@/components/shared/global-auth-loader";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { clearUser, setUser } from "@/store/slices/auth.slice";
 
+function checkTokenValidity(): boolean {
+  if (typeof window === "undefined") return false;
+  const loggedOut = localStorage.getItem("caia.logged-out") === "true";
+  let token = localStorage.getItem("auth-token");
+  if (!token && typeof document !== "undefined") {
+    const match = document.cookie.match(/(?:^|;\s*)auth-token=([^;]+)/);
+    if (match && match[1] && !loggedOut) {
+      token = match[1];
+      localStorage.setItem("auth-token", token);
+    }
+  }
+  return !loggedOut && Boolean(token);
+}
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
   const dispatch = useAppDispatch();
   const reduxUser = useAppSelector((state) => state.auth.user);
-  const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const [hasToken, setHasToken] = useState<boolean>(() => checkTokenValidity());
 
   const {
     data: queryUser,
@@ -21,29 +34,31 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     isSuccess,
   } = useCurrentUserQuery();
 
+  // Verify auth on mount and whenever pathname changes
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const loggedOut = localStorage.getItem("caia.logged-out") === "true";
-    let token = localStorage.getItem("auth-token");
-
-    if (!token) {
-      const match = document.cookie.match(/(?:^|;\s*)auth-token=([^;]+)/);
-      if (match && match[1] && !loggedOut) {
-        token = match[1];
-        localStorage.setItem("auth-token", token);
-      }
-    }
-
-    if (loggedOut || !token) {
-      setHasToken(false);
+    const isValid = checkTokenValidity();
+    setHasToken(isValid);
+    if (!isValid) {
       dispatch(clearUser());
       const returnUrl = encodeURIComponent(pathname || "/dashboard");
-      router.replace(`/auth/login?returnUrl=${returnUrl}`);
-    } else {
-      setHasToken(true);
+      window.location.replace(`/auth/login?returnUrl=${returnUrl}`);
     }
-  }, [router, pathname, dispatch]);
+  }, [pathname, dispatch]);
+
+  // Handle bfcache (browser Back button restoration from cache)
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      const isValid = checkTokenValidity();
+      if (!isValid || e.persisted) {
+        if (!isValid) {
+          dispatch(clearUser());
+          window.location.replace("/auth/login");
+        }
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [dispatch]);
 
   useEffect(() => {
     if (queryUser) {
@@ -59,14 +74,20 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("auth-user");
       document.cookie = "auth-token=; path=/; max-age=0";
       const returnUrl = encodeURIComponent(pathname || "/dashboard");
-      router.replace(`/auth/login?returnUrl=${returnUrl}`);
+      window.location.replace(`/auth/login?returnUrl=${returnUrl}`);
     }
-  }, [isError, isSuccess, queryUser, hasToken, router, pathname, dispatch]);
+  }, [isError, isSuccess, queryUser, hasToken, pathname, dispatch]);
 
-  // Initial token inspection or query still determining authentication
-  if (hasToken === null || hasToken === false || isQueryLoading || (!queryUser && !reduxUser)) {
+  // If no token, do not render a loading screen: redirect is already in-flight
+  if (!hasToken) {
+    return null;
+  }
+
+  // Initial query determining authenticated user
+  if (isQueryLoading || (!queryUser && !reduxUser)) {
     return <GlobalAuthLoader />;
   }
 
   return <>{children}</>;
 }
+

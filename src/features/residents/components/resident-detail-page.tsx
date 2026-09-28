@@ -139,7 +139,7 @@ export default function ResidentDetailPage({ id }: { id: string }) {
               </div>
               <p className="font-mono text-xs text-muted-foreground">{resident.residentIdNumber}</p>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5"><Mail className="size-3.5" />{resident.email}</span>
+                <span className="inline-flex min-w-0 max-w-full items-center gap-1.5"><Mail className="size-3.5 shrink-0" /><span className="min-w-0 break-all">{resident.email}</span></span>
                 {resident.phone && <span className="inline-flex items-center gap-1.5"><Phone className="size-3.5" />{resident.phone}</span>}
                 {resident.address && <span className="inline-flex items-center gap-1.5"><MapPin className="size-3.5" />{resident.address} · {resident.lotNo}</span>}
               </div>

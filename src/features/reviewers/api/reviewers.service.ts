@@ -25,7 +25,7 @@ function toPublicReviewer(u: ReviewerApiUser): PublicReviewer {
     receiveNewRequests: !!u.isDefaultReviewer,
     loginEnabled: u.accountStatus !== "DISABLED" && u.accountStatus !== "DELETED",
     // "active" here specifically means "has accepted the invitation and set a
-    // password" (credentialStatus === SET) — an INVITED reviewer can't sign in
+    // password" (credentialStatus === SET). An INVITED reviewer can't sign in
     // yet, so they're not truly active even though their account isn't disabled.
     inviteStatus: u.credentialStatus === "SET" ? "active" : "invited",
     createdAt: u.createdAt,
@@ -88,7 +88,7 @@ export interface ReviewersPageResult {
   pagination: ApiPagination;
 }
 
-/** Real server-side pagination — the request's `page`/`limit`/`search`/`status`/`isDefaultReviewer` match what the table actually shows. */
+/** Real server-side pagination: the request's `page`/`limit`/`search`/`status`/`isDefaultReviewer` match what the table actually shows. */
 export async function getReviewersPage({
   page = 1,
   limit = 50,
@@ -136,7 +136,7 @@ export interface ReviewerActivityEntry {
 
 export interface ReviewerDetail {
   reviewer: PublicReviewer;
-  /** Up to the 5 most recent admin-visible account events for this reviewer — the backend doesn't expose more. */
+  /** Up to the 5 most recent admin-visible account events for this reviewer (the backend doesn't expose more). */
   activities: ReviewerActivityEntry[];
 }
 
@@ -148,7 +148,7 @@ interface ReviewerActivityApiEntry {
   occurredAt: string;
 }
 
-/** The single-reviewer endpoint — used by the reviewer detail page instead of fetching everyone and filtering. */
+/** The single-reviewer endpoint (used by the reviewer detail page instead of fetching everyone and filtering). */
 export async function getReviewer(id: string): Promise<ReviewerDetail> {
   const { data } = await axiosInstance.get(`/admin/reviewers/${id}`);
   return {
@@ -177,7 +177,7 @@ export function getReviewerFrontendOrigin(): string {
     return envOrigin.trim();
   }
   if (typeof window !== "undefined" && window.location.origin.includes("localhost")) {
-    return "http://localhost:3001";
+    return "http://localhost:3002";
   }
   return "https://clubatibis-reviewer.vercel.app";
 }
@@ -220,8 +220,8 @@ export async function updateReviewer(
   const { data } = await axiosInstance.patch(`/admin/reviewers/${id}`, {
     firstName,
     lastName,
-    // Employee number is optional on this endpoint — omitted entirely when
-    // blank rather than sent as an empty string, which the backend rejects.
+    // Employee number is optional on this endpoint (omitted entirely when
+    // blank rather than sent as an empty string, which the backend rejects).
     ...(employeeNumber ? { employeeNumber } : {}),
     email: updates.email.trim(),
     designation: updates.designation !== undefined ? (updates.designation.trim() || null) : undefined,
@@ -237,12 +237,12 @@ interface ReceiveToggle {
 }
 
 /**
- * Toggling a reviewer's Default status is one PATCH — except turning off the
+ * Toggling a reviewer's Default status is one PATCH, except turning off the
  * *last* Default Reviewer, which the backend refuses outright (409
  * LAST_DEFAULT_REVIEWER) unless another reviewer is promoted first. The
  * caller (use-reviewer-actions.tsx) is responsible for getting a
  * `replacementId` via its own confirmation dialog before calling this with
- * `enabled: false` — this function does not skip that step or guess a
+ * `enabled: false`: this function does not skip that step or guess a
  * replacement on its own.
  */
 export async function setReceiveNewRequests({ id, enabled, replacementId }: ReceiveToggle): Promise<PublicReviewer> {

@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { InView } from "@/components/shared/in-view";
 import { StatCard, type StatAccent } from "@/components/shared/stat-card";
 import type { DashboardChartData } from "@/features/dashboard/components/dashboard-charts";
+import { getActivityMeta, activityTargetHref } from "@/features/activity/components/activity-page";
 import { useActivity, useNotifications, useRequests, useReviewers } from "@/hooks/use-admin-data";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { IN_FLIGHT, STATUS_LABEL, STATUS_ORDER, attentionBuckets } from "@/lib/domain";
@@ -312,7 +313,7 @@ export default function DashboardOverview() {
         )}
       </section>
 
-      {/* Charts — fetched and animated when they scroll into view */}
+      {/* Charts: fetched and animated when they scroll into view */}
       <InView fallback={<ChartsSkeleton />}>
         <DashboardCharts data={stats.chartData} />
       </InView>
@@ -335,21 +336,37 @@ export default function DashboardOverview() {
             </CardAction>
           </CardHeader>
           <CardContent className="pt-2">
-            <ul className="divide-y divide-border/70">
-              {(activity ?? []).slice(0, 6).map((a) => (
-                <li key={a.id} className="flex items-start gap-3 py-3">
-                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                    <UserCog className="size-4" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-foreground">{a.message}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {a.actor.name} · {formatRelative(a.createdAt)}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {(activity ?? []).length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No recent activity recorded.</p>
+            ) : (
+              <ul className="divide-y divide-border/70">
+                {(activity ?? []).slice(0, 6).map((a) => {
+                  const meta = getActivityMeta(a.category || a.type);
+                  const Icon = meta.icon;
+                  const href = activityTargetHref(a.target);
+                  return (
+                    <li key={a.id} className="flex items-start gap-3 py-3">
+                      <span className={cn("mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border", meta.tone)}>
+                        <Icon className="size-4" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <p className="text-sm font-medium text-foreground">{a.message}</p>
+                        <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                          <span>
+                            By <span className="font-semibold text-foreground">{a.actor.name}</span> · {formatRelative(a.createdAt)}
+                          </span>
+                          {href && a.target && (
+                            <Link href={href} className="font-medium text-primary hover:underline dark:text-amber-300">
+                              {a.target.label}
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </section>

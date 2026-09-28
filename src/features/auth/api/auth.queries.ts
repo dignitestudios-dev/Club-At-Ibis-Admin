@@ -11,5 +11,9 @@ export function useCurrentUserQuery() {
     queryKey: authKeys.currentUser,
     queryFn: getCurrentUser,
     staleTime: 60 * 1000,
+    enabled:
+      typeof window !== "undefined" &&
+      localStorage.getItem("caia.logged-out") !== "true" &&
+      Boolean(localStorage.getItem("auth-token")),
   });
 }

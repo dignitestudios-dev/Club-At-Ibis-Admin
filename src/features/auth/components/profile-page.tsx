@@ -133,8 +133,15 @@ export default function ProfilePage() {
   const tab: Tab = values.tab === "activity" ? "activity" : "account";
 
   const mine = useMemo(
-    () => (activity ?? []).filter((a) => a.actor.id === user?.id && ACCOUNT_ACTIVITY_TYPES.has(a.type)),
-    [activity, user?.id]
+    () =>
+      (activity ?? []).filter((a) => {
+        const isMe =
+          (a.actor?.id && a.actor.id === user?.id) ||
+          a.actor?.name === `${user?.firstName} ${user?.lastName}` ||
+          (user?.role === "SUPER_ADMIN" && (a.actor?.role === "SUPER_ADMIN" || a.actor?.role === "super_admin"));
+        return isMe;
+      }),
+    [activity, user]
   );
 
   if (!user) return null;
@@ -190,7 +197,9 @@ export default function ProfilePage() {
             </dl>
           </CardContent>
         </Card>
-        <Card className="shadow-2xs">
+        {/* Change Password card hidden per request — the API and form are still
+            here and working, just not surfaced in the profile UI for now. */}
+        {/* <Card className="shadow-2xs">
           <CardHeader className="border-b border-border/70 pb-3">
             <CardTitle className="font-heading text-lg font-medium">Change Password</CardTitle>
             <p className="text-xs text-muted-foreground">Choose a strong password you don&apos;t use anywhere else.</p>
@@ -198,7 +207,8 @@ export default function ProfilePage() {
           <CardContent className="pt-5">
             <ChangePasswordForm userId={user.id} />
           </CardContent>
-        </Card>        </div>
+        </Card> */}
+        </div>
       )}
 
       {tab === "activity" && (

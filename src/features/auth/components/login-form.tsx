@@ -145,9 +145,12 @@ export default function LoginForm() {
                 <Field data-invalid={!!errors.password}>
                   <div className="flex items-center justify-between">
                     <FieldLabel htmlFor="password">Password<RequiredMark /></FieldLabel>
-                    <Link href="/auth/forgot-password" className="text-xs font-medium text-primary hover:underline dark:text-amber-300">
+                    {/* Self-service forgot-password isn't available for admin accounts yet (no backend
+                        endpoint) — hidden rather than deleted so it's a one-line change to bring back
+                        once the backend supports it. See auth.service.ts's requestPasswordReset(). */}
+                    {/* <Link href="/auth/forgot-password" className="text-xs font-medium text-primary hover:underline dark:text-amber-300">
                       Forgot Password?
-                    </Link>
+                    </Link> */}
                   </div>
                   <FieldContent>
                     <PasswordInput

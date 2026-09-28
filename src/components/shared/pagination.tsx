@@ -38,7 +38,7 @@ export function Pagination({
     <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-xs text-muted-foreground" aria-live="polite">
-          Showing <span className="font-semibold text-foreground">{from}–{to}</span> of{" "}
+          Showing <span className="font-semibold text-foreground">{from} to {to}</span> of{" "}
           <span className="font-semibold text-foreground">{total}</span>
         </p>
         {onPageSizeChange && (

@@ -12,6 +12,7 @@ import {
   Eye,
   FileText,
   History,
+  ScrollText,
   Pencil,
   ShieldCheck,
   Upload,
@@ -114,6 +115,15 @@ export default function CategoryViewPage({ id }: { id: string }) {
             </div>
           )}
 
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={<Link href={`/categories/${category.id}/activity`} />}
+          >
+            <ScrollText className="size-3.5" />
+            View Activity
+          </Button>
           <Button
             variant="outline"
             size="sm"

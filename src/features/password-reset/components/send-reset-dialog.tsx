@@ -101,16 +101,16 @@ export function SendResetDialog({
             </DialogHeader>
 
             <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-2.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground font-medium">Recipient Name</span>
-                <span className="font-semibold text-foreground">{target.name}</span>
+              <div className="flex items-start justify-between gap-4 text-xs">
+                <span className="shrink-0 text-muted-foreground font-medium">Recipient Name</span>
+                <span className="min-w-0 text-right font-semibold text-foreground break-words [overflow-wrap:anywhere]">{target.name}</span>
               </div>
-              <div className="flex items-center justify-between text-xs pt-2 border-t border-border/60">
-                <span className="text-muted-foreground font-medium">Email Address</span>
-                <span className="font-semibold text-foreground font-mono">{target.email}</span>
+              <div className="flex items-start justify-between gap-4 text-xs pt-2 border-t border-border/60">
+                <span className="shrink-0 text-muted-foreground font-medium">Email Address</span>
+                <span className="min-w-0 text-right font-semibold text-foreground font-mono break-all">{target.email}</span>
               </div>
-              <div className="flex items-center justify-between text-xs pt-2 border-t border-border/60">
-                <span className="text-muted-foreground font-medium">Account Role</span>
+              <div className="flex items-start justify-between gap-4 text-xs pt-2 border-t border-border/60">
+                <span className="shrink-0 text-muted-foreground font-medium">Account Role</span>
                 <span className="font-medium text-foreground capitalize">
                   {target.kind === "reviewer" ? "ARB Reviewer" : "Resident"}
                 </span>

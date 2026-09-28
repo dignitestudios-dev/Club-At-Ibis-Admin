@@ -15,31 +15,39 @@ import { RequiredMark } from "@/components/shared/required-mark";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useCreateReviewer, useReviewers, useUpdateReviewer } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
+import { applyServerFieldErrors } from "@/lib/api-error";
 
 const nameRegex = /^[A-Za-z\s]+$/;
+
+// Optional on both create and edit. The invite endpoint still requires a
+// non-empty lastName (update's doesn't — it's `.optional()` there), but
+// reviewers.service.ts's createReviewer()/updateReviewer() both already fall
+// back to reusing the first name when lastName is blank (the same fallback
+// splitName() has always used), so leaving this empty in the form never hits
+// that backend requirement either way.
+const optionalLastName = z
+  .string()
+  .trim()
+  .max(60, "Last name cannot exceed 60 characters")
+  .refine((v) => v === "" || nameRegex.test(v), "Last name cannot contain numbers or special characters");
 
 const baseSchema = {
   firstName: z
     .string()
     .trim()
     .min(1, "First name is required")
-    .max(50, "First name cannot exceed 50 characters")
+    .max(60, "First name cannot exceed 60 characters")
     .regex(nameRegex, "First name cannot contain numbers or special characters"),
-  lastName: z
-    .string()
-    .trim()
-    .min(1, "Last name is required")
-    .max(50, "Last name cannot exceed 50 characters")
-    .regex(nameRegex, "Last name cannot contain numbers or special characters"),
   designation: z.string().trim().min(2, "Designation is required"),
   email: z.string().trim().min(1, "Email is required").email("Enter a valid email address"),
   receiveNewRequests: z.boolean(),
 };
-// The invite endpoint requires an employee number; the update endpoint accepts
-// it being left blank (omitted entirely rather than sent empty — see
-// reviewers.service.ts), so it's only required on the create form.
-const createSchema = z.object({ ...baseSchema, employeeNumber: z.string().trim().min(1, "Employee number is required") });
-const editSchema = z.object({ ...baseSchema, employeeNumber: z.string().trim() });
+// The invite endpoint requires a non-empty employee number with no fallback
+// value the way lastName has — the "optional" here is FE-only, and leaving
+// it blank surfaces the backend's own "Employee number is required" error at
+// submit time until that endpoint is changed to accept omission.
+const createSchema = z.object({ ...baseSchema, lastName: optionalLastName, employeeNumber: z.string().trim().max(50, "Employee number cannot exceed 50 characters") });
+const editSchema = z.object({ ...baseSchema, lastName: optionalLastName, employeeNumber: z.string().trim() });
 
 type FormValues = z.infer<typeof createSchema>;
 
@@ -79,13 +87,13 @@ export function InvitationSentDialog({
         </DialogHeader>
 
         <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-2.5">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground font-medium">Reviewer Name</span>
-            <span className="font-semibold text-foreground">{target?.name}</span>
+          <div className="flex items-start justify-between gap-4 text-xs">
+            <span className="shrink-0 text-muted-foreground font-medium">Reviewer Name</span>
+            <span className="min-w-0 text-right font-semibold text-foreground break-words [overflow-wrap:anywhere]">{target?.name}</span>
           </div>
-          <div className="flex items-center justify-between text-xs pt-2 border-t border-border/60">
-            <span className="text-muted-foreground font-medium">Email Address</span>
-            <span className="font-semibold text-foreground font-mono">{target?.email}</span>
+          <div className="flex items-start justify-between gap-4 text-xs pt-2 border-t border-border/60">
+            <span className="shrink-0 text-muted-foreground font-medium">Email Address</span>
+            <span className="min-w-0 text-right font-semibold text-foreground font-mono break-all">{target?.email}</span>
           </div>
         </div>
 
@@ -127,6 +135,7 @@ export function ReviewerFormSheet({
     handleSubmit,
     reset,
     watch,
+    setError,
     formState: { errors, isDirty },
   } = useForm<FormValues>({
     mode: "onChange",
@@ -150,6 +159,9 @@ export function ReviewerFormSheet({
   const email = watch("email");
   const pending = create.isPending || update.isPending;
 
+  const knownFields = ["firstName", "lastName", "employeeNumber", "designation", "email", "receiveNewRequests"] as const;
+  const fieldMap = { isDefaultReviewer: "receiveNewRequests" };
+
   function onSubmit(values: FormValues) {
     const fullName = `${values.firstName.trim()} ${values.lastName.trim()}`.trim();
     if (editing && reviewer) {
@@ -170,7 +182,10 @@ export function ReviewerFormSheet({
             toast.success("Reviewer updated", `${fullName}'s account details were saved.`);
             onOpenChange(false);
           },
-          onError: (e: Error) => toast.error("Could not save", e.message),
+          onError: (e: Error) => {
+            const shownOnField = applyServerFieldErrors(e, setError, knownFields, fieldMap);
+            if (!shownOnField) toast.error("Could not save", e.message);
+          },
         }
       );
       return;
@@ -187,7 +202,10 @@ export function ReviewerFormSheet({
           onOpenChange(false);
           setInvited({ name: created.name, email: created.email });
         },
-        onError: (e: Error) => toast.error("Could not create reviewer", e.message),
+        onError: (e: Error) => {
+          const shownOnField = applyServerFieldErrors(e, setError, knownFields, fieldMap);
+          if (!shownOnField) toast.error("Could not create reviewer", e.message);
+        },
       }
     );
   }
@@ -215,7 +233,7 @@ export function ReviewerFormSheet({
                       <Input
                         id="rev-first-name"
                         placeholder="e.g. Jordan"
-                        maxLength={50}
+                        maxLength={60}
                         disabled={pending}
                         aria-invalid={!!errors.firstName}
                         {...register("firstName", {
@@ -228,12 +246,12 @@ export function ReviewerFormSheet({
                     </FieldContent>
                   </Field>
                   <Field data-invalid={!!errors.lastName}>
-                    <FieldLabel htmlFor="rev-last-name">Last Name<RequiredMark /></FieldLabel>
+                    <FieldLabel htmlFor="rev-last-name">Last Name</FieldLabel>
                     <FieldContent>
                       <Input
                         id="rev-last-name"
                         placeholder="e.g. Whitfield"
-                        maxLength={50}
+                        maxLength={60}
                         disabled={pending}
                         aria-invalid={!!errors.lastName}
                         {...register("lastName", {
@@ -248,7 +266,7 @@ export function ReviewerFormSheet({
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field data-invalid={!!errors.employeeNumber}>
-                    <FieldLabel htmlFor="rev-emp">Employee Number{!editing && <RequiredMark />}</FieldLabel>
+                    <FieldLabel htmlFor="rev-emp">Employee Number</FieldLabel>
                     <FieldContent>
                       <Input id="rev-emp" placeholder="EMP-1050" maxLength={50} disabled={pending} aria-invalid={!!errors.employeeNumber} {...register("employeeNumber")} />
                       <FieldError errors={errors.employeeNumber ? [errors.employeeNumber] : []} />
@@ -277,7 +295,7 @@ export function ReviewerFormSheet({
                     <Send className="mt-0.5 size-4 shrink-0 text-sky-700 dark:text-sky-300" aria-hidden="true" />
                     <p className="text-sky-950 break-all dark:text-sky-200">
                       An invitation link will be emailed to{" "}
-                      <span className="font-semibold">{email || "the reviewer"}</span>. The link opens a page where they create their own password — no password is set or shared from here.
+                      <span className="font-semibold">{email || "the reviewer"}</span>. The link opens a page where they create their own password. No password is set or stored here.
                     </p>
                   </div>
 
@@ -286,7 +304,7 @@ export function ReviewerFormSheet({
                       <div>
                         <p className="text-sm font-semibold text-foreground">Receive New Requests</p>
                         <FieldDescription className="mt-0.5">
-                          Makes this reviewer a Default Reviewer — new submissions appear in their incoming list and they can assign or reassign requests.
+                          Designates this reviewer as a Default Reviewer. New submissions appear in their incoming list, and they can assign or reassign requests.
                         </FieldDescription>
                       </div>
                       <Controller

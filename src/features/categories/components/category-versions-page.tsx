@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Eye, FilePlus2, FileText, GitCommitVertical, History, Minus, Pencil, Plus, RotateCcw, Tag } from "lucide-react";
+import { ArrowLeft, Eye, FilePlus2, FileText, GitCommitVertical, History, Minus, Pencil, Plus, RotateCcw, ScrollText, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -156,10 +156,16 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
             </p>
           </div>
         </div>
-        <Button nativeButton={false} render={<Link href={`/categories/${category.id}/edit`} />}>
-          <Pencil className="size-4" />
-          Edit form (creates v{currentVersionNumber + 1})
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" nativeButton={false} render={<Link href={`/categories/${category.id}/activity`} />}>
+            <ScrollText className="size-4" />
+            View Activity
+          </Button>
+          <Button nativeButton={false} render={<Link href={`/categories/${category.id}/edit`} />}>
+            <Pencil className="size-4" />
+            Edit form (creates v{currentVersionNumber + 1})
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">

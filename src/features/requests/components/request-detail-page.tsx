@@ -184,7 +184,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
           <div className="text-sm">
             <p className="font-semibold text-amber-950 dark:text-amber-200">Awaiting refund action</p>
             <p className="text-amber-900/80 dark:text-amber-300/80">
-              A deposit was received before withdrawal. The reviewer records the refund outcome — refunds happen outside the app.
+              A deposit was received before withdrawal. The reviewer records the refund outcome, as refunds are processed outside the app.
             </p>
           </div>
         </div>
@@ -394,7 +394,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
             <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
               <CardHeader className="border-b border-border/70 pb-3">
                 <CardTitle className="font-heading text-lg font-medium">Earlier versions retained</CardTitle>
-                <p className="text-xs text-muted-foreground">Replaced during resubmission — kept in the request history.</p>
+                <p className="text-xs text-muted-foreground">Replaced during resubmission and archived in request history.</p>
               </CardHeader>
               <CardContent className="space-y-3 pt-4">
                 {req.revisions.map((rev) => (
@@ -538,7 +538,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                     </InfoRow>
                     {req.refund.outcome === "no_refund" && (
                       <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                        <span className="font-semibold text-foreground">“-” means No Refund.</span> A reviewer recorded that a refund is not applicable or not agreed — it is not an unresolved refund.
+                        <span className="font-semibold text-foreground">“-” indicates No Refund.</span> A reviewer recorded that a refund is not applicable or approved; this is not an unresolved refund.
                       </p>
                     )}
                     <InfoRow label="Recorded by">{req.refund.recordedBy}</InfoRow>
@@ -563,7 +563,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
           <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
             <CardHeader className="border-b border-border/70 pb-3">
               <CardTitle className="font-heading text-lg font-medium">Approval letter</CardTitle>
-              <p className="text-xs text-muted-foreground">The system uses the letter the reviewer uploads — it does not generate one.</p>
+              <p className="text-xs text-muted-foreground">The system uses the approval letter uploaded by the reviewer (letters are not auto-generated).</p>
             </CardHeader>
             <CardContent className="pt-5">
               {!req.approvalLetter ? (

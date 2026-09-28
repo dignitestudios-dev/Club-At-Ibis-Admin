@@ -76,7 +76,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           id: `r-${r.id}`,
           group: "Requests",
           label: `${r.code} · ${r.categoryName}`,
-          hint: `${residentFullName(res)} — ${r.fieldValues.propertyAddress}`,
+          hint: `${residentFullName(res)} • ${r.fieldValues.propertyAddress}`,
           href: `/requests/${r.id}`,
           icon: FileText,
         });

@@ -18,7 +18,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           className="object-cover object-center scale-105 filter brightness-75 animate-in fade-in duration-700"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/70 to-slate-950/85 backdrop-blur-[1px]" />
-        {/* Blueprint grid — the admin console's signature texture */}
+        {/* Blueprint grid: the admin console's signature texture */}
         <div
           aria-hidden="true"
           className="absolute inset-0 opacity-[0.07]"
@@ -74,7 +74,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <footer className="relative z-10 shrink-0 py-2.5 px-6 text-center text-[11px] text-white/60">
         <p>
           &copy; {new Date().getFullYear()} The Club at Ibis Architectural Review Board. Restricted
-          access — activity is logged.
+          access. All activity is logged.
         </p>
       </footer>
     </div>

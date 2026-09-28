@@ -89,7 +89,7 @@ export function RequestJourney({ request }: { request: RequestRecord }) {
         <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Request journey</p>
         {withdrawn && (
           <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-            Withdrawn — processing stopped
+            Withdrawn: Processing stopped
           </span>
         )}
       </div>

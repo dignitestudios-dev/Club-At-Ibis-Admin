@@ -26,7 +26,7 @@ export function DepositChip({ deposit }: { deposit: DepositRecord }) {
 export function RefundChip({ refund }: { refund?: RefundRecord }) {
   if (!refund) return <span className="text-xs text-muted-foreground">—</span>;
   if (refund.outcome === "no_refund") {
-    // A dash represents a *recorded* No Refund decision — always labelled.
+    // A dash represents a *recorded* No Refund decision: always labelled.
     return (
       <span
         className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"

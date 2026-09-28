@@ -26,7 +26,7 @@ export const STATUS_LABEL: Record<RequestStatus, string> = {
   withdrawn: "Withdrawn",
 };
 
-/** Hex colours for charts — mirrors the status badge palette. */
+/** Hex colours for charts: mirrors the status badge palette. */
 export const STATUS_COLOR: Record<RequestStatus, string> = {
   submitted: "#64748b",
   under_review: "#0284c7",
@@ -195,7 +195,7 @@ interface CsvContext extends FilterContext {
  * Builds one CSV containing every matching row (not just the visible page):
  * request details, status/dates/tracking fields, and every configured
  * information field across the matching categories. Uploaded documents stay
- * in the system — only their filenames are listed.
+ * in the system; only their filenames are listed.
  */
 export function buildRequestsCsv(requests: RequestRecord[], ctx: CsvContext): string {
   const residentById = new Map(ctx.residents.map((r) => [r.id, r]));

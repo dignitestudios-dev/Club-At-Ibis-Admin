@@ -69,7 +69,7 @@ export default function CategoriesPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
         title="Categories & Forms"
-        description="Define the categories residents can request and the form each one collects. Changes apply to new requests only — existing submissions keep their original form."
+        description="Define the categories residents can request and the form each one collects. Changes apply to new requests only; existing submissions keep their original form."
         actions={
           <div className="flex items-center gap-2">
             <Button

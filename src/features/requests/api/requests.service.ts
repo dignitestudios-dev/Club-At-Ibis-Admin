@@ -1,6 +1,4 @@
 import axiosInstance from "@/lib/axios";
-import { db, delay } from "@/lib/mock/store";
-import { logActivity } from "@/lib/mock/activity";
 
 export function toAdminRequestRecord(raw: any): RequestRecord {
   const code = raw.reference || raw.code || "ARB-PENDING";
@@ -145,74 +143,33 @@ function cleanRequestParams(params?: RequestsQueryParams): Record<string, any> {
 
 export async function getRequestsPage(params?: RequestsQueryParams): Promise<PaginatedRequestsResponse> {
   const cleanParams = cleanRequestParams(params);
-  try {
-    const { data } = await axiosInstance.get("/admin/requests", { params: cleanParams });
-    const list = data?.data?.requests ?? data?.requests ?? [];
-    return {
-      requests: list.map(toAdminRequestRecord),
-      pagination: data?.pagination ?? {
-        page: params?.page ?? 1,
-        limit: params?.limit ?? 20,
-        total: list.length,
-        totalPages: Math.ceil(list.length / (params?.limit ?? 20)) || 1,
-      },
-    };
-  } catch {
-    const all = db.getRequests();
-    const page = params?.page ?? 1;
-    const limit = params?.limit ?? 20;
-    return delay(
-      {
-        requests: [...all].sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1)).slice((page - 1) * limit, page * limit),
-        pagination: {
-          page,
-          limit,
-          total: all.length,
-          totalPages: Math.ceil(all.length / limit) || 1,
-        },
-      },
-      80
-    );
-  }
+  const { data } = await axiosInstance.get("/admin/requests", { params: cleanParams });
+  const list = data?.data?.requests ?? data?.requests ?? [];
+  return {
+    requests: list.map(toAdminRequestRecord),
+    pagination: data?.pagination ?? {
+      page: params?.page ?? 1,
+      limit: params?.limit ?? 20,
+      total: list.length,
+      totalPages: Math.ceil(list.length / (params?.limit ?? 20)) || 1,
+    },
+  };
 }
 
 export async function getRequests(params?: RequestsQueryParams): Promise<RequestRecord[]> {
   const cleanParams = cleanRequestParams(params);
-  try {
-    const { data } = await axiosInstance.get("/admin/requests", { params: cleanParams });
-    const list = data?.data?.requests ?? data?.requests ?? [];
-    return list.map(toAdminRequestRecord);
-  } catch {
-    const all = db.getRequests();
-    return delay(
-      [...all].sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1)),
-      80
-    );
-  }
+  const { data } = await axiosInstance.get("/admin/requests", { params: cleanParams });
+  const list = data?.data?.requests ?? data?.requests ?? [];
+  return list.map(toAdminRequestRecord);
 }
 
 export async function getRequestById(id: string): Promise<RequestRecord> {
-  try {
-    const { data } = await axiosInstance.get(`/admin/requests/${id}`);
-    const req = data?.data?.request ?? data?.request ?? data?.data;
-    if (req) {
-      return toAdminRequestRecord(req);
-    }
-  } catch {
-    // fallback to mock store in dev/offline
-  }
-  const all = db.getRequests();
-  const match = all.find((r) => r.id === id);
-  if (!match) throw new Error("Request not found");
-  return delay(match, 80);
+  const { data } = await axiosInstance.get(`/admin/requests/${id}`);
+  const req = data?.data?.request ?? data?.request ?? data?.data;
+  if (!req) throw new Error("Request not found");
+  return toAdminRequestRecord(req);
 }
 
-export async function recordExport(count: number, summary: string): Promise<void> {
-  logActivity({
-    category: "export",
-    type: "requests_exported",
-    message: `Exported ${count} request${count === 1 ? "" : "s"} to CSV${summary ? ` (${summary})` : ""}.`,
-    target: { kind: "system", id: "export", label: "Request export" },
-  });
-  return delay(undefined, 60);
+export async function recordExport(_count: number, _summary: string): Promise<void> {
+  // Client-side record export completed
 }

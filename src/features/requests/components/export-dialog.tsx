@@ -18,7 +18,7 @@ import { useRecordExport } from "@/hooks/use-admin-data";
 import { buildRequestsCsv, downloadCsv } from "@/lib/domain";
 
 const INCLUDED = [
-  "Request details — reference, category, resident, property, lot, contractor",
+  "Request details: reference, category, resident, property, lot, contractor",
   "Every configured information field for the matching categories",
   "Status, assigned reviewer, submitted / decision / completed / withdrawn dates",
   "Deposit, refund outcome, approval-letter and email-result tracking fields",
@@ -33,7 +33,7 @@ export function ExportDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Every request matching the current filters — not just the visible page. */
+  /** Every request matching the current filters (not just the visible page). */
   requests: RequestRecord[];
   context: { residents: Resident[]; categories: Category[]; reviewers: PublicReviewer[] };
   filterSummary: string;
@@ -64,15 +64,14 @@ export function ExportDialog({
           </div>
           <DialogTitle className="font-heading text-xl font-medium">Export Requests to CSV</DialogTitle>
           <DialogDescription>
-            Exports <span className="font-semibold text-foreground">all {requests.length} matching row{requests.length === 1 ? "" : "s"}</span>
-            {" "}— not just the page you are looking at.
+            Exports <span className="font-semibold text-foreground">all {requests.length} matching row{requests.length === 1 ? "" : "s"}</span> across all pages (not just the current view).
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="rounded-xl border border-border bg-muted/40 px-3.5 py-3 text-xs">
             <p className="font-semibold tracking-wider text-muted-foreground uppercase">Current filters</p>
-            <p className="mt-1 text-foreground">{filterSummary || "None — all requests"}</p>
+            <p className="mt-1 text-foreground">{filterSummary || "None (all requests)"}</p>
           </div>
           <ul className="space-y-2">
             {INCLUDED.map((line) => (
@@ -84,7 +83,7 @@ export function ExportDialog({
           </ul>
           <p className="flex items-start gap-2 rounded-xl border border-amber-300/70 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200">
             <FolderLock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            Uploaded documents are not embedded — they remain in the system. Only their file names are listed.
+            Uploaded documents are not embedded; they remain in the system with file names listed.
           </p>
         </div>
 

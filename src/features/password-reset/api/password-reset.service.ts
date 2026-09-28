@@ -12,10 +12,10 @@ export async function sendPasswordReset({ userKind, userId }: SendResetPayload):
     userKind === "reviewer"
       ? process.env.NEXT_PUBLIC_REVIEWER_APP_URL ||
         process.env.NEXT_PUBLIC_REVIEWER_URL ||
-        (isLocal ? "http://localhost:3001" : "https://clubatibis-reviewer.vercel.app")
+        (isLocal ? "http://localhost:3002" : "https://clubatibis-reviewer.vercel.app")
       : process.env.NEXT_PUBLIC_RESIDENT_APP_URL ||
         process.env.NEXT_PUBLIC_RESIDENT_URL ||
-        (isLocal ? "http://localhost:3000" : "https://clubatibis-resident.vercel.app");
+        (isLocal ? "http://localhost:3001" : "https://clubatibis-resident.vercel.app");
 
   await axiosInstance.post(
     `/admin/accounts/${userId}/password-reset-requests`,
