@@ -18,7 +18,7 @@ export function GlobalAuthLoader({
     >
       <div className="flex flex-col items-center justify-center text-center max-w-sm">
         <div className="mb-6">
-          <Logo variant="navy" size={42} layout="vertical" />
+          <Logo variant="navy" size={56} layout="vertical" />
         </div>
 
         <div className="my-3 flex items-center justify-center">

@@ -41,7 +41,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       <header className="relative z-10 flex shrink-0 items-center justify-between px-6 py-3.5 lg:px-10">
-        <Logo variant="ivory" size={30} />
+        <Logo variant="ivory" size={42} />
         <div className="flex items-center gap-2">
           <ThemeToggle className="text-white/80 hover:text-white hover:bg-white/10" />
           <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-brand-gold/50 bg-brand-gold/15 px-3 py-0.5 text-xs font-semibold text-amber-100 backdrop-blur-md">
@@ -59,7 +59,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </div>
 
           <div className="relative z-10 shrink-0 pt-4 pb-3.5 px-6 sm:px-8 border-b border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center gap-3">
-            <Logo variant="navy" size={34} />
+            <Logo variant="navy" size={46} />
             <p className="text-[10px] font-semibold tracking-widest text-brand-gold uppercase">
               Architectural Review Board · Administration
             </p>

@@ -45,7 +45,7 @@ export function AppTopbar() {
       </Sheet>
 
       <div className="lg:hidden">
-        <Logo variant="navy" size={22} titleClassName="whitespace-nowrap text-lg" />
+        <Logo variant="navy" size={30} titleClassName="whitespace-nowrap text-lg" />
       </div>
 
       <button

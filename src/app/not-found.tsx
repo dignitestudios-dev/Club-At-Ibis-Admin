@@ -5,7 +5,7 @@ import { Logo } from "@/components/shared/logo";
 export default function NotFound() {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-4 bg-background px-6 text-center">
-      <Logo variant="navy" showWordmark={false} size={36} />
+      <Logo variant="navy" showWordmark={false} size={48} />
       <div className="space-y-1.5">
         <h1 className="text-2xl font-semibold text-foreground">Page Not Found</h1>
         <p className="text-sm text-muted-foreground">
