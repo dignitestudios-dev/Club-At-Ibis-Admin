@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
 import { SendResetDialog } from "@/features/password-reset/components/send-reset-dialog";
 import { useResident, useSetResidentActive } from "@/hooks/use-admin-data";
+import { activityActorHref } from "@/features/activity/components/activity-page";
 import { type ResidentActivityEntry } from "@/features/residents/api/residents.service";
 import { residentFullName } from "@/lib/domain";
 import { formatDate, formatDateTime, formatRelative, formatTime } from "@/utils/format";
@@ -220,6 +221,8 @@ export default function ResidentDetailPage({ id }: { id: string }) {
                   const meta = getActivityMeta(a);
                   const Icon = meta.icon;
                   const roleLabel = formatRole(a.actorRole);
+                  // Never link back to the same resident's own activity feed.
+                  const actorHref = a.actorId && a.actorId !== resident.id ? activityActorHref({ id: a.actorId, name: a.actorName, role: a.actorRole || "" }) : null;
                   return (
                     <li key={a.id} className="group flex items-start gap-4 px-5 py-4 transition-colors hover:bg-muted/40">
                       <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl border transition-transform group-hover:scale-105", meta.iconCls)}>
@@ -229,7 +232,14 @@ export default function ResidentDetailPage({ id }: { id: string }) {
                         <p className="text-sm leading-relaxed text-foreground">{a.message}</p>
                         <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                           <span>
-                            By <span className="font-semibold text-foreground">{a.actorName}</span>
+                            By{" "}
+                            {actorHref ? (
+                              <Link href={actorHref} className="font-semibold text-foreground hover:text-primary hover:underline dark:hover:text-amber-300">
+                                {a.actorName}
+                              </Link>
+                            ) : (
+                              <span className="font-semibold text-foreground">{a.actorName}</span>
+                            )}
                             {roleLabel && <span className="text-muted-foreground/80"> ({roleLabel})</span>}
                           </span>
                           <span aria-hidden="true">·</span>

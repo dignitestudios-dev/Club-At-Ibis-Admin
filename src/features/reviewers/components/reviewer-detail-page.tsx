@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { StatCard } from "@/components/shared/stat-card";
+import { activityActorHref } from "@/features/activity/components/activity-page";
 import { ReviewerFormSheet } from "@/features/reviewers/components/reviewer-form-sheet";
 import { ReviewerStatusChip } from "@/features/reviewers/components/reviewer-row-menu";
 import { useReviewerActions } from "@/features/reviewers/components/use-reviewer-actions";
@@ -185,7 +186,10 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
               <p className="py-12 text-center text-sm text-muted-foreground">No administrative activity recorded yet.</p>
             ) : (
               <ol className="divide-y divide-border/60">
-                {activities.map((a, i) => (
+                {activities.map((a, i) => {
+                  // Never link back to the same reviewer's own activity feed.
+                  const actorHref = a.actorId && a.actorId !== reviewer.id ? activityActorHref({ id: a.actorId, name: a.actorName, role: a.actorRole || "" }) : null;
+                  return (
                   <li key={a.id} className="group flex items-start gap-4 px-5 py-4 transition-colors hover:bg-muted/40">
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary transition-transform group-hover:scale-105 dark:text-amber-300">
                       <ScrollText className="size-4" aria-hidden="true" />
@@ -194,7 +198,14 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
                       <p className="text-sm leading-relaxed text-foreground">{a.message}</p>
                       <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                         <span>
-                          By <span className="font-semibold text-foreground">{a.actorName}</span>
+                          By{" "}
+                          {actorHref ? (
+                            <Link href={actorHref} className="font-semibold text-foreground hover:text-primary hover:underline dark:hover:text-amber-300">
+                              {a.actorName}
+                            </Link>
+                          ) : (
+                            <span className="font-semibold text-foreground">{a.actorName}</span>
+                          )}
                         </span>
                         <span aria-hidden="true">·</span>
                         <span className="capitalize">{a.category.toLowerCase()}</span>
@@ -206,7 +217,8 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
                       <span className="block text-[11px] text-muted-foreground">{formatTime(a.occurredAt)}</span>
                     </time>
                   </li>
-                ))}
+                  );
+                })}
               </ol>
             )}
           </CardContent>

@@ -31,7 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
-const CATEGORY_PAGE_SIZE_OPTIONS = [12, 26, 36];
+const CATEGORY_PAGE_SIZE_OPTIONS = [12, 24, 36];
 
 export default function CategoriesPage() {
   const toast = useToast();

@@ -131,6 +131,8 @@ export interface ReviewerActivityEntry {
   category: string;
   message: string;
   actorName: string;
+  actorId: string | null;
+  actorRole: string | null;
   occurredAt: string;
 }
 
@@ -144,7 +146,7 @@ interface ReviewerActivityApiEntry {
   _id: string;
   category: string;
   message: string;
-  actor: { displayName?: string } | null;
+  actor: { _id?: string; role?: string; displayName?: string } | null;
   occurredAt: string;
 }
 
@@ -158,6 +160,8 @@ export async function getReviewer(id: string): Promise<ReviewerDetail> {
       category: a.category,
       message: a.message,
       actorName: a.actor?.displayName ?? "Unknown",
+      actorId: a.actor?._id ?? null,
+      actorRole: a.actor?.role ?? null,
       occurredAt: a.occurredAt,
     })),
   };

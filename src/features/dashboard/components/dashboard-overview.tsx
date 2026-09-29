@@ -1,13 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import dynamic from "next/dynamic";
-import { useMemo } from "react";
-import { format, startOfMonth, subMonths } from "date-fns";
+import { format } from "date-fns";
 import {
   AlertTriangle,
   ArrowRight,
-  Ban,
   CheckCircle2,
   ClipboardCheck,
   Clock,
@@ -21,51 +18,23 @@ import {
   Repeat2,
   Undo2,
   UserCog,
+  Ban,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { InView } from "@/components/shared/in-view";
 import { StatCard, type StatAccent } from "@/components/shared/stat-card";
-import type { DashboardChartData } from "@/features/dashboard/components/dashboard-charts";
-import { getActivityMeta, activityTargetHref } from "@/features/activity/components/activity-page";
-import { useActivity, useNotifications, useRequests, useReviewers } from "@/hooks/use-admin-data";
+import { getActivityMeta, activityActorHref, activityTargetHref } from "@/features/activity/components/activity-page";
+import { useAdminDashboard } from "@/features/dashboard/api/dashboard.queries";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { IN_FLIGHT, STATUS_LABEL, STATUS_ORDER, attentionBuckets } from "@/lib/domain";
+import { STATUS_LABEL, STATUS_ORDER } from "@/lib/domain";
 import { formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
-// Charts are code-split and only fetched/rendered when they scroll into view.
-const DashboardCharts = dynamic(
-  () => import("@/features/dashboard/components/dashboard-charts").then((m) => m.DashboardCharts),
-  { ssr: false, loading: () => <ChartsSkeleton /> }
-);
-const DashboardInsights = dynamic(
-  () => import("@/features/dashboard/components/dashboard-charts").then((m) => m.DashboardInsights),
-  { ssr: false, loading: () => <InsightsSkeleton /> }
-);
-
-function ChartsSkeleton() {
-  return (
-    <div className="grid gap-5 lg:grid-cols-5">
-      <Skeleton className="h-80 rounded-2xl lg:col-span-2" />
-      <Skeleton className="h-80 rounded-2xl lg:col-span-3" />
-    </div>
-  );
-}
-function InsightsSkeleton() {
-  return (
-    <div className="grid gap-5 lg:grid-cols-3">
-      <Skeleton className="h-72 rounded-2xl" />
-      <Skeleton className="h-72 rounded-2xl" />
-      <Skeleton className="h-72 rounded-2xl" />
-    </div>
-  );
-}
-
 const STATUS_META: Record<RequestStatus, { icon: LucideIcon; accent: StatAccent }> = {
   submitted: { icon: FileInput, accent: "slate" },
+  assigned: { icon: UserCog, accent: "blue" },
   under_review: { icon: Clock, accent: "blue" },
   changes_required: { icon: RefreshCcw, accent: "amber" },
   resubmitted: { icon: Repeat2, accent: "purple" },
@@ -87,69 +56,24 @@ interface AttentionItem {
   icon: LucideIcon;
   hint: string;
   href: string;
-  /** Solid accent used for the edge bar and icon tile. */
   bar: string;
   tile: string;
 }
 
 export default function DashboardOverview() {
   const user = useCurrentUser();
-  const { data: requests, isLoading } = useRequests();
-  const { data: reviewers } = useReviewers();
-  const { data: activity } = useActivity();
-  const { data: notifications } = useNotifications();
+  const { data, isLoading } = useAdminDashboard();
 
-  const stats = useMemo(() => {
-    const all = requests ?? [];
-    const counts = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])) as Record<RequestStatus, number>;
-    all.forEach((r) => (counts[r.status] += 1));
-
-    const now = new Date();
-    const months = Array.from({ length: 6 }, (_, i) => startOfMonth(subMonths(now, 5 - i)));
-    const monthBars = months.map((start, i) => {
-      const end = i === months.length - 1 ? new Date(8.64e15) : months[i + 1];
-      const inMonth = all.filter((r) => {
-        const d = new Date(r.submittedAt);
-        return d >= start && d < end;
-      });
-      const closed = inMonth.filter((r) => r.status === "completed" || r.status === "approved").length;
-      const stopped = inMonth.filter((r) => r.status === "rejected" || r.status === "withdrawn").length;
-      return {
-        label: format(start, "MMM"),
-        parts: [
-          { key: "closed", label: "Approved / completed", value: closed, color: "#059669" },
-          { key: "active", label: "In progress", value: inMonth.length - closed - stopped, color: "#0284c7" },
-          { key: "stopped", label: "Rejected / withdrawn", value: stopped, color: "#94a3b8" },
-        ],
-      };
-    });
-
-    const byCategory = new Map<string, number>();
-    all.forEach((r) => byCategory.set(r.categoryName, (byCategory.get(r.categoryName) ?? 0) + 1));
-    const topCategories = [...byCategory.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([label, value]) => ({ key: label, label, value }));
-
-    const workload = (reviewers ?? [])
-      .filter((r) => r.loginEnabled)
-      .map((rev) => ({
-        reviewer: rev,
-        active: all.filter((r) => r.assignedReviewerId === rev.id && IN_FLIGHT.includes(r.status)).length,
-        total: all.filter((r) => r.assignedReviewerId === rev.id).length,
-      }))
-      .sort((a, b) => b.active - a.active);
-
-    const inProgress = STATUS_ORDER.filter((s) => IN_FLIGHT.includes(s)).reduce((sum, k) => sum + counts[k], 0);
-    const chartData: DashboardChartData = { total: all.length, inProgress, counts, monthBars, topCategories, workload };
-    return { total: all.length, counts, chartData, buckets: attentionBuckets(all) };
-  }, [requests, reviewers]);
+  const attentionData = data?.attention;
+  const statusCounts = data?.requests.statusCounts ?? {};
+  const total = data?.requests.total ?? 0;
+  const recentActivity = data?.recentActivity ?? [];
 
   const attention: AttentionItem[] = [
     {
       key: "unassigned",
       label: "Waiting in intake",
-      count: stats.buckets.unassigned.length,
+      count: attentionData?.waitingInIntake ?? 0,
       icon: Inbox,
       hint: "Not yet taken or assigned by a default reviewer",
       href: "/assignments",
@@ -159,7 +83,7 @@ export default function DashboardOverview() {
     {
       key: "resubmitted",
       label: "Resubmitted",
-      count: stats.buckets.resubmitted.length,
+      count: attentionData?.resubmitted ?? 0,
       icon: Repeat2,
       hint: "Corrections awaiting the assigned reviewer",
       href: "/requests?status=resubmitted",
@@ -169,7 +93,7 @@ export default function DashboardOverview() {
     {
       key: "approved",
       label: "Approved, not completed",
-      count: stats.buckets.approvedPending.length,
+      count: attentionData?.approvedNotCompleted ?? 0,
       icon: ClipboardCheck,
       hint: "Deposit or final letter still outstanding",
       href: "/requests?status=approved",
@@ -179,7 +103,7 @@ export default function DashboardOverview() {
     {
       key: "refunds",
       label: "Refunds awaiting action",
-      count: stats.buckets.refundsAwaiting.length,
+      count: attentionData?.refundsAwaitingAction ?? 0,
       icon: Undo2,
       hint: "Withdrawn with a received deposit",
       href: "/requests?refund=awaiting",
@@ -188,7 +112,7 @@ export default function DashboardOverview() {
     },
   ];
 
-  const attentionTotal = attention.reduce((s, a) => s + a.count, 0);
+  const attentionTotal = attentionData?.total ?? attention.reduce((s, a) => s + a.count, 0);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -200,7 +124,7 @@ export default function DashboardOverview() {
             {greeting()}, {user?.firstName ?? "Administrator"}
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            A live view of every request, reviewer and category across the Architectural Review Board.
+            A live view of every request across the Architectural Review Board.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -283,28 +207,29 @@ export default function DashboardOverview() {
             <p className="text-xs text-muted-foreground">Select a status to open the filtered request list.</p>
           </div>
           <Link href="/requests" className="text-sm font-medium text-primary hover:underline dark:text-amber-300">
-            View all {stats.total}
+            View all {total}
           </Link>
         </div>
         {isLoading ? (
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {Array.from({ length: 9 }).map((_, i) => (
               <Skeleton key={i} className="h-32 rounded-2xl" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {STATUS_ORDER.map((status) => {
               const meta = STATUS_META[status];
+              const count = statusCounts[status] ?? 0;
               return (
                 <StatCard
                   key={status}
                   label={STATUS_LABEL[status]}
-                  value={stats.counts[status]}
+                  value={count}
                   icon={meta.icon}
                   accent={meta.accent}
                   href={`/requests?status=${status}`}
-                  hint={stats.total > 0 ? `${Math.round((stats.counts[status] / stats.total) * 100)}% of all requests` : undefined}
+                  hint={total > 0 ? `${Math.round((count / total) * 100)}% of all requests` : undefined}
                   className="animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both"
                 />
               );
@@ -312,15 +237,6 @@ export default function DashboardOverview() {
           </div>
         )}
       </section>
-
-      {/* Charts: fetched and animated when they scroll into view */}
-      <InView fallback={<ChartsSkeleton />}>
-        <DashboardCharts data={stats.chartData} />
-      </InView>
-
-      <InView fallback={<InsightsSkeleton />}>
-        <DashboardInsights data={stats.chartData} notifications={notifications ?? []} />
-      </InView>
 
       {/* System activity */}
       <section>
@@ -336,14 +252,15 @@ export default function DashboardOverview() {
             </CardAction>
           </CardHeader>
           <CardContent className="pt-2">
-            {(activity ?? []).length === 0 ? (
+            {!isLoading && recentActivity.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">No recent activity recorded.</p>
             ) : (
               <ul className="divide-y divide-border/70">
-                {(activity ?? []).slice(0, 6).map((a) => {
+                {recentActivity.map((a) => {
                   const meta = getActivityMeta(a.category || a.type);
                   const Icon = meta.icon;
                   const href = activityTargetHref(a.target);
+                  const actorHref = activityActorHref(a.actor);
                   return (
                     <li key={a.id} className="flex items-start gap-3 py-3">
                       <span className={cn("mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border", meta.tone)}>
@@ -353,7 +270,15 @@ export default function DashboardOverview() {
                         <p className="text-sm font-medium text-foreground">{a.message}</p>
                         <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                           <span>
-                            By <span className="font-semibold text-foreground">{a.actor.name}</span> · {formatRelative(a.createdAt)}
+                            By{" "}
+                            {actorHref ? (
+                              <Link href={actorHref} className="font-semibold text-foreground hover:text-primary hover:underline dark:hover:text-amber-300">
+                                {a.actor.name}
+                              </Link>
+                            ) : (
+                              <span className="font-semibold text-foreground">{a.actor.name}</span>
+                            )}{" "}
+                            · {formatRelative(a.createdAt)}
                           </span>
                           {href && a.target && (
                             <Link href={href} className="font-medium text-primary hover:underline dark:text-amber-300">

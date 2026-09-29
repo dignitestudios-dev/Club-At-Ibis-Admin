@@ -216,6 +216,7 @@ interface CategoryDraftPayload {
 
 type RequestStatus =
   | "submitted"
+  | "assigned"
   | "under_review"
   | "changes_required"
   | "resubmitted"

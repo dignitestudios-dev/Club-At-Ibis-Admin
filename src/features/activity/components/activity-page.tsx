@@ -60,6 +60,15 @@ export function getActivityMeta(typeOrCategory?: string) {
   return ACTIVITY_META.accounts;
 }
 
+/** Links the actor who performed an activity to their own account page — never for the Super Admin, who has no account detail page in this app. */
+export function activityActorHref(actor?: ActivityLogEntry["actor"]) {
+  if (!actor?.id) return null;
+  const role = (actor.role || "").toUpperCase();
+  if (role === "REVIEWER") return `/reviewers/${actor.id}`;
+  if (role === "RESIDENT") return `/residents/${actor.id}`;
+  return null;
+}
+
 export function activityTargetHref(t?: ActivityLogEntry["target"]) {
   if (!t || !t.id) return null;
   const kind = (t.kind || "").toLowerCase();
@@ -111,6 +120,7 @@ export function ActivityList({ entries, limit = entries.length }: { entries: Act
               const meta = getActivityMeta(a.category || a.type);
               const Icon = meta.icon;
               const href = activityTargetHref(a.target);
+              const actorHref = activityActorHref(a.actor);
               const timeStr = a.createdAt || a.occurredAt || "";
               return (
                 <li key={a.id} className="flex items-start gap-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs">
@@ -121,7 +131,14 @@ export function ActivityList({ entries, limit = entries.length }: { entries: Act
                     <p className="text-sm leading-relaxed text-foreground">{a.message}</p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                       <span>
-                        By <span className="font-semibold text-foreground">{a.actor.name}</span>
+                        By{" "}
+                        {actorHref ? (
+                          <Link href={actorHref} className="font-semibold text-foreground hover:text-primary hover:underline dark:hover:text-amber-300">
+                            {a.actor.name}
+                          </Link>
+                        ) : (
+                          <span className="font-semibold text-foreground">{a.actor.name}</span>
+                        )}
                       </span>
                       {href && a.target && (
                         <Link href={href} className="font-medium text-primary hover:underline dark:text-amber-300">

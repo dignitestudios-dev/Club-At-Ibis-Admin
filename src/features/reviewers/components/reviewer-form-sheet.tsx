@@ -28,7 +28,7 @@ const nameRegex = /^[A-Za-z\s]+$/;
 const optionalLastName = z
   .string()
   .trim()
-  .max(60, "Last name cannot exceed 60 characters")
+  .max(30, "Last name cannot exceed 30 characters")
   .refine((v) => v === "" || nameRegex.test(v), "Last name cannot contain numbers or special characters");
 
 const baseSchema = {
@@ -36,7 +36,7 @@ const baseSchema = {
     .string()
     .trim()
     .min(1, "First name is required")
-    .max(60, "First name cannot exceed 60 characters")
+    .max(30, "First name cannot exceed 30 characters")
     .regex(nameRegex, "First name cannot contain numbers or special characters"),
   designation: z.string().trim().min(2, "Designation is required"),
   email: z.string().trim().min(1, "Email is required").email("Enter a valid email address"),
@@ -233,7 +233,7 @@ export function ReviewerFormSheet({
                       <Input
                         id="rev-first-name"
                         placeholder="e.g. Jordan"
-                        maxLength={60}
+                        maxLength={30}
                         disabled={pending}
                         aria-invalid={!!errors.firstName}
                         {...register("firstName", {
@@ -251,7 +251,7 @@ export function ReviewerFormSheet({
                       <Input
                         id="rev-last-name"
                         placeholder="e.g. Whitfield"
-                        maxLength={60}
+                        maxLength={30}
                         disabled={pending}
                         aria-invalid={!!errors.lastName}
                         {...register("lastName", {

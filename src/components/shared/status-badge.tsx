@@ -7,6 +7,10 @@ const STATUS_STYLE: Record<RequestStatus, { className: string; dotClass: string;
     className: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700",
     dotClass: "bg-slate-600 dark:bg-slate-400",
   },
+  assigned: {
+    className: "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-950 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800 font-medium",
+    dotClass: "bg-indigo-600 dark:bg-indigo-400",
+  },
   under_review: {
     className: "bg-sky-50 dark:bg-sky-950/50 text-sky-950 dark:text-sky-200 border-sky-200 dark:border-sky-800 font-medium",
     dotClass: "bg-sky-600 dark:bg-sky-400",

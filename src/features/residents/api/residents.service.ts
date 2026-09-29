@@ -92,6 +92,7 @@ export interface ResidentActivityEntry {
   category: string;
   message: string;
   actorName: string;
+  actorId?: string | null;
   actorRole?: string;
   occurredAt: string;
   metadata?: Record<string, unknown>;
@@ -127,6 +128,7 @@ export async function getResident(id: string): Promise<ResidentDetail> {
       category: a.category || "Account",
       message: a.message,
       actorName: a.actor?.displayName ?? "System",
+      actorId: a.actor?._id ?? null,
       actorRole: a.actor?.role,
       occurredAt: a.occurredAt,
       metadata: a.metadata,
