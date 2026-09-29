@@ -191,7 +191,7 @@ export default function ResidentsPage() {
                         {res.lastLoginAt && <span className="block text-[11px] truncate">Seen {formatRelative(res.lastLoginAt)}</span>}
                       </TableCell>
                       <TableCell className="max-w-[120px]">
-                        <ResidentStatusChip active={res.active} />
+                        <ResidentStatusChip status={res.accountStatus} active={res.active} />
                       </TableCell>
                       <TableCell className="pr-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>

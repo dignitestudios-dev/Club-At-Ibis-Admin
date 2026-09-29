@@ -49,11 +49,30 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
     status: raw.status || "submitted",
     assignedReviewerId: raw.assignedReviewerId || raw.assignedReviewer?.id || null,
     assignmentVersion: raw.assignmentVersion,
+    workflowVersion: raw.workflowVersion,
     draftRevision: raw.draftRevision,
     currentStep: raw.currentStep,
     fieldValues,
     uploads,
-    itemReviews: raw.itemReviews || {},
+    itemReviews: (() => {
+      const map: Record<string, ItemReview> = { ...(raw.itemReviews || {}) };
+      if (raw.review?.items && Array.isArray(raw.review.items)) {
+        for (const item of raw.review.items) {
+          if (item.fieldId) {
+            map[item.fieldId] = {
+              state: item.decision,
+              reason: item.reason || undefined,
+              reviewer: item.decidedBy?.displayName,
+              reviewedAt: item.decidedAt,
+            };
+          }
+        }
+      }
+      return map;
+    })(),
+    review: raw.review,
+    revision: raw.revision,
+    submissions: raw.submissions,
     revisions: raw.revisions || [],
     previousSubmissions: raw.previousSubmissions || [],
     hoaApproved: !!(raw.hoaConfirmed ?? raw.hoaApproved),
@@ -79,18 +98,32 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
     } : undefined),
     approvalLetter: raw.approvalLetter,
     letterEmail: raw.letterEmail,
-    history: Array.isArray(raw.history) ? raw.history.map((h: any) => ({
-      id: h.id || h._id || crypto.randomUUID(),
-      type: (h.type?.replace(/^request\./, "") || "submitted") as HistoryEventType,
-      actor: typeof h.actor === "string" ? { name: h.actor, role: "super_admin" as const } : {
-        name: h.actor?.displayName || h.actor?.name || "User",
-        role: (h.actor?.role === "super_admin" || h.actor?.role === "admin" ? "super_admin" : h.actor?.role === "reviewer" ? "reviewer" : h.actor?.role === "resident" ? "resident" : "system") as ActorRole,
-      },
-      message: h.message || "",
-      createdAt: h.occurredAt || h.createdAt || new Date().toISOString(),
-      assignment: h.details?.assignment || h.assignment,
-      staffOnly: !!(h.details?.staffOnly || h.staffOnly),
-    })) : (Array.isArray(raw.activity) ? raw.activity.map((a: any) => ({
+    history: Array.isArray(raw.history) ? raw.history.map((h: any) => {
+      const roleStr = (typeof h.actor === "object" ? h.actor?.role : "") || "";
+      const normalizedRole = roleStr.toLowerCase() === "super_admin" || roleStr.toLowerCase() === "admin"
+        ? "super_admin"
+        : roleStr.toLowerCase() === "reviewer"
+          ? "reviewer"
+          : roleStr.toLowerCase() === "resident"
+            ? "resident"
+            : "system";
+
+      return {
+        id: h.id || h._id || crypto.randomUUID(),
+        type: (h.type?.replace(/^request\./, "").replace(/-/g, "_") || "submitted") as HistoryEventType,
+        actor: typeof h.actor === "string" ? { name: h.actor, role: "super_admin" as const } : {
+          name: h.actor?.displayName || h.actor?.name || "User",
+          role: normalizedRole as ActorRole,
+        },
+        message: h.message || "",
+        detail: h.details?.reason || h.detail || undefined,
+        createdAt: h.occurredAt || h.createdAt || new Date().toISOString(),
+        assignment: h.details?.assignment || h.assignment,
+        staffOnly: !!(h.details?.staffOnly || h.staffOnly),
+        flaggedItems: Array.isArray(h.details?.flaggedItems) ? h.details.flaggedItems : undefined,
+        submissionNumber: typeof h.details?.submissionNumber === "number" ? h.details.submissionNumber : undefined,
+      };
+    }) : (Array.isArray(raw.activity) ? raw.activity.map((a: any) => ({
       id: a.id || crypto.randomUUID(),
       type: a.type || "updated",
       actor: { name: a.actor || "User", role: "super_admin" as const },

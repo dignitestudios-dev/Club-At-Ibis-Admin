@@ -14,6 +14,7 @@ import {
   FileImage,
   FileText,
   Flag,
+  History,
   LayoutTemplate,
   Lock,
   Mail,
@@ -31,15 +32,16 @@ import { PersonAvatar } from "@/components/shared/person-avatar";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { FilePreviewDialog, type PreviewableFile } from "@/components/shared/file-preview-dialog";
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
+import { EarlierSubmissions } from "@/features/requests/components/earlier-submissions";
 import { HistoryTimeline } from "@/features/requests/components/history-timeline";
 import { RequestJourney } from "@/features/requests/components/request-journey";
 import { DepositChip, RefundChip } from "@/features/requests/components/request-chips";
 import { useCategories, useRequest, useResidents, useReviewers } from "@/hooks/use-admin-data";
-import { IN_FLIGHT, REFUND_LABEL, residentFullName } from "@/lib/domain";
+import { IN_FLIGHT, REFUND_LABEL, currentSubmissionNumber, earlierSubmissions, residentFullName } from "@/lib/domain";
 import { formatDate, formatDateTime, formatFileSize } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
-function ReviewState({ review, reviewed }: { review?: ItemReview; reviewed: boolean }) {
+function ReviewState({ review }: { review?: ItemReview }) {
   if (review?.state === "accepted") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/80 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
@@ -52,13 +54,18 @@ function ReviewState({ review, reviewed }: { review?: ItemReview; reviewed: bool
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/80 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
         <Flag className="size-3" aria-hidden="true" />
-        Flagged
+        Flagged for revision
       </span>
     );
   }
-  return reviewed ? (
-    <span className="text-[11px] text-muted-foreground">Not yet reviewed</span>
-  ) : null;
+  if (review?.state === "pending") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+        Pending review
+      </span>
+    );
+  }
+  return null;
 }
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -75,6 +82,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const { data: residents } = useResidents();
   const { data: reviewers } = useReviewers();
   const { data: categories } = useCategories();
+  const [activeTab, setActiveTab] = useState("overview");
   const [preview, setPreview] = useState<PreviewableFile | null>(null);
   const [assigning, setAssigning] = useState<RequestRecord | null>(null);
 
@@ -128,6 +136,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
   const docCount = fileFields.reduce((n, f) => n + (req.uploads?.[f.id]?.length ?? 0), 0);
   const flaggedCount = Object.values(req.itemReviews || {}).filter((r) => r.state === "flagged").length;
+  const earlierRounds = earlierSubmissions(req);
 
   const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
   const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
@@ -146,6 +155,21 @@ export default function RequestDetailPage({ id }: { id: string }) {
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="font-heading text-2xl font-medium text-foreground sm:text-3xl">{req.code}</h1>
               <StatusBadge status={req.status} />
+              {currentSubmissionNumber(req) > 1 && (
+                <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-purple-800 uppercase dark:bg-purple-950/60 dark:text-purple-300">
+                  Submission #{currentSubmissionNumber(req)}
+                </span>
+              )}
+              {earlierRounds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("submissionHistory")}
+                  className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-card px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary dark:hover:text-amber-300"
+                >
+                  <History className="size-3" aria-hidden="true" />
+                  {earlierRounds.length} earlier round{earlierRounds.length === 1 ? "" : "s"}
+                </button>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{req.categoryName}</span>
@@ -163,6 +187,28 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
         </div>
       </div>
+
+      {/* Assignment banner */}
+      {IN_FLIGHT.includes(req.status) && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3 text-sm">
+            <UserRoundPlus className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <p className="text-muted-foreground">
+              {reviewer ? (
+                <>
+                  Assigned to <span className="font-semibold text-foreground">{reviewer.name}</span>. You can reassign it to another reviewer if needed.
+                </>
+              ) : (
+                "Unassigned. Waiting in the default reviewers' incoming list — assign it to a reviewer now."
+              )}
+            </p>
+          </div>
+          <Button variant={reviewer ? "outline" : "default"} className="shrink-0" onClick={() => setAssigning(req)}>
+            <UserRoundPlus />
+            {reviewer ? "Reassign reviewer" : "Assign reviewer"}
+          </Button>
+        </div>
+      )}
 
       {/* Alerts */}
       {req.status === "withdrawn" && (
@@ -234,12 +280,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 </p>
               </div>
             )}
-            {IN_FLIGHT.includes(req.status) && (
-              <Button variant={reviewer ? "outline" : "default"} size="sm" className="w-full" onClick={() => setAssigning(req)}>
-                <UserRoundPlus />
-                {reviewer ? "Reassign reviewer" : "Assign reviewer"}
-              </Button>
-            )}
           </CardContent>
         </Card>
 
@@ -285,16 +325,51 @@ export default function RequestDetailPage({ id }: { id: string }) {
       {/* Tabs */}
       <Card className="shadow-2xs">
         <CardContent className="pt-1">
-      <Tabs defaultValue="overview">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)}>
         <TabsList aria-label="Request sections">
           <TabsTrigger value="overview">Details</TabsTrigger>
-          <TabsTrigger value="documents">Documents{docCount > 0 ? ` (${docCount})` : ""}</TabsTrigger>
+          {earlierRounds.length > 0 && (
+            <TabsTrigger value="submissionHistory">Submission History ({earlierRounds.length})</TabsTrigger>
+          )}
           <TabsTrigger value="decisions">Decisions &amp; deposit</TabsTrigger>
           <TabsTrigger value="history">Activity timeline{req.history.length > 0 ? ` (${req.history.length})` : ""}</TabsTrigger>
         </TabsList>
 
         {/* Information */}
         <TabsContent value="overview" className="space-y-5 pt-4">
+          {req.review && (
+            <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between shadow-2xs">
+              <div className="flex items-center gap-3 text-sm">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 font-bold text-xs text-primary dark:bg-primary/20">
+                  R{req.review.roundNumber}
+                </span>
+                <div>
+                  <p className="font-semibold text-foreground">
+                    Review Round #{req.review.roundNumber} · {req.review.status === "active" ? "In Progress" : "Completed"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {req.review.startedBy ? `Reviewer: ${req.review.startedBy.displayName}` : reviewer ? `Reviewer: ${reviewer.name}` : "Assigned reviewer"}
+                    {req.review.startedAt && ` · Started ${formatDateTime(req.review.startedAt)}`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-medium">
+                <span className="rounded-full bg-muted border px-2.5 py-1 text-foreground">
+                  Total fields: {infoFields.length}
+                </span>
+                {flaggedCount > 0 ? (
+                  <span className="rounded-full bg-amber-100 px-2.5 py-1 font-semibold text-amber-900 dark:bg-amber-950/60 dark:text-amber-300">
+                    {flaggedCount} flagged for revision
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300">
+                    0 flagged
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
             <CardHeader className="border-b border-border/70 pb-3">
               <CardTitle className="font-heading text-lg font-medium">Project information</CardTitle>
@@ -312,15 +387,19 @@ export default function RequestDetailPage({ id }: { id: string }) {
                       <dt className="flex flex-wrap items-center gap-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase break-words [overflow-wrap:anywhere]">
                         {field.label}
                         {!field.required && <span className="font-normal tracking-normal normal-case">(optional)</span>}
-                        <ReviewState review={review} reviewed={reviewed && field.required} />
+                        <ReviewState review={review} />
                       </dt>
                       <dd className="text-sm leading-relaxed text-foreground break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap min-w-0">
                         {value ? value : <span className="text-muted-foreground italic">Not provided</span>}
                       </dd>
                       {review?.state === "flagged" && review.reason && (
-                        <p className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200 break-words [overflow-wrap:anywhere]">
-                          <span className="font-semibold">Reviewer note:</span> {review.reason}
-                        </p>
+                        <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 break-words [overflow-wrap:anywhere]">
+                          <p className="font-semibold flex items-center gap-1.5 mb-1 text-amber-800 dark:text-amber-300">
+                            <Flag className="size-3.5" />
+                            Reviewer correction note {review.reviewer ? `(by ${review.reviewer})` : ""}:
+                          </p>
+                          <p className="whitespace-pre-wrap">{review.reason}</p>
+                        </div>
                       )}
                     </div>
                   );
@@ -330,26 +409,9 @@ export default function RequestDetailPage({ id }: { id: string }) {
           </Card>
 
           <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-            <CardContent className="flex items-start gap-3 pt-1">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
-                <CheckCircle2 className="size-4" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-foreground">HOA approval confirmed</p>
-                <p className="text-xs text-muted-foreground">
-                  Resident checked “I have HOA Approval” at submission · {formatDateTime(req.hoaConfirmedAt)}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Documents */}
-        <TabsContent value="documents" className="space-y-5 pt-4">
-          <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
             <CardHeader className="border-b border-border/70 pb-3">
-              <CardTitle className="font-heading text-lg font-medium">Submitted documents &amp; photos</CardTitle>
-              <p className="text-xs text-muted-foreground">Files remain in the system. Open a preview to inspect them.</p>
+              <CardTitle className="font-heading text-lg font-medium">Documents{docCount > 0 ? ` (${docCount})` : ""}</CardTitle>
+              <p className="text-xs text-muted-foreground">Uploaded with this submission. Open a preview to inspect a file.</p>
             </CardHeader>
             <CardContent className="divide-y divide-border/70 pt-2">
               {fileFields.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">This form had no document uploads.</p>}
@@ -361,7 +423,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-semibold text-foreground">{field.label}</p>
                       <span className="text-[11px] text-muted-foreground">{field.required ? "Required" : "Optional"}</span>
-                      <ReviewState review={review} reviewed={reviewed && field.required} />
+                      <ReviewState review={review} />
                     </div>
                     {files.length === 0 && <p className="text-xs text-muted-foreground italic">No file uploaded</p>}
                     {files.map((file) => (
@@ -380,9 +442,13 @@ export default function RequestDetailPage({ id }: { id: string }) {
                       </div>
                     ))}
                     {review?.state === "flagged" && review.reason && (
-                      <p className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200">
-                        <span className="font-semibold">Reviewer note:</span> {review.reason}
-                      </p>
+                      <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 break-words [overflow-wrap:anywhere]">
+                        <p className="font-semibold flex items-center gap-1.5 mb-1 text-amber-800 dark:text-amber-300">
+                          <Flag className="size-3.5" />
+                          Reviewer correction note {review.reviewer ? `(by ${review.reviewer})` : ""}:
+                        </p>
+                        <p className="whitespace-pre-wrap">{review.reason}</p>
+                      </div>
                     )}
                   </div>
                 );
@@ -390,30 +456,62 @@ export default function RequestDetailPage({ id }: { id: string }) {
             </CardContent>
           </Card>
 
-          {req.revisions.length > 0 && (
-            <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-              <CardHeader className="border-b border-border/70 pb-3">
-                <CardTitle className="font-heading text-lg font-medium">Earlier versions retained</CardTitle>
-                <p className="text-xs text-muted-foreground">Replaced during resubmission and archived in request history.</p>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-4">
-                {req.revisions.map((rev) => (
-                  <div key={rev.id} className="grid gap-2 rounded-xl border border-border/80 p-3.5 text-sm sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-                    <div>
-                      <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Previous · {rev.label}</p>
-                      <p className="truncate text-muted-foreground line-through decoration-slate-400/60">{rev.previous}</p>
-                    </div>
-                    <span className="hidden text-muted-foreground sm:block" aria-hidden="true">→</span>
-                    <div>
-                      <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Current · {format(new Date(rev.at), "MMM d")}</p>
-                      <p className="truncate font-medium text-foreground">{rev.current}</p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
+            <CardContent className="flex items-start gap-3 pt-1">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+                <CheckCircle2 className="size-4" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">HOA approval confirmed</p>
+                <p className="text-xs text-muted-foreground">
+                  Resident checked “I have HOA Approval” at submission · {formatDateTime(req.hoaConfirmedAt)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
+        {/* Submission History: everything about earlier rounds lives here,
+            away from the current answers above. */}
+        {earlierRounds.length > 0 && (
+          <TabsContent value="submissionHistory" className="space-y-5 pt-4">
+            <div className="rounded-xl border border-border/80 bg-muted/30 p-3 text-xs text-muted-foreground">
+              Round #{currentSubmissionNumber(req)} is the resident&apos;s latest submission, shown in the{" "}
+              <button type="button" onClick={() => setActiveTab("overview")} className="font-semibold text-primary hover:underline dark:text-amber-300">
+                Details
+              </button>{" "}
+              tab. Everything below is what came before it.
+            </div>
+
+            {req.revisions.length > 0 && (
+              <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
+                <CardHeader className="border-b border-border/70 pb-3">
+                  <CardTitle className="font-heading text-lg font-medium">What changed</CardTitle>
+                  <p className="text-xs text-muted-foreground">Field-by-field, at a glance.</p>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-4">
+                  {req.revisions.map((rev) => (
+                    <div key={rev.id} className="grid gap-2 rounded-xl border border-border/80 p-3.5 text-sm sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+                      <div>
+                        <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Previous · {rev.label}</p>
+                        <p className="truncate text-muted-foreground line-through decoration-slate-400/60">{rev.previous}</p>
+                      </div>
+                      <span className="hidden text-muted-foreground sm:block" aria-hidden="true">→</span>
+                      <div>
+                        <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Current · {format(new Date(rev.at), "MMM d")}</p>
+                        <p className="truncate font-medium text-foreground">{rev.current}</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+            <EarlierSubmissions request={req} onPreview={setPreview} />
+          </TabsContent>
+        )}
+
+        {/* Decisions & deposit */}
+        <TabsContent value="decisions" className="space-y-5 pt-4">
           {(req.deposit.receipt || req.approvalLetter) && (
             <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
               <CardHeader className="border-b border-border/70 pb-3">
@@ -428,10 +526,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-
-        {/* Decisions & deposit */}
-        <TabsContent value="decisions" className="space-y-5 pt-4">
           <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
             <CardHeader className="border-b border-border/70 pb-3">
               <div className="flex items-center justify-between gap-3">
@@ -453,13 +547,42 @@ export default function RequestDetailPage({ id }: { id: string }) {
                   <p className="mt-1.5 text-sm leading-relaxed text-rose-900/90 dark:text-rose-300/90">{req.rejectionReason}</p>
                 </div>
               )}
-              {(req.status === "changes_required" || req.status === "resubmitted") && (
+              {(req.status === "changes_required" || req.status === "resubmitted" || (req.review && flaggedCount > 0)) && (
                 <div className="rounded-xl border border-amber-300/70 bg-amber-50 p-4 dark:border-amber-800/70 dark:bg-amber-950/30">
                   <p className="flex items-center gap-2 text-sm font-semibold text-amber-950 dark:text-amber-200">
                     <FileEdit className="size-4" aria-hidden="true" />
-                    {req.status === "resubmitted" ? "Resident resubmitted corrections" : `Revision requested · ${flaggedCount} flagged item${flaggedCount === 1 ? "" : "s"}`}
+                    {req.status === "resubmitted"
+                      ? "Resident resubmitted corrections"
+                      : req.status === "changes_required"
+                        ? `Revision requested · ${flaggedCount} flagged item${flaggedCount === 1 ? "" : "s"}`
+                        : `Active review round · ${flaggedCount} flagged item${flaggedCount === 1 ? "" : "s"}`}
                   </p>
-                  <p className="mt-1.5 text-sm text-amber-900/90 dark:text-amber-300/90">{req.feedback}</p>
+                  {req.review?.items && req.review.items.filter((it) => it.decision === "flagged").length > 0 ? (
+                    <div className="mt-3 space-y-2">
+                      {req.review.items
+                        .filter((it) => it.decision === "flagged")
+                        .map((it) => (
+                          <div
+                            key={it.fieldId}
+                            className="rounded-lg bg-card/70 p-3 text-xs border border-amber-200/80 dark:border-amber-900/60"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-1 font-semibold text-foreground">
+                              <span>{it.label}</span>
+                              {it.decidedBy && (
+                                <span className="font-normal text-[10px] text-muted-foreground">
+                                  Flagged by {it.decidedBy.displayName} {it.decidedAt ? `· ${formatDateTime(it.decidedAt)}` : ""}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{it.reason || "Reviewer flagged this field for correction."}</p>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="mt-1.5 text-sm text-amber-900/90 dark:text-amber-300/90 whitespace-pre-wrap">
+                      {req.feedback || "Corrections requested by reviewer."}
+                    </p>
+                  )}
                 </div>
               )}
               {["approved", "completed"].includes(req.status) && req.decidedAt && (

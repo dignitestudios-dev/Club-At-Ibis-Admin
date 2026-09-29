@@ -136,7 +136,7 @@ export default function ResidentDetailPage({ id }: { id: string }) {
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="font-heading text-2xl font-medium text-foreground sm:text-3xl">{name}</h1>
-                <ResidentStatusChip active={resident.active} />
+                <ResidentStatusChip status={resident.accountStatus} active={resident.active} />
               </div>
               <p className="font-mono text-xs text-muted-foreground">{resident.residentIdNumber}</p>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -192,7 +192,7 @@ export default function ResidentDetailPage({ id }: { id: string }) {
               <div className="space-y-0.5">
                 <dt className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Account Status</dt>
                 <dd className="pt-0.5">
-                  <ResidentStatusChip active={resident.active} />
+                  <ResidentStatusChip status={resident.accountStatus} active={resident.active} />
                 </dd>
               </div>
               <div className="space-y-0.5">

@@ -87,7 +87,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
               <Field data-invalid={!!errors.confirmPassword}>
                 <FieldLabel htmlFor="confirmPassword">Confirm Password<RequiredMark /></FieldLabel>
                 <FieldContent>
-                  <PasswordInput id="confirmPassword" maxLength={128} disabled={isPending} value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
+                  <PasswordInput id="confirmPassword" placeholder="Re-enter password" maxLength={128} disabled={isPending} value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
                   <FieldError errors={errors.confirmPassword ? [errors.confirmPassword] : []} />
                 </FieldContent>
               </Field>

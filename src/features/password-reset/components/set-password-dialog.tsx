@@ -64,8 +64,8 @@ export function SetPasswordDialog({
 
   return (
     <Dialog open={!!target} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <form onSubmit={submit} noValidate className="grid gap-4">
+      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+        <form onSubmit={submit} noValidate className="grid gap-4 min-w-0 w-full">
           <DialogHeader>
             <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
               <KeyRound className="size-5" aria-hidden="true" />
@@ -74,11 +74,11 @@ export function SetPasswordDialog({
             <DialogDescription>Set a new password directly. The account owner is emailed that an administrator changed it.</DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 p-3">
-            <PersonAvatar name={target.name} className="size-10" />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground">{target.name}</p>
-              <p className="truncate text-xs text-muted-foreground">
+          <div className="flex min-w-0 w-full items-center gap-3 rounded-xl border border-border bg-muted/40 p-3">
+            <PersonAvatar name={target.name} className="size-10 shrink-0" />
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <p className="truncate text-sm font-semibold text-foreground" title={target.name}>{target.name}</p>
+              <p className="truncate text-xs text-muted-foreground" title={target.email}>
                 {target.kind === "reviewer" ? "ARB Reviewer" : "Resident"} · {target.email}
               </p>
             </div>
@@ -98,7 +98,7 @@ export function SetPasswordDialog({
               Confirm New Password
               <RequiredMark />
             </label>
-            <PasswordInput id="sp-confirm" autoComplete="new-password" maxLength={128} disabled={mutation.isPending} value={confirm} onChange={(e) => setConfirm(e.target.value)} aria-invalid={touched && mismatch} />
+            <PasswordInput id="sp-confirm" placeholder="Re-enter new password" autoComplete="new-password" maxLength={128} disabled={mutation.isPending} value={confirm} onChange={(e) => setConfirm(e.target.value)} aria-invalid={touched && mismatch} />
             {touched && mismatch && <p className="text-xs text-destructive" role="alert">Passwords do not match.</p>}
           </div>
 

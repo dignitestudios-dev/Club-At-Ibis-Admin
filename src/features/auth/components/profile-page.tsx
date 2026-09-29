@@ -57,7 +57,7 @@ function ChangePasswordForm({ userId }: { userId: string }) {
     defaultValues: { currentPassword: "", newPassword: "", confirmNewPassword: "" },
   });
 
-  const field = (name: keyof ChangePasswordPayload, label: string, extra?: { showStrength?: boolean; autoComplete: string }) => (
+  const field = (name: keyof ChangePasswordPayload, label: string, extra?: { showStrength?: boolean; autoComplete: string; placeholder?: string }) => (
     <Controller
       name={name}
       control={control}
@@ -68,6 +68,7 @@ function ChangePasswordForm({ userId }: { userId: string }) {
             <PasswordInput
               id={name}
               maxLength={128}
+              placeholder={extra?.placeholder}
               autoComplete={extra?.autoComplete}
               showStrength={extra?.showStrength}
               disabled={isPending}
@@ -116,7 +117,7 @@ function ChangePasswordForm({ userId }: { userId: string }) {
       <FieldGroup>
         {field("currentPassword", "Current password", { autoComplete: "current-password" })}
         {field("newPassword", "New password", { showStrength: true, autoComplete: "new-password" })}
-        {field("confirmNewPassword", "Confirm new password", { autoComplete: "new-password" })}
+        {field("confirmNewPassword", "Confirm new password", { autoComplete: "new-password", placeholder: "Re-enter new password" })}
         <Button type="submit" disabled={isPending} className="w-full sm:w-fit">
           {isPending && <Spinner className="size-4" />}
           Update password

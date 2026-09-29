@@ -53,7 +53,7 @@ export function SendResetDialog({
 
   return (
     <Dialog open={!!target} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
         {!sent ? (
           <>
             <DialogHeader>
@@ -65,11 +65,11 @@ export function SendResetDialog({
                 {target.name} will receive an email with a secure link to set a new password. Their current password stays valid until they use it.
               </DialogDescription>
             </DialogHeader>
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 p-3.5">
-              <PersonAvatar name={target.name} className="size-10" />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">{target.name}</p>
-                <p className="truncate text-xs text-muted-foreground">
+            <div className="flex min-w-0 w-full items-center gap-3 rounded-xl border border-border bg-muted/40 p-3.5">
+              <PersonAvatar name={target.name} className="size-10 shrink-0" />
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <p className="truncate text-sm font-semibold text-foreground" title={target.name}>{target.name}</p>
+                <p className="truncate text-xs text-muted-foreground" title={target.email}>
                   {target.kind === "reviewer" ? "ARB Reviewer" : "Resident"} · {target.email}
                 </p>
               </div>

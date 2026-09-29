@@ -23,6 +23,7 @@ function toResident(u: ResidentApiUser): Resident {
     phone: undefined,
     address: undefined,
     lotNo: undefined,
+    accountStatus: u.accountStatus,
     active: u.accountStatus !== "DISABLED" && u.accountStatus !== "DELETED",
     createdAt: u.createdAt,
     lastLoginAt: u.lastLoginAt ?? undefined,

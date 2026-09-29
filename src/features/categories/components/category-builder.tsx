@@ -9,6 +9,7 @@ import {
   ArrowUp,
   Copy,
   Eye,
+  FileUp,
   GripVertical,
   History,
   Info,
@@ -28,9 +29,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { RequiredMark } from "@/components/shared/required-mark";
-import { FIELD_TYPES, FIELD_TYPE_BY_ID, FILE_GROUPS, describeAccept, isChoiceType } from "@/features/categories/components/field-types";
+import { FIELD_TYPE_BY_ID, FILE_GROUPS, NON_FILE_FIELD_TYPES, describeAccept, isChoiceType, type FieldTypeMeta } from "@/features/categories/components/field-types";
 import { useCategories, useCategory, useCommonForm, useCreateCategory, useRequests, useUpdateCategory } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
@@ -153,7 +155,6 @@ function snapshot(name: string, description: string, fields: DraftField[]) {
       helpText: (f.helpText ?? "").trim(),
       options: f.options ?? [],
       accept: f.accept ?? [],
-      multiple: !!f.multiple,
     })),
   });
 }
@@ -341,10 +342,6 @@ function FileConfig({ field, onPatch, disabled = false }: { field: DraftField; o
           })}
         </div>
       )}
-      <label className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground">
-        <Switch checked={!!field.multiple} disabled={disabled} onCheckedChange={(v) => onPatch({ multiple: v })} aria-label="Allow multiple files" />
-        Allow more than one file
-      </label>
     </div>
   );
 }
@@ -368,8 +365,7 @@ function FieldPreview({ field }: { field: DraftField }) {
   if (field.type === "file") {
     return (
       <p className="text-xs text-muted-foreground">
-        Upload · {describeAccept(field.accept)}
-        {field.multiple ? " · multiple files" : ""}
+        Upload · {describeAccept(field.accept)} · one file
       </p>
     );
   }
@@ -393,6 +389,7 @@ function FieldCard({
   error,
   dragOver,
   disabled = false,
+  typeOptions,
   onActivate,
   onPatch,
   onChangeType,
@@ -409,6 +406,8 @@ function FieldCard({
   error?: string;
   dragOver: boolean;
   disabled?: boolean;
+  /** Field types this card's "Field type" selector may switch to. Omit (or a single-item list) hides the selector — used for document fields, which are always "file". */
+  typeOptions: FieldTypeMeta[];
   onActivate: () => void;
   onPatch: (p: Partial<CategoryField>) => void;
   onChangeType: (t: CategoryFieldType) => void;
@@ -420,7 +419,8 @@ function FieldCard({
 }) {
   const meta = FIELD_TYPE_BY_ID.get(field.type)!;
   const Icon = meta.icon;
-  const typeItems = FIELD_TYPES.map((t) => ({ label: t.label, value: t.type }));
+  const typeItems = typeOptions.map((t) => ({ label: t.label, value: t.type }));
+  const canChangeType = typeOptions.length > 1;
   const cardRef = useRef<HTMLLIElement>(null);
 
   return (
@@ -516,23 +516,33 @@ function FieldCard({
                   className="h-9 rounded-none border-0 border-b border-border bg-transparent px-3 text-sm shadow-none focus-visible:border-primary focus-visible:ring-0"
                 />
               </div>
-              <div className="w-full shrink-0 space-y-2 sm:w-52">
-                <span className="block text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Field type</span>
-                <Select items={typeItems} value={field.type} onValueChange={(v) => v && onChangeType(v as CategoryFieldType)}>
-                  <SelectTrigger className="w-full" aria-label="Field type" disabled={disabled}>
+              {canChangeType ? (
+                <div className="w-full shrink-0 space-y-2 sm:w-52">
+                  <span className="block text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Field type</span>
+                  <Select items={typeItems} value={field.type} onValueChange={(v) => v && onChangeType(v as CategoryFieldType)}>
+                    <SelectTrigger className="w-full" aria-label="Field type" disabled={disabled}>
+                      <Icon className="size-4 text-primary dark:text-amber-300" aria-hidden="true" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {typeOptions.map((t) => (
+                        <SelectItem key={t.type} value={t.type}>
+                          <t.icon className="size-4 text-muted-foreground" aria-hidden="true" />
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="w-full shrink-0 sm:w-52">
+                  <span className="block text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Field type</span>
+                  <span className="mt-2 flex h-11 items-center gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 text-sm text-foreground">
                     <Icon className="size-4 text-primary dark:text-amber-300" aria-hidden="true" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FIELD_TYPES.map((t) => (
-                      <SelectItem key={t.type} value={t.type}>
-                        <t.icon className="size-4 text-muted-foreground" aria-hidden="true" />
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                    {meta.label}
+                  </span>
+                </div>
+              )}
             </div>
 
             {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
@@ -604,6 +614,10 @@ function BuilderForm({
   const [errors, setErrors] = useState<{ name?: string; fields: Record<string, string> }>({ fields: {} });
   const dragKey = useRef<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
+  const [builderTab, setBuilderTab] = useState<"fields" | "documents">("fields");
+
+  const nonFileFields = useMemo(() => fields.filter((f) => f.type !== "file"), [fields]);
+  const fileFields = useMemo(() => fields.filter((f) => f.type === "file"), [fields]);
 
   const initial = useRef(
     snapshot(
@@ -619,6 +633,71 @@ function BuilderForm({
   const commonFields = commonForm?.fields ?? [];
   const commonLabels = commonFields.map((f) => f.label.toLowerCase());
 
+  /** Shared drag/reorder wiring for a field card, used by both the Fields and Documents tabs. */
+  function renderFieldCard(f: DraftField, i: number, list: DraftField[], typeOptions: FieldTypeMeta[]) {
+    return (
+      <FieldCard
+        key={f.key}
+        field={f}
+        index={i}
+        total={list.length}
+        active={activeKey === f.key}
+        error={errors.fields[f.key] || undefined}
+        dragOver={dragOver === f.key}
+        disabled={saving}
+        typeOptions={typeOptions}
+        onActivate={() => setActiveKey(f.key)}
+        onPatch={(p) => patch(f.key, p)}
+        onChangeType={(t) => changeType(f.key, t)}
+        onDuplicate={() => duplicate(f.key)}
+        onRemove={() => setFields((prev) => prev.filter((x) => x.key !== f.key))}
+        onMove={(d) => move(f.key, d)}
+        onHandleDragStart={(e, card) => {
+          dragKey.current = f.key;
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", f.key);
+          if (card) {
+            const rect = card.getBoundingClientRect();
+            const ghost = card.cloneNode(true) as HTMLElement;
+            ghost.style.position = "absolute";
+            ghost.style.top = "-9999px";
+            ghost.style.left = "-9999px";
+            ghost.style.width = `${rect.width}px`;
+            ghost.style.opacity = "0.95";
+            ghost.style.pointerEvents = "none";
+            ghost.style.zIndex = "9999";
+            ghost.style.backgroundColor = "var(--card)";
+            ghost.classList.add("shadow-2xl", "ring-2", "ring-primary");
+            document.body.appendChild(ghost);
+            e.dataTransfer.setDragImage(ghost, 24, 24);
+            setTimeout(() => {
+              if (document.body.contains(ghost)) {
+                document.body.removeChild(ghost);
+              }
+            }, 0);
+          }
+        }}
+        dropProps={{
+          onDragOver: (e) => {
+            if (!dragKey.current) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            setDragOver(f.key);
+          },
+          onDragLeave: () => setDragOver((d) => (d === f.key ? null : d)),
+          onDrop: (e) => {
+            e.preventDefault();
+            dropOn(f.key);
+          },
+          onDragEnd: () => {
+            dragKey.current = null;
+            setDragOver(null);
+          },
+        }}
+      />
+    );
+  }
+
   function addField(type: CategoryFieldType) {
     const key = crypto.randomUUID();
     const draft: DraftField = {
@@ -631,11 +710,23 @@ function BuilderForm({
       order: 0,
       options: isChoiceType(type) ? [""] : undefined,
       accept: type === "file" ? [] : undefined,
-      multiple: type === "file" ? true : undefined,
     };
-    // New fields land right below the one being edited (like Google Forms).
+    const isFile = type === "file";
+    // Fields and Documents are separate tabs now, so a new field lands right
+    // below the one being edited only when that's the same kind (Google
+    // Forms style); otherwise — e.g. adding a Document while a question tab
+    // field was last active — it lands after the last field of its own kind.
     setFields((prev) => {
-      const at = activeKey ? prev.findIndex((f) => f.key === activeKey) : -1;
+      const activeIsSameKind = activeKey ? prev.some((f) => f.key === activeKey && (f.type === "file") === isFile) : false;
+      let at: number;
+      if (activeIsSameKind) {
+        at = prev.findIndex((f) => f.key === activeKey);
+      } else {
+        at = -1;
+        prev.forEach((f, i) => {
+          if ((f.type === "file") === isFile) at = i;
+        });
+      }
       if (at < 0) return [...prev, draft];
       const next = [...prev];
       next.splice(at + 1, 0, draft);
@@ -662,8 +753,6 @@ function BuilderForm({
             ...f,
             type,
             options: isChoiceType(type) ? (f.options && f.options.length ? f.options : [""]) : undefined,
-            accept: type === "file" ? f.accept ?? [] : undefined,
-            multiple: type === "file" ? (f.multiple !== undefined ? f.multiple : true) : undefined,
           }
           : f
       )
@@ -688,13 +777,26 @@ function BuilderForm({
     setActiveKey(copyKey);
   }
 
+  // Fields and Documents render as separate filtered lists (see
+  // nonFileFields/fileFields below), so reordering must stay within a
+  // field's own kind — swapping a document past a question field (or vice
+  // versa) would just be invisible in whichever tab you're looking at.
   function move(key: string, delta: number) {
     setFields((prev) => {
-      const i = prev.findIndex((f) => f.key === key);
-      const j = i + delta;
-      if (i < 0 || j < 0 || j >= prev.length) return prev;
+      const field = prev.find((f) => f.key === key);
+      if (!field) return prev;
+      const isFile = field.type === "file";
+      const groupIdx = prev.reduce<number[]>((acc, f, i) => {
+        if ((f.type === "file") === isFile) acc.push(i);
+        return acc;
+      }, []);
+      const pos = groupIdx.findIndex((i) => prev[i].key === key);
+      const targetPos = pos + delta;
+      if (pos < 0 || targetPos < 0 || targetPos >= groupIdx.length) return prev;
+      const a = groupIdx[pos];
+      const b = groupIdx[targetPos];
       const next = [...prev];
-      [next[i], next[j]] = [next[j], next[i]];
+      [next[a], next[b]] = [next[b], next[a]];
       return next;
     });
   }
@@ -705,6 +807,9 @@ function BuilderForm({
     setDragOver(null);
     if (!from || from === targetKey) return;
     setFields((prev) => {
+      const fromField = prev.find((f) => f.key === from);
+      const targetField = prev.find((f) => f.key === targetKey);
+      if (!fromField || !targetField || (fromField.type === "file") !== (targetField.type === "file")) return prev;
       const a = prev.findIndex((f) => f.key === from);
       const b = prev.findIndex((f) => f.key === targetKey);
       if (a < 0 || b < 0) return prev;
@@ -758,7 +863,6 @@ function BuilderForm({
         helpText: f.helpText?.trim() || undefined,
         options: isChoiceType(f.type) ? (f.options ?? []).map((o) => o.trim()) : undefined,
         accept: f.type === "file" ? (f.accept && f.accept.length ? f.accept : []) : undefined,
-        multiple: f.type === "file" ? !!f.multiple : undefined,
         order: i + 1,
       })),
     };
@@ -828,30 +932,6 @@ function BuilderForm({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" disabled={saving} />}>
-              <Plus className="size-4" />
-              Add Field
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[360px] sm:w-[420px] p-2">
-              {FIELD_TYPES.map((t) => (
-                <DropdownMenuItem
-                  key={t.type}
-                  onClick={() => addField(t.type)}
-                  disabled={saving}
-                  className="flex items-center justify-between gap-3 px-3.5 py-2.5 cursor-pointer rounded-lg text-sm hover:bg-muted/80"
-                >
-                  <span className="flex items-center gap-3 font-medium text-foreground text-sm whitespace-nowrap">
-                    <t.icon className="size-4.5 text-primary dark:text-amber-400 shrink-0" />
-                    {t.label}
-                  </span>
-                  <span className="text-xs text-muted-foreground truncate text-right">
-                    {t.hint.split(",")[0]}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
           {editing && existing && (
             <>
               <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href={`/categories/${existing.id}/activity`} />}>
@@ -985,109 +1065,83 @@ function BuilderForm({
         </div>
       )}
 
-      {/* Configured fields */}
+      {/* Configured fields — questions and documents live in separate tabs */}
       <Card className="shadow-2xs">
-        <CardHeader className="border-b border-border/70 pb-3">
-          <CardTitle className="font-heading text-lg font-medium">Form Fields</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Click a field to edit it. Drag the handle on the left (or use the arrows) to set the display order residents see.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-5">
-          {fields.length === 0 ? (
-            <div className="rounded-xl border-2 border-dashed border-border px-4 py-10 text-center">
-              <p className="text-sm font-medium text-foreground">No additional fields yet</p>
-              <p className="mt-1 text-xs text-muted-foreground">Use “Add Field” to create questions, choices and document uploads.</p>
-            </div>
-          ) : (
-            <ol className="space-y-3">
-              {fields.map((f, i) => (
-                <FieldCard
-                  key={f.key}
-                  field={f}
-                  index={i}
-                  total={fields.length}
-                  active={activeKey === f.key}
-                  error={errors.fields[f.key] || undefined}
-                  dragOver={dragOver === f.key}
-                  disabled={saving}
-                  onActivate={() => setActiveKey(f.key)}
-                  onPatch={(p) => patch(f.key, p)}
-                  onChangeType={(t) => changeType(f.key, t)}
-                  onDuplicate={() => duplicate(f.key)}
-                  onRemove={() => setFields((prev) => prev.filter((x) => x.key !== f.key))}
-                  onMove={(d) => move(f.key, d)}
-                  onHandleDragStart={(e, card) => {
-                    dragKey.current = f.key;
-                    e.dataTransfer.effectAllowed = "move";
-                    e.dataTransfer.setData("text/plain", f.key);
-                    if (card) {
-                      const rect = card.getBoundingClientRect();
-                      const ghost = card.cloneNode(true) as HTMLElement;
-                      ghost.style.position = "absolute";
-                      ghost.style.top = "-9999px";
-                      ghost.style.left = "-9999px";
-                      ghost.style.width = `${rect.width}px`;
-                      ghost.style.opacity = "0.95";
-                      ghost.style.pointerEvents = "none";
-                      ghost.style.zIndex = "9999";
-                      ghost.style.backgroundColor = "var(--card)";
-                      ghost.classList.add("shadow-2xl", "ring-2", "ring-primary");
-                      document.body.appendChild(ghost);
-                      e.dataTransfer.setDragImage(ghost, 24, 24);
-                      setTimeout(() => {
-                        if (document.body.contains(ghost)) {
-                          document.body.removeChild(ghost);
-                        }
-                      }, 0);
-                    }
-                  }}
-                  dropProps={{
-                    onDragOver: (e) => {
-                      if (!dragKey.current) return;
-                      e.preventDefault();
-                      e.dataTransfer.dropEffect = "move";
-                      setDragOver(f.key);
-                    },
-                    onDragLeave: () => setDragOver((d) => (d === f.key ? null : d)),
-                    onDrop: (e) => {
-                      e.preventDefault();
-                      dropOn(f.key);
-                    },
-                    onDragEnd: () => {
-                      dragKey.current = null;
-                      setDragOver(null);
-                    },
-                  }}
-                />
-              ))}
-            </ol>
-          )}
+        <CardContent className="pt-5">
+          <Tabs value={builderTab} onValueChange={(v) => setBuilderTab(v as "fields" | "documents")}>
+            <TabsList aria-label="Field type" className="grid h-12 w-full grid-cols-2">
+              <TabsTrigger value="fields" className="h-full text-sm font-semibold sm:text-base">
+                Form Fields{nonFileFields.length > 0 ? ` (${nonFileFields.length})` : ""}
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="h-full text-sm font-semibold sm:text-base">
+                Documents{fileFields.length > 0 ? ` (${fileFields.length})` : ""}
+              </TabsTrigger>
+            </TabsList>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" disabled={saving} className="w-full border-dashed" />}>
-              <Plus className="size-4" />
-              Add Field{activeKey ? " Below This One" : ""}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="w-[360px] sm:w-[420px] p-2">
-              {FIELD_TYPES.map((t) => (
-                <DropdownMenuItem
-                  key={t.type}
-                  onClick={() => addField(t.type)}
-                  disabled={saving}
-                  className="flex items-center justify-between gap-3 px-3.5 py-2.5 cursor-pointer rounded-lg text-sm hover:bg-muted/80"
-                >
-                  <span className="flex items-center gap-3 font-medium text-foreground text-sm whitespace-nowrap">
-                    <t.icon className="size-4.5 text-primary dark:text-amber-400 shrink-0" />
-                    {t.label}
-                  </span>
-                  <span className="text-xs text-muted-foreground truncate text-right">
-                    {t.hint.split(",")[0]}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            <TabsContent value="fields" className="space-y-4 pt-5">
+              <p className="text-xs text-muted-foreground">
+                Click a field to edit it. Drag the handle on the left (or use the arrows) to set the display order residents see.
+              </p>
+              {nonFileFields.length === 0 ? (
+                <div className="rounded-xl border-2 border-dashed border-border px-4 py-10 text-center">
+                  <p className="text-sm font-medium text-foreground">No additional fields yet</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Use “Add Field” to create questions and choices.</p>
+                </div>
+              ) : (
+                <ol className="space-y-3">{nonFileFields.map((f, i) => renderFieldCard(f, i, nonFileFields, NON_FILE_FIELD_TYPES))}</ol>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="outline" disabled={saving} className="w-full border-dashed" />}>
+                  <Plus className="size-4" />
+                  Add Field{activeKey && nonFileFields.some((f) => f.key === activeKey) ? " Below This One" : ""}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center" className="w-[360px] sm:w-[420px] p-2">
+                  {NON_FILE_FIELD_TYPES.map((t) => (
+                    <DropdownMenuItem
+                      key={t.type}
+                      onClick={() => addField(t.type)}
+                      disabled={saving}
+                      className="flex items-center justify-between gap-3 px-3.5 py-2.5 cursor-pointer rounded-lg text-sm hover:bg-muted/80"
+                    >
+                      <span className="flex items-center gap-3 font-medium text-foreground text-sm whitespace-nowrap">
+                        <t.icon className="size-4.5 text-primary dark:text-amber-400 shrink-0" />
+                        {t.label}
+                      </span>
+                      <span className="text-xs text-muted-foreground truncate text-right">
+                        {t.hint.split(",")[0]}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TabsContent>
+
+            <TabsContent value="documents" className="space-y-4 pt-5">
+              <p className="text-xs text-muted-foreground">
+                Every document here becomes its own upload slot in the resident&apos;s Documents step — one file each.
+              </p>
+              {fileFields.length === 0 ? (
+                <div className="rounded-xl border-2 border-dashed border-border px-4 py-10 text-center">
+                  <p className="text-sm font-medium text-foreground">No documents required yet</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Use “Add Document” to request a file or photo from the resident.</p>
+                </div>
+              ) : (
+                <ol className="space-y-3">{fileFields.map((f, i) => renderFieldCard(f, i, fileFields, [FIELD_TYPE_BY_ID.get("file")!]))}</ol>
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                disabled={saving}
+                className="w-full border-dashed"
+                onClick={() => addField("file")}
+              >
+                <FileUp className="size-4" />
+                Add Document{activeKey && fileFields.some((f) => f.key === activeKey) ? " Below This One" : ""}
+              </Button>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 

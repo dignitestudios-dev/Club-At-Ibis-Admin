@@ -28,7 +28,7 @@ const EVENT_CONFIG: Record<HistoryEventType, { icon: LucideIcon; label: string; 
   submitted: { icon: Send, label: "Submitted", node: "bg-primary text-primary-foreground" },
   assigned: { icon: UserCheck, label: "Assigned", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" },
   reassigned: { icon: UserCog, label: "Reassigned", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" },
-  review_started: { icon: PlayCircle, label: "Review started", node: "bg-sky-600 text-white" },
+  review_started: { icon: PlayCircle, label: "Review Started", node: "bg-sky-600 text-white" },
   item_accepted: { icon: CheckCheck, label: "Item accepted", node: "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300" },
   item_flagged: { icon: Flag, label: "Flagged", node: "bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300" },
   revision_requested: { icon: FileEdit, label: "Revision requested", node: "bg-amber-500 text-white" },
@@ -113,9 +113,19 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
 
               <p className="text-sm leading-relaxed text-foreground/85 break-words">{event.message}</p>
               {event.detail && (
-                <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground break-words">
-                  {event.detail}
-                </p>
+                <div
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-xs leading-relaxed break-words [overflow-wrap:anywhere]",
+                    event.type === "item_flagged"
+                      ? "border-amber-300/80 bg-amber-50/90 text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200"
+                      : "border-border/70 bg-muted/40 text-muted-foreground"
+                  )}
+                >
+                  {event.type === "item_flagged" && (
+                    <span className="font-semibold block mb-0.5 text-amber-800 dark:text-amber-300">Correction Note:</span>
+                  )}
+                  <p className="whitespace-pre-wrap">{event.detail}</p>
+                </div>
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-1.5 text-xs text-muted-foreground">

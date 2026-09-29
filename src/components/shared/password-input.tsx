@@ -66,7 +66,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           </button>
         </div>
 
-        {showStrength && isFocused && (
+        {showStrength && currentValue.length >= 8 && (
           <PasswordStrengthMeter password={currentValue} visible={isFocused} />
         )}
       </div>

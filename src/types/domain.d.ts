@@ -73,6 +73,7 @@ interface Resident {
   phone?: string;
   address?: string;
   lotNo?: string;
+  accountStatus?: string;
   /** Inactive residents cannot sign in. */
   active: boolean;
   createdAt: string;
@@ -268,11 +269,46 @@ interface HistoryEvent {
   assignment?: { from?: string; to: string };
   /** Staff-only records are not shown to the resident. */
   staffOnly?: boolean;
+  /** Set on a "revision-requested" event: the exact fields flagged for that review round, with the reviewer's reason. `submissions[]` never carries per-round item reviews, so this is the only place a past round's flagged items are reconstructable from. */
+  flaggedItems?: { fieldId: string; label: string; reason: string }[];
+  /** The submission round this event applies to. */
+  submissionNumber?: number;
+}
+
+interface ReviewItemActor {
+  actorId: string;
+  role: string;
+  displayName: string;
+}
+
+interface ReviewRoundItem {
+  kind: "field" | "file";
+  fieldId: string;
+  label: string;
+  decision: "pending" | "accepted" | "flagged";
+  reason: string | null;
+  decidedBy: ReviewItemActor | null;
+  decidedAt: string | null;
+  carriedForward: boolean;
+}
+
+interface ActiveReviewRecord {
+  id: string;
+  roundNumber: number;
+  status: "active" | "closed";
+  reviewVersion: number;
+  items: ReviewRoundItem[];
+  startedBy?: ReviewItemActor;
+  startedAt?: string;
+  closedBy?: ReviewItemActor | null;
+  closedAt?: string | null;
 }
 
 interface ItemReview {
-  state: "accepted" | "flagged";
+  state: "pending" | "accepted" | "flagged";
   reason?: string;
+  reviewer?: string;
+  reviewedAt?: string;
 }
 
 interface RequestRevision {
@@ -344,11 +380,25 @@ interface RequestRecord {
   status: RequestStatus;
   assignedReviewerId: string | null;
   assignmentVersion?: number;
+  workflowVersion?: number;
   draftRevision?: number | null;
   currentStep?: number | null;
   fieldValues: Record<string, string>;
   uploads: Record<string, AttachedFile[]>;
   itemReviews: Record<string, ItemReview>;
+  review?: ActiveReviewRecord;
+  revision?: {
+    roundNumber?: number;
+    items?: Array<{ fieldId: string; label: string; reason: string; previousValue?: string }>;
+  } | null;
+  submissions?: Array<{
+    id: string;
+    number: number;
+    submittedAt: string;
+    changedFieldIds: string[];
+    fieldValues: Record<string, string>;
+    files: Record<string, AttachedFile[]>;
+  }>;
   revisions: RequestRevision[];
   previousSubmissions?: Array<Record<string, unknown>>;
   hoaApproved: boolean;

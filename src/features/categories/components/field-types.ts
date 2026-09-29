@@ -37,6 +37,9 @@ export const FIELD_TYPES: FieldTypeMeta[] = [
 
 export const FIELD_TYPE_BY_ID = new Map(FIELD_TYPES.map((t) => [t.type, t]));
 
+/** Question types offered from the Fields tab — documents live in their own tab and are always type "file". */
+export const NON_FILE_FIELD_TYPES: FieldTypeMeta[] = FIELD_TYPES.filter((t) => t.type !== "file");
+
 export const CHOICE_TYPES: CategoryFieldType[] = ["select", "radio", "checkbox"];
 export const isChoiceType = (t: CategoryFieldType) => CHOICE_TYPES.includes(t);
 
