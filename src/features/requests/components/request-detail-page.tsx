@@ -28,6 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FieldHelpTooltip } from "@/components/shared/field-help-tooltip";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { FilePreviewDialog, type PreviewableFile } from "@/components/shared/file-preview-dialog";
@@ -305,16 +306,14 @@ export default function RequestDetailPage({ id }: { id: string }) {
               </span>
               <div>
                 <p className="text-sm font-semibold text-foreground">Submitted on form v{req.formVersion}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="flex items-center text-xs text-muted-foreground">
                   {req.formVersion === currentCategoryVersion ? "Matches current form" : `Category is now v${currentCategoryVersion}`}
+                  {req.formVersion !== currentCategoryVersion && (
+                    <FieldHelpTooltip content="This request keeps the form and data it was submitted with; later edits only apply to new requests." />
+                  )}
                 </p>
               </div>
             </div>
-            {req.formVersion !== currentCategoryVersion && (
-              <p className="text-[11px] leading-snug text-muted-foreground">
-                This request keeps the form and data it was submitted with; later edits only apply to new requests.
-              </p>
-            )}
             <Link href={`/categories/${req.categoryId}/versions?v=${req.formVersion}`} className="inline-block text-xs font-medium text-primary hover:underline dark:text-amber-300">
               View version history
             </Link>
