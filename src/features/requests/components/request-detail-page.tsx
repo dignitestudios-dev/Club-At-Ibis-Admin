@@ -137,7 +137,9 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const fileFields = (req.formSnapshot || []).filter((f) => f.type === "file").sort((a, b) => a.order - b.order);
 
   const docCount = fileFields.reduce((n, f) => n + (req.uploads?.[f.id]?.length ?? 0), 0);
-  const flaggedCount = Object.values(req.itemReviews || {}).filter((r) => r.state === "flagged").length;
+  const flaggedCount = (req.review?.items || []).length > 0
+    ? (req.review?.items || []).filter((it) => it.decision === "flagged").length
+    : Object.values(req.itemReviews || {}).filter((r) => r.state === "flagged").length;
   const earlierRounds = earlierSubmissions(req);
 
   const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
