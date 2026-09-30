@@ -330,14 +330,14 @@ export function FilePreviewDialog({
                 <p className="text-xs text-slate-500 mt-1">The image file could not be displayed or the source is unavailable.</p>
               </div>
             ) : (
-              <div className="overflow-auto max-h-full max-w-full flex items-center justify-center">
+              <div className="w-full h-full overflow-auto flex items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={displayUrl}
                   alt={file.name}
                   onError={() => setImageError(true)}
                   style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
-                  className="max-h-full max-w-full rounded-lg object-contain shadow-2xl transition-transform duration-200 border border-white/10"
+                  className="max-h-full max-w-full shrink-0 rounded-lg object-contain shadow-2xl transition-transform duration-200 border border-white/10"
                 />
               </div>
             )

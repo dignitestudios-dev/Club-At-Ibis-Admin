@@ -7,15 +7,17 @@ export interface SendResetPayload {
 }
 
 export async function sendPasswordReset({ userKind, userId }: SendResetPayload): Promise<void> {
-  const isLocal = typeof window !== "undefined" && window.location.origin.includes("localhost");
+  // Never send a localhost origin to the backend — it ends up in the
+  // emailed password-reset link, which must always point to the real
+  // deployed app regardless of where this Admin app itself is running from.
   const origin =
     userKind === "reviewer"
       ? process.env.NEXT_PUBLIC_REVIEWER_APP_URL ||
         process.env.NEXT_PUBLIC_REVIEWER_URL ||
-        (isLocal ? "http://localhost:3002" : "https://clubatibis-reviewer.vercel.app")
+        "https://clubatibis-reviewer.vercel.app"
       : process.env.NEXT_PUBLIC_RESIDENT_APP_URL ||
         process.env.NEXT_PUBLIC_RESIDENT_URL ||
-        (isLocal ? "http://localhost:3001" : "https://clubatibis-resident.vercel.app");
+        "https://clubatibis-resident.vercel.app";
 
   await axiosInstance.post(
     `/admin/accounts/${userId}/password-reset-requests`,

@@ -189,9 +189,10 @@ export function getReviewerFrontendOrigin(): string {
   if (envOrigin && envOrigin.trim()) {
     return envOrigin.trim();
   }
-  if (typeof window !== "undefined" && window.location.origin.includes("localhost")) {
-    return "http://localhost:3002";
-  }
+  // Never send a localhost origin to the backend — it ends up in emailed
+  // action links (invitation / create-password), which must always point
+  // to the real deployed Reviewer app regardless of where this Admin app
+  // itself happens to be running from.
   return "https://clubatibis-reviewer.vercel.app";
 }
 
