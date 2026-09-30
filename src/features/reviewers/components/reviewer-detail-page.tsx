@@ -12,16 +12,20 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { StatCard } from "@/components/shared/stat-card";
 import { activityActorHref } from "@/features/activity/components/activity-page";
+import { RequestMiniTable } from "@/features/requests/components/request-mini-table";
 import { ReviewerFormSheet } from "@/features/reviewers/components/reviewer-form-sheet";
 import { ReviewerStatusChip } from "@/features/reviewers/components/reviewer-row-menu";
 import { useReviewerActions } from "@/features/reviewers/components/use-reviewer-actions";
-import { useReviewer } from "@/hooks/use-admin-data";
+import { useRequests, useResidents, useReviewer } from "@/hooks/use-admin-data";
+import { IN_FLIGHT } from "@/lib/domain";
 import { formatDate, formatDateTime, formatTime } from "@/utils/format";
 
 export default function ReviewerDetailPage({ id }: { id: string }) {
   const { data, isLoading } = useReviewer(id);
   const actions = useReviewerActions();
   const [editing, setEditing] = useState(false);
+  const { data: assignedRequests, isLoading: requestsLoading } = useRequests({ assignedReviewerId: id, limit: 100 });
+  const { data: residents } = useResidents();
 
   if (isLoading) {
     return (
@@ -230,8 +234,21 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
           <CardTitle className="font-heading text-lg font-medium">Assigned Requests</CardTitle>
           <p className="text-xs text-muted-foreground">Everything this reviewer currently owns or previously handled.</p>
         </CardHeader>
-        <CardContent>
-          <EmptyState icon={CheckCircle2} title="Not Available Yet" description="Requests aren't wired up to a backend yet, so this reviewer's assigned requests can't be shown here." />
+        <CardContent className="p-0">
+          {requestsLoading ? (
+            <div className="space-y-2 p-5">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : (
+            <RequestMiniTable
+              requests={assignedRequests ?? []}
+              residents={residents ?? []}
+              showResident
+              empty="This reviewer has no assigned requests."
+            />
+          )}
         </CardContent>
       </Card>
 
