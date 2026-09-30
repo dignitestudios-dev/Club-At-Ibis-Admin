@@ -196,20 +196,36 @@ export function getReviewerFrontendOrigin(): string {
 }
 
 export async function createReviewer(payload: ReviewerFormPayload): Promise<PublicReviewer> {
-  const { firstName, lastName } = payload.firstName && payload.lastName
-    ? { firstName: payload.firstName.trim(), lastName: payload.lastName.trim() }
-    : splitName(payload.name);
+  const firstName = (payload.firstName || payload.name?.split(" ")[0] || "").trim();
+  // The backend requires a non-empty lastName on create (inviteReviewer validator
+  // has no `.optional()`) — the form enforces this too, so it's always present here.
+  const lastName = (
+    payload.lastName !== undefined
+      ? payload.lastName
+      : payload.name?.trim().split(/\s+/).slice(1).join(" ") ?? ""
+  ).trim();
+  const employeeNumber = payload.employeeNumber?.trim() || undefined;
+  const designation = payload.designation?.trim() || undefined;
   const reviewerOrigin = getReviewerFrontendOrigin();
+
+  const requestBody: Record<string, any> = {
+    firstName,
+    lastName,
+    email: payload.email.trim(),
+    isDefaultReviewer: !!payload.receiveNewRequests,
+  };
+
+  // These stay genuinely optional on the backend, so only send when filled.
+  if (employeeNumber) {
+    requestBody.employeeNumber = employeeNumber;
+  }
+  if (designation) {
+    requestBody.designation = designation;
+  }
+
   const { data } = await axiosInstance.post(
     "/admin/reviewer-invitations",
-    {
-      employeeNumber: payload.employeeNumber.trim(),
-      firstName,
-      lastName,
-      email: payload.email.trim(),
-      designation: payload.designation?.trim() || undefined,
-      isDefaultReviewer: payload.receiveNewRequests,
-    },
+    requestBody,
     {
       headers: {
         "x-frontend-origin": reviewerOrigin,
@@ -226,19 +242,37 @@ export async function updateReviewer(
     lastName?: string;
   }
 ): Promise<PublicReviewer> {
-  const { firstName, lastName } = updates.firstName && updates.lastName
-    ? { firstName: updates.firstName.trim(), lastName: updates.lastName.trim() }
-    : splitName(updates.name);
-  const employeeNumber = updates.employeeNumber.trim();
-  const { data } = await axiosInstance.patch(`/admin/reviewers/${id}`, {
+  const firstName = (updates.firstName || updates.name?.split(" ")[0] || "").trim();
+  // Unlike employeeNumber/designation, lastName can never legitimately be
+  // cleared — the backend model requires it on every reviewer — so it's
+  // always sent as a real value here, the same as firstName, rather than
+  // omitted when blank (which used to silently make "removing the last
+  // name" in the edit form a no-op).
+  const lastName = (
+    updates.lastName !== undefined
+      ? updates.lastName
+      : updates.name?.trim().split(/\s+/).slice(1).join(" ") ?? ""
+  ).trim();
+  const employeeNumber = updates.employeeNumber?.trim() || undefined;
+  const designation = updates.designation !== undefined ? (updates.designation.trim() || null) : undefined;
+
+  const requestBody: Record<string, any> = {
     firstName,
     lastName,
-    // Employee number is optional on this endpoint (omitted entirely when
-    // blank rather than sent as an empty string, which the backend rejects).
-    ...(employeeNumber ? { employeeNumber } : {}),
     email: updates.email.trim(),
-    designation: updates.designation !== undefined ? (updates.designation.trim() || null) : undefined,
-  });
+  };
+
+  if (updates.employeeNumber !== undefined) {
+    if (employeeNumber) {
+      requestBody.employeeNumber = employeeNumber;
+    }
+  }
+
+  if (designation !== undefined) {
+    requestBody.designation = designation;
+  }
+
+  const { data } = await axiosInstance.patch(`/admin/reviewers/${id}`, requestBody);
   return toPublicReviewer(data.data.reviewer);
 }
 

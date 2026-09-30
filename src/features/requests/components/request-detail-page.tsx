@@ -32,6 +32,7 @@ import { FieldHelpTooltip } from "@/components/shared/field-help-tooltip";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { FilePreviewDialog, type PreviewableFile } from "@/components/shared/file-preview-dialog";
+import { getAdminFileDownloadUrl } from "@/features/requests/api/requests.service";
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
 import { EarlierSubmissions } from "@/features/requests/components/earlier-submissions";
 import { HistoryTimeline } from "@/features/requests/components/history-timeline";
@@ -736,7 +737,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
       </Card>
 
       <AssignReviewerDialog request={assigning} onOpenChange={(o) => !o && setAssigning(null)} />
-      <FilePreviewDialog file={preview} open={!!preview} onOpenChange={(o) => !o && setPreview(null)} />
+      <FilePreviewDialog
+        file={preview}
+        open={!!preview}
+        onOpenChange={(o) => !o && setPreview(null)}
+        onRequestDownloadUrl={(fileId, disposition) => getAdminFileDownloadUrl(req.id, fileId, disposition).then((r) => r.url)}
+      />
     </div>
   );
 }

@@ -53,7 +53,7 @@ export default function ForgotPasswordForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit((data) => mutate(data, { onSuccess: () => setSubmitted(true) }))} noValidate>
+      <form onSubmit={handleSubmit((data) => mutate({ email: data.email.trim() }, { onSuccess: () => setSubmitted(true) }))} noValidate>
         <FieldGroup>
           <Field data-invalid={!!errors.email}>
             <FieldLabel htmlFor="email">Admin Email<RequiredMark /></FieldLabel>

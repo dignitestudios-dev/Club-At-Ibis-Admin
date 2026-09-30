@@ -19,18 +19,6 @@ import { applyServerFieldErrors } from "@/lib/api-error";
 
 const nameRegex = /^[A-Za-z\s]+$/;
 
-// Optional on both create and edit. The invite endpoint still requires a
-// non-empty lastName (update's doesn't — it's `.optional()` there), but
-// reviewers.service.ts's createReviewer()/updateReviewer() both already fall
-// back to reusing the first name when lastName is blank (the same fallback
-// splitName() has always used), so leaving this empty in the form never hits
-// that backend requirement either way.
-const optionalLastName = z
-  .string()
-  .trim()
-  .max(30, "Last name cannot exceed 30 characters")
-  .refine((v) => v === "" || nameRegex.test(v), "Last name cannot contain numbers or special characters");
-
 const baseSchema = {
   firstName: z
     .string()
@@ -38,16 +26,28 @@ const baseSchema = {
     .min(1, "First name is required")
     .max(30, "First name cannot exceed 30 characters")
     .regex(nameRegex, "First name cannot contain numbers or special characters"),
+  // The backend always requires a last name (admin.model.js: `required: true`),
+  // on both create and edit — it can never be blanked out, so this must be a
+  // real required field here too rather than silently omitted when empty.
+  lastName: z
+    .string()
+    .trim()
+    .min(1, "Last name is required")
+    .max(30, "Last name cannot exceed 30 characters")
+    .regex(nameRegex, "Last name cannot contain numbers or special characters"),
   designation: z.string().trim().min(2, "Designation is required"),
   email: z.string().trim().min(1, "Email is required").email("Enter a valid email address"),
   receiveNewRequests: z.boolean(),
 };
-// The invite endpoint requires a non-empty employee number with no fallback
-// value the way lastName has — the "optional" here is FE-only, and leaving
-// it blank surfaces the backend's own "Employee number is required" error at
-// submit time until that endpoint is changed to accept omission.
-const createSchema = z.object({ ...baseSchema, lastName: optionalLastName, employeeNumber: z.string().trim().max(50, "Employee number cannot exceed 50 characters") });
-const editSchema = z.object({ ...baseSchema, lastName: optionalLastName, employeeNumber: z.string().trim() });
+
+const createSchema = z.object({
+  ...baseSchema,
+  employeeNumber: z.string().trim().max(50, "Employee number cannot exceed 50 characters"),
+});
+const editSchema = z.object({
+  ...baseSchema,
+  employeeNumber: z.string().trim().max(50, "Employee number cannot exceed 50 characters"),
+});
 
 type FormValues = z.infer<typeof createSchema>;
 
@@ -163,18 +163,24 @@ export function ReviewerFormSheet({
   const fieldMap = { isDefaultReviewer: "receiveNewRequests" };
 
   function onSubmit(values: FormValues) {
-    const fullName = `${values.firstName.trim()} ${values.lastName.trim()}`.trim();
+    const trimmedFirstName = values.firstName.trim();
+    const trimmedLastName = values.lastName.trim();
+    const trimmedEmp = values.employeeNumber ? values.employeeNumber.trim() : "";
+    const trimmedDesignation = values.designation.trim();
+    const trimmedEmail = values.email.trim();
+    const fullName = `${trimmedFirstName} ${trimmedLastName}`;
+
     if (editing && reviewer) {
       update.mutate(
         {
           id: reviewer.id,
           updates: {
             name: fullName,
-            firstName: values.firstName.trim(),
-            lastName: values.lastName.trim(),
-            employeeNumber: values.employeeNumber,
-            designation: values.designation,
-            email: values.email,
+            firstName: trimmedFirstName,
+            lastName: trimmedLastName,
+            employeeNumber: trimmedEmp || undefined,
+            designation: trimmedDesignation,
+            email: trimmedEmail,
           },
         },
         {
@@ -192,10 +198,13 @@ export function ReviewerFormSheet({
     }
     create.mutate(
       {
-        ...values,
         name: fullName,
-        firstName: values.firstName.trim(),
-        lastName: values.lastName.trim(),
+        firstName: trimmedFirstName,
+        lastName: trimmedLastName,
+        employeeNumber: trimmedEmp || undefined,
+        designation: trimmedDesignation || undefined,
+        email: trimmedEmail,
+        receiveNewRequests: values.receiveNewRequests,
       },
       {
         onSuccess: (created) => {
@@ -240,13 +249,16 @@ export function ReviewerFormSheet({
                           onChange: (e) => {
                             e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
                           },
+                          onBlur: (e) => {
+                            e.target.value = e.target.value.trim();
+                          },
                         })}
                       />
                       <FieldError errors={errors.firstName ? [errors.firstName] : []} />
                     </FieldContent>
                   </Field>
                   <Field data-invalid={!!errors.lastName}>
-                    <FieldLabel htmlFor="rev-last-name">Last Name</FieldLabel>
+                    <FieldLabel htmlFor="rev-last-name">Last Name<RequiredMark /></FieldLabel>
                     <FieldContent>
                       <Input
                         id="rev-last-name"
@@ -258,6 +270,9 @@ export function ReviewerFormSheet({
                           onChange: (e) => {
                             e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
                           },
+                          onBlur: (e) => {
+                            e.target.value = e.target.value.trim();
+                          },
                         })}
                       />
                       <FieldError errors={errors.lastName ? [errors.lastName] : []} />
@@ -268,14 +283,36 @@ export function ReviewerFormSheet({
                   <Field data-invalid={!!errors.employeeNumber}>
                     <FieldLabel htmlFor="rev-emp">Employee Number</FieldLabel>
                     <FieldContent>
-                      <Input id="rev-emp" placeholder="EMP-1050" maxLength={50} disabled={pending} aria-invalid={!!errors.employeeNumber} {...register("employeeNumber")} />
+                      <Input
+                        id="rev-emp"
+                        placeholder="EMP-1050"
+                        maxLength={50}
+                        disabled={pending}
+                        aria-invalid={!!errors.employeeNumber}
+                        {...register("employeeNumber", {
+                          onBlur: (e) => {
+                            e.target.value = e.target.value.trim();
+                          },
+                        })}
+                      />
                       <FieldError errors={errors.employeeNumber ? [errors.employeeNumber] : []} />
                     </FieldContent>
                   </Field>
                   <Field data-invalid={!!errors.designation}>
                     <FieldLabel htmlFor="rev-des">Designation<RequiredMark /></FieldLabel>
                     <FieldContent>
-                      <Input id="rev-des" placeholder="Architectural Reviewer" maxLength={100} disabled={pending} aria-invalid={!!errors.designation} {...register("designation")} />
+                      <Input
+                        id="rev-des"
+                        placeholder="Architectural Reviewer"
+                        maxLength={100}
+                        disabled={pending}
+                        aria-invalid={!!errors.designation}
+                        {...register("designation", {
+                          onBlur: (e) => {
+                            e.target.value = e.target.value.trim();
+                          },
+                        })}
+                      />
                       <FieldError errors={errors.designation ? [errors.designation] : []} />
                     </FieldContent>
                   </Field>
@@ -283,7 +320,19 @@ export function ReviewerFormSheet({
                 <Field data-invalid={!!errors.email}>
                   <FieldLabel htmlFor="rev-email">Work email (login)<RequiredMark /></FieldLabel>
                   <FieldContent>
-                    <Input id="rev-email" type="email" placeholder="name@clubatibis.com" maxLength={100} disabled={pending} aria-invalid={!!errors.email} {...register("email")} />
+                    <Input
+                      id="rev-email"
+                      type="email"
+                      placeholder="name@clubatibis.com"
+                      maxLength={100}
+                      disabled={pending}
+                      aria-invalid={!!errors.email}
+                      {...register("email", {
+                        onBlur: (e) => {
+                          e.target.value = e.target.value.trim();
+                        },
+                      })}
+                    />
                     <FieldError errors={errors.email ? [errors.email] : []} />
                   </FieldContent>
                 </Field>

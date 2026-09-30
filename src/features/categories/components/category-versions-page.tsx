@@ -65,6 +65,7 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
           <div className="flex items-center gap-2">
             <Skeleton className="h-9 w-24 rounded-lg" />
             <Skeleton className="h-9 w-28 rounded-lg" />
+            <Skeleton className="h-9 w-24 rounded-lg" />
           </div>
         </div>
         <div className="grid gap-6 lg:grid-cols-12">
@@ -149,7 +150,7 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <div>
-            <p className="text-xs font-semibold tracking-wider text-brand-gold uppercase">Version history</p>
+            <p className="text-xs font-semibold tracking-wider text-brand-gold uppercase">Version History</p>
             <h1 className="font-heading text-2xl font-medium text-foreground sm:text-3xl">{category.name}</h1>
             <p className="text-sm text-muted-foreground">
               {versions.length} version{versions.length === 1 ? "" : "s"} · current is <span className="font-semibold text-foreground">v{currentVersionNumber}</span>
@@ -160,6 +161,10 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
           <Button variant="outline" nativeButton={false} render={<Link href={`/categories/${category.id}/activity`} />}>
             <ScrollText className="size-4" />
             View Activity
+          </Button>
+          <Button variant="outline" nativeButton={false} render={<Link href={`/categories/${category.id}`} />}>
+            <Eye className="size-4" />
+            Preview Form
           </Button>
           <Button nativeButton={false} render={<Link href={`/categories/${category.id}/edit`} />}>
             <Pencil className="size-4" />

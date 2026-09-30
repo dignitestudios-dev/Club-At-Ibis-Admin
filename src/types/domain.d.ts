@@ -84,8 +84,8 @@ interface ReviewerFormPayload {
   name: string;
   firstName?: string;
   lastName?: string;
-  employeeNumber: string;
-  designation: string;
+  employeeNumber?: string;
+  designation?: string;
   email: string;
   receiveNewRequests: boolean;
 }

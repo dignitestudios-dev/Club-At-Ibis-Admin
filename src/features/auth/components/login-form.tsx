@@ -66,7 +66,7 @@ export default function LoginForm() {
   function onSubmit(data: LoginCredentials) {
     if (isSubmittingRef.current || isPending) return;
     isSubmittingRef.current = true;
-    login(data, {
+    login({ email: data.email.trim(), password: data.password }, {
       onSuccess: ({ token, admin }) => {
         isSubmittingRef.current = false;
         localStorage.removeItem("caia.logged-out");

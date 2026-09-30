@@ -203,6 +203,18 @@ export async function getRequestById(id: string): Promise<RequestRecord> {
   return toAdminRequestRecord(req);
 }
 
+/** Get a fresh short-lived (10 minute) read-only SAS URL for one submitted file. Never persist it. */
+export async function getAdminFileDownloadUrl(
+  requestId: string,
+  fileId: string,
+  disposition?: "inline" | "attachment"
+): Promise<{ url: string; expiresAt: string }> {
+  const { data } = await axiosInstance.get(`/admin/requests/${requestId}/files/${fileId}/download`, {
+    params: disposition ? { disposition } : undefined,
+  });
+  return data.data.download;
+}
+
 export async function recordExport(_count: number, _summary: string): Promise<void> {
   // Client-side record export completed
 }

@@ -138,30 +138,27 @@ export default function CategoryActivityPage({ id }: { id: string }) {
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Back Link */}
       <Link
-        href={`/categories/${category.id}/edit`}
+        href="/categories"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
-        Back to edit {category.name}
+        Categories &amp; forms
       </Link>
 
       {/* Header action bar */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1 min-w-0">
-          <div className="flex items-center gap-2.5">
-            <h1 className="truncate font-heading text-xl sm:text-2xl font-medium text-foreground">
-              {category.name}
-            </h1>
-            <span className="shrink-0 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-xs font-semibold text-muted-foreground uppercase">
-              Form v{currentVer}
-            </span>
+        <div className="flex items-center gap-4">
+          <div>
+            <p className="text-xs font-semibold tracking-wider text-brand-gold uppercase">Activity Log</p>
+            <h1 className="font-heading text-2xl font-medium text-foreground sm:text-3xl">{category.name}</h1>
+            <p className="text-sm text-muted-foreground">
+              {activities.length} recorded event{activities.length === 1 ? "" : "s"} · current is{" "}
+              <span className="font-semibold text-foreground">v{currentVer}</span>
+            </p>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            {activities.length} recorded event{activities.length === 1 ? "" : "s"} in this category&apos;s history.
-          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             nativeButton={false}
@@ -183,7 +180,7 @@ export default function CategoryActivityPage({ id }: { id: string }) {
             render={<Link href={`/categories/${category.id}/edit`} />}
           >
             <Pencil className="size-4" />
-            Edit Category
+            Edit form (creates v{currentVer + 1})
           </Button>
         </div>
       </div>

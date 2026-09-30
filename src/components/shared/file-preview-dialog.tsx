@@ -7,14 +7,14 @@ import {
   Download,
   ZoomIn,
   ZoomOut,
-  X,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import { formatFileSize } from "@/utils/format";
 
 export interface PreviewableFile {
   id?: string;
+  fileId?: string;
   name: string;
   size: number;
   uploadedAt?: string;
@@ -44,73 +45,119 @@ function isPdfFile(filename: string): boolean {
   return getFileExtension(filename) === "pdf";
 }
 
-// Architectural sample preview images for mock files
-function getSampleFileUrl(filename: string): string {
-  const lower = filename.toLowerCase();
-  if (lower.includes("paint") || lower.includes("swatch") || lower.includes("color")) {
-    return "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=1400&auto=format&fit=crop";
-  }
-  if (lower.includes("roof") || lower.includes("tile") || lower.includes("shingle")) {
-    return "https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=1400&auto=format&fit=crop";
-  }
-  if (lower.includes("generator") || lower.includes("mechanical") || lower.includes("equipment")) {
-    return "https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=1400&auto=format&fit=crop";
-  }
-  if (lower.includes("survey") || lower.includes("plan") || lower.includes("drawing") || lower.includes("blueprint") || lower.includes("layout") || lower.includes("spec")) {
-    return "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1400&auto=format&fit=crop";
-  }
-  if (lower.includes("pool") || lower.includes("deck") || lower.includes("cage") || lower.includes("lanai") || lower.includes("spa")) {
-    return "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?q=80&w=1400&auto=format&fit=crop";
-  }
-  if (lower.includes("window") || lower.includes("door") || lower.includes("shutter")) {
-    return "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1400&auto=format&fit=crop";
-  }
-  if (lower.includes("landscape") || lower.includes("yard") || lower.includes("tree") || lower.includes("plant")) {
-    return "https://images.unsplash.com/photo-1558904541-efa8c4a08931?q=80&w=1400&auto=format&fit=crop";
-  }
-  return "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1400&auto=format&fit=crop";
-}
-
 export function FilePreviewDialog({
   file,
   open,
   onOpenChange,
+  onRequestDownloadUrl,
 }: {
   file: PreviewableFile | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Fetches a fresh short-lived SAS URL for a submitted file's id, in either
+   * disposition: "inline" so it renders in the iframe/img below instead of
+   * triggering a browser download, or "attachment" (only requested when the
+   * Download button is actually clicked) so that one reliably saves to disk
+   * even though it's a cross-origin blob-storage URL.
+   */
+  onRequestDownloadUrl?: (fileId: string, disposition: "inline" | "attachment") => Promise<string>;
 }) {
   const toast = useToast();
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [loadingUrl, setLoadingUrl] = useState(false);
+  const [urlError, setUrlError] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     setImageError(false);
+    setResolvedUrl(null);
+    setUrlError(false);
+    setZoom(1);
+
     if (file?.file) {
       const url = URL.createObjectURL(file.file);
       setObjectUrl(url);
       return () => URL.revokeObjectURL(url);
     }
-    setObjectUrl(file?.url ?? null);
-    setZoom(1);
-  }, [file]);
+    setObjectUrl(null);
+
+    if (!file) return;
+
+    const targetFileId = file.fileId || file.id;
+
+    if (targetFileId && onRequestDownloadUrl) {
+      let cancelled = false;
+      setLoadingUrl(true);
+      onRequestDownloadUrl(targetFileId, "inline")
+        .then((url) => {
+          if (!cancelled) {
+            setResolvedUrl(url);
+            setUrlError(false);
+          }
+        })
+        .catch((err) => {
+          if (!cancelled) {
+            console.error("Failed to fetch inline preview URL:", err);
+            if (!file.url) {
+              setUrlError(true);
+            }
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingUrl(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    } else if (!file.url && !file.file) {
+      setUrlError(true);
+    }
+  }, [file, onRequestDownloadUrl]);
 
   if (!file) return null;
 
   const ext = getFileExtension(file.name).toUpperCase() || "FILE";
   const isImage = isImageFile(file.name);
   const isPdf = isPdfFile(file.name);
-  const displayUrl = objectUrl || file.url || getSampleFileUrl(file.name);
+  const displayUrl = objectUrl || resolvedUrl || file.url;
 
-  function handleDownload() {
+  function triggerDownload(url: string) {
     toast.success("Download started", `Downloading ${file?.name}`);
     const a = document.createElement("a");
-    a.href = displayUrl;
+    a.href = url;
     a.download = file?.name || "document";
     a.target = "_blank";
     a.rel = "noopener noreferrer";
     a.click();
+  }
+
+  async function handleDownload() {
+    if (objectUrl) {
+      triggerDownload(objectUrl);
+      return;
+    }
+    const targetFileId = file?.fileId || file?.id;
+    if (targetFileId && onRequestDownloadUrl) {
+      setDownloading(true);
+      try {
+        const url = await onRequestDownloadUrl(targetFileId, "attachment");
+        triggerDownload(url);
+      } catch {
+        toast.error("Download unavailable", "The file link couldn't be loaded. Please try again.");
+      } finally {
+        setDownloading(false);
+      }
+      return;
+    }
+    if (displayUrl) {
+      triggerDownload(displayUrl);
+      return;
+    }
+    toast.error("Download unavailable", "The file link couldn't be loaded. Please try again.");
   }
 
   return (
@@ -141,34 +188,51 @@ export function FilePreviewDialog({
           </div>
 
           <div className="flex items-center gap-1.5 pr-8">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
-              aria-label="Zoom out"
-              title="Zoom out"
-              className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/70 dark:hover:bg-slate-800"
-            >
-              <ZoomOut className="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => setZoom((z) => Math.min(2.5, z + 0.25))}
-              aria-label="Zoom in"
-              title="Zoom in"
-              className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/70 dark:hover:bg-slate-800"
-            >
-              <ZoomIn className="size-4" />
-            </Button>
+            {isImage && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
+                  aria-label="Zoom out"
+                  title="Zoom out"
+                  className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/70 dark:hover:bg-slate-800"
+                >
+                  <ZoomOut className="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setZoom((z) => Math.min(2.5, z + 0.25))}
+                  aria-label="Zoom in"
+                  title="Zoom in"
+                  className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/70 dark:hover:bg-slate-800"
+                >
+                  <ZoomIn className="size-4" />
+                </Button>
+              </>
+            )}
+            {displayUrl && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => window.open(displayUrl, "_blank", "noopener,noreferrer")}
+                aria-label="Open in new window"
+                title="Open in new window"
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/70 dark:hover:bg-slate-800"
+              >
+                <ExternalLink className="size-4" />
+              </Button>
+            )}
             <Button
               variant="default"
               size="sm"
               onClick={handleDownload}
+              disabled={downloading || (!displayUrl && !file.id && !file.fileId)}
               aria-label={`Download ${file.name}`}
               className="gap-1.5 text-xs h-8 ml-2 shadow-2xs font-medium"
             >
-              <Download className="size-3.5" />
+              {downloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
               Download
             </Button>
           </div>
@@ -176,34 +240,89 @@ export function FilePreviewDialog({
 
         {/* Viewport Content */}
         <div className="relative flex-1 min-h-0 overflow-auto bg-slate-950/95 dark:bg-[#070d17] flex items-center justify-center p-4">
-          {isPdf && objectUrl && file.file ? (
-            <iframe
-              src={objectUrl}
-              title={file.name}
-              className="w-full h-full min-h-0 rounded-lg border-0 bg-white shadow-lg"
-            />
-          ) : isPdf && displayUrl ? (
-            <iframe
-              src={displayUrl}
-              title={file.name}
-              className="w-full h-full min-h-0 rounded-lg border-0 bg-white shadow-lg"
-            />
-          ) : imageError ? (
+          {loadingUrl ? (
             <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
-              <ImageIcon className="size-12 mb-2 opacity-40 text-slate-400" />
-              <p className="text-sm font-medium text-slate-300">Unable to load image preview</p>
-              <p className="text-xs text-slate-500 mt-1">The image file could not be displayed or the source is unavailable.</p>
+              <Loader2 className="size-8 mb-2 animate-spin" />
+              <p className="text-sm font-medium text-slate-300">Loading preview…</p>
             </div>
+          ) : urlError || !displayUrl ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
+              <FileText className="size-12 mb-2 opacity-40 text-slate-400" />
+              <p className="text-sm font-medium text-slate-300">Preview unavailable</p>
+              <p className="text-xs text-slate-500 mt-1">The file link could not be loaded. Please try again.</p>
+            </div>
+          ) : isPdf ? (
+            <div className="w-full h-full min-h-0 flex flex-col items-center justify-center relative bg-slate-900/50 rounded-lg overflow-hidden">
+              <object
+                data={`${displayUrl}#toolbar=1&navpanes=0`}
+                type="application/pdf"
+                className="w-full h-full min-h-0 rounded-lg border-0 bg-white"
+              >
+                <iframe
+                  src={`${displayUrl}#toolbar=1&navpanes=0`}
+                  title={file.name}
+                  className="w-full h-full min-h-0 rounded-lg border-0 bg-white"
+                >
+                  <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
+                    <FileText className="size-12 mb-2 opacity-40 text-slate-400" />
+                    <p className="text-sm font-medium text-slate-300">Unable to display PDF preview inline</p>
+                    <p className="text-xs text-slate-500 mt-1 mb-4">
+                      Your browser may not support embedding this PDF document.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(displayUrl, "_blank", "noopener,noreferrer")}
+                      className="gap-1.5 text-xs bg-white dark:bg-slate-800 text-foreground"
+                    >
+                      <ExternalLink className="size-3.5" />
+                      Open PDF in new tab
+                    </Button>
+                  </div>
+                </iframe>
+              </object>
+            </div>
+          ) : isImage ? (
+            imageError ? (
+              <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
+                <ImageIcon className="size-12 mb-2 opacity-40 text-slate-400" />
+                <p className="text-sm font-medium text-slate-300">Unable to load image preview</p>
+                <p className="text-xs text-slate-500 mt-1">The image file could not be displayed or the source is unavailable.</p>
+              </div>
+            ) : (
+              <div className="overflow-auto max-h-full max-w-full flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={displayUrl}
+                  alt={file.name}
+                  onError={() => setImageError(true)}
+                  style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
+                  className="max-h-full max-w-full rounded-lg object-contain shadow-2xl transition-transform duration-200 border border-white/10"
+                />
+              </div>
+            )
           ) : (
-            <div className="overflow-auto max-h-full max-w-full flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={displayUrl}
-                alt={file.name}
-                onError={() => setImageError(true)}
-                style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
-                className="max-h-full max-w-full rounded-lg object-contain shadow-2xl transition-transform duration-200 border border-white/10"
-              />
+            <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400 max-w-md">
+              <div className="flex size-16 items-center justify-center rounded-2xl bg-slate-800/80 border border-slate-700 text-slate-300 mb-4 shadow-lg">
+                <FileText className="size-8 text-primary" />
+              </div>
+              <p className="text-base font-semibold text-slate-200">{file.name}</p>
+              <p className="text-xs text-slate-400 mt-1">
+                {formatFileSize(file.size)} • {ext} Document
+              </p>
+              <p className="text-xs text-slate-500 mt-2 mb-6">
+                Direct inline preview is not supported for {ext} files in the browser. Download the file to view its full content.
+              </p>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleDownload}
+                disabled={downloading}
+                className="gap-2 text-xs font-medium"
+              >
+                {downloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+                Download Document
+              </Button>
             </div>
           )}
         </div>
