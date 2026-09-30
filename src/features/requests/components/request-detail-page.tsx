@@ -743,7 +743,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
         file={preview}
         open={!!preview}
         onOpenChange={(o) => !o && setPreview(null)}
-        onRequestDownloadUrl={(fileId, disposition) => getAdminFileDownloadUrl(req.id, fileId, disposition).then((r) => r.url)}
+        onRequestDownloadUrl={(fileId) => getAdminFileDownloadUrl(req.id, fileId).then((r) => r.url)}
       />
     </div>
   );

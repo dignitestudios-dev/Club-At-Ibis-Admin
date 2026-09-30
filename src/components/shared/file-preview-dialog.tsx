@@ -55,67 +55,101 @@ export function FilePreviewDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /**
-   * Fetches a fresh short-lived SAS URL for a submitted file's id, in either
-   * disposition: "inline" so it renders in the iframe/img below instead of
-   * triggering a browser download, or "attachment" (only requested when the
-   * Download button is actually clicked) so that one reliably saves to disk
-   * even though it's a cross-origin blob-storage URL.
+   * Fetches a fresh short-lived SAS URL for a submitted file's id. The
+   * backend always serves this with `Content-Disposition: attachment`
+   * (there's no inline-disposition option), which is exactly right for the
+   * Download button but means navigating an <iframe>/<object>/<img> straight
+   * to it just downloads the file instead of rendering it. We work around
+   * that client-side: fetch the URL's bytes ourselves and build a `blob:`
+   * object URL for display — a blob: URL never carries a
+   * Content-Disposition header, so it always renders inline regardless of
+   * what the origin server said. The raw SAS URL is still used, unfetched,
+   * for the actual Download button.
+   *
+   * Requires the Azure Storage Account/Container's CORS policy to allow GET
+   * requests from this app's origin — without that, this fetch fails with a
+   * CORS error and preview falls back to "Preview unavailable" (Download
+   * still works, since that's a plain navigation, not a fetch).
    */
-  onRequestDownloadUrl?: (fileId: string, disposition: "inline" | "attachment") => Promise<string>;
+  onRequestDownloadUrl?: (fileId: string) => Promise<string>;
 }) {
   const toast = useToast();
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
-  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [rawUrl, setRawUrl] = useState<string | null>(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [urlError, setUrlError] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [imageError, setImageError] = useState(false);
 
+  // Local in-memory file (not yet uploaded) — already a same-origin blob:
+  // URL, renders fine as-is.
   useEffect(() => {
-    setImageError(false);
-    setResolvedUrl(null);
-    setUrlError(false);
-    setZoom(1);
-
     if (file?.file) {
       const url = URL.createObjectURL(file.file);
       setObjectUrl(url);
       return () => URL.revokeObjectURL(url);
     }
     setObjectUrl(null);
+  }, [file]);
 
-    if (!file) return;
+  // Revoke the previous fetched preview blob whenever a new one replaces it
+  // (or the dialog closes/unmounts) — createObjectURL leaks otherwise.
+  useEffect(() => {
+    return () => {
+      if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+    };
+  }, [previewBlobUrl]);
 
-    const targetFileId = file.fileId || file.id;
+  useEffect(() => {
+    setImageError(false);
+    setPreviewBlobUrl(null);
+    setRawUrl(null);
+    setUrlError(false);
+    setZoom(1);
 
-    if (targetFileId && onRequestDownloadUrl) {
-      let cancelled = false;
+    if (!file || file.file) return;
+
+    let cancelled = false;
+
+    async function load() {
       setLoadingUrl(true);
-      onRequestDownloadUrl(targetFileId, "inline")
-        .then((url) => {
-          if (!cancelled) {
-            setResolvedUrl(url);
-            setUrlError(false);
+      try {
+        let remoteUrl = file!.url ?? null;
+        if (!remoteUrl) {
+          const targetFileId = file!.fileId || file!.id;
+          if (targetFileId && onRequestDownloadUrl) {
+            remoteUrl = await onRequestDownloadUrl(targetFileId);
           }
-        })
-        .catch((err) => {
-          if (!cancelled) {
-            console.error("Failed to fetch inline preview URL:", err);
-            if (!file.url) {
-              setUrlError(true);
-            }
-          }
-        })
-        .finally(() => {
-          if (!cancelled) setLoadingUrl(false);
-        });
-      return () => {
-        cancelled = true;
-      };
-    } else if (!file.url && !file.file) {
-      setUrlError(true);
+        }
+        if (!remoteUrl) {
+          if (!cancelled) setUrlError(true);
+          return;
+        }
+        if (!cancelled) setRawUrl(remoteUrl);
+
+        const res = await fetch(remoteUrl);
+        if (!res.ok) throw new Error(`Fetch failed (${res.status})`);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        if (cancelled) {
+          URL.revokeObjectURL(blobUrl);
+        } else {
+          setPreviewBlobUrl(blobUrl);
+        }
+      } catch (err) {
+        console.error("Failed to load file preview:", err);
+        if (!cancelled) setUrlError(true);
+      } finally {
+        if (!cancelled) setLoadingUrl(false);
+      }
     }
+    load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [file, onRequestDownloadUrl]);
 
   if (!file) return null;
@@ -123,7 +157,13 @@ export function FilePreviewDialog({
   const ext = getFileExtension(file.name).toUpperCase() || "FILE";
   const isImage = isImageFile(file.name);
   const isPdf = isPdfFile(file.name);
-  const displayUrl = objectUrl || resolvedUrl || file.url;
+  // What actually renders in the viewport: only same-origin/blob sources,
+  // never the raw cross-origin SAS URL (that would just download).
+  const displayUrl = objectUrl || previewBlobUrl;
+  // What "Open in new window" / Download use: prefer the rendered blob
+  // (so a new tab shows the file instead of downloading it too), otherwise
+  // fall back to the raw SAS URL.
+  const openUrl = displayUrl || rawUrl;
 
   function triggerDownload(url: string) {
     toast.success("Download started", `Downloading ${file?.name}`);
@@ -140,21 +180,21 @@ export function FilePreviewDialog({
       triggerDownload(objectUrl);
       return;
     }
+    if (rawUrl) {
+      triggerDownload(rawUrl);
+      return;
+    }
     const targetFileId = file?.fileId || file?.id;
     if (targetFileId && onRequestDownloadUrl) {
       setDownloading(true);
       try {
-        const url = await onRequestDownloadUrl(targetFileId, "attachment");
+        const url = await onRequestDownloadUrl(targetFileId);
         triggerDownload(url);
       } catch {
         toast.error("Download unavailable", "The file link couldn't be loaded. Please try again.");
       } finally {
         setDownloading(false);
       }
-      return;
-    }
-    if (displayUrl) {
-      triggerDownload(displayUrl);
       return;
     }
     toast.error("Download unavailable", "The file link couldn't be loaded. Please try again.");
@@ -212,11 +252,11 @@ export function FilePreviewDialog({
                 </Button>
               </>
             )}
-            {displayUrl && (
+            {openUrl && (
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => window.open(displayUrl, "_blank", "noopener,noreferrer")}
+                onClick={() => window.open(openUrl, "_blank", "noopener,noreferrer")}
                 aria-label="Open in new window"
                 title="Open in new window"
                 className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/70 dark:hover:bg-slate-800"
@@ -228,7 +268,7 @@ export function FilePreviewDialog({
               variant="default"
               size="sm"
               onClick={handleDownload}
-              disabled={downloading || (!displayUrl && !file.id && !file.fileId)}
+              disabled={downloading || (!rawUrl && !objectUrl && !file.id && !file.fileId)}
               aria-label={`Download ${file.name}`}
               className="gap-1.5 text-xs h-8 ml-2 shadow-2xs font-medium"
             >
