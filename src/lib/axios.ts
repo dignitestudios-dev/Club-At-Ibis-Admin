@@ -51,13 +51,16 @@ function handleForbidden() {
     })
   );
 
+  // Redirect to the dashboard and stop — never reload. Reloading re-fires
+  // every request a page makes on mount, including whichever one just came
+  // back 403; if that request is unconditional (not gated behind a
+  // permission check), a reload here turns one bad call into an infinite
+  // 403 -> reload -> 403 loop with the page stuck "loading" forever.
+  if (window.location.pathname !== "/dashboard") {
+    window.location.href = "/dashboard";
+  }
   setTimeout(() => {
     isHandling403 = false;
-    if (window.location.pathname !== "/dashboard") {
-      window.location.href = "/dashboard";
-    } else {
-      window.location.reload();
-    }
   }, 1500);
 }
 

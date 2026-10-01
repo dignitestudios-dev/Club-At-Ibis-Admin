@@ -28,7 +28,9 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   // exist system-wide. `limit: 1` keeps these background requests cheap.
   const { data: unassignedPage } = useRequestsPage({ status: "submitted", limit: 1 });
   const { data: resubmittedPage } = useRequestsPage({ status: "resubmitted", limit: 1 });
-  const { data: refundsAwaitingPage } = useRequestsPage({ refundOutcome: "awaiting", limit: 1 });
+  // The backend's refundOutcome filter uses "awaiting_refund_action", not
+  // the shorter "awaiting" the UI uses internally for RefundOutcome.
+  const { data: refundsAwaitingPage } = useRequestsPage({ refundOutcome: "awaiting_refund_action", limit: 1 });
   const { data: notifications } = useNotifications();
   const unassignedCount = unassignedPage?.pagination?.total ?? 0;
   const resubmittedCount = resubmittedPage?.pagination?.total ?? 0;
