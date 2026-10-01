@@ -212,14 +212,12 @@ export async function createReviewer(payload: ReviewerFormPayload): Promise<Publ
   const requestBody: Record<string, any> = {
     firstName,
     lastName,
+    // Sent even when blank so the key is always present on the wire.
+    employeeNumber: employeeNumber || "",
     email: payload.email.trim(),
     isDefaultReviewer: !!payload.receiveNewRequests,
   };
 
-  // These stay genuinely optional on the backend, so only send when filled.
-  if (employeeNumber) {
-    requestBody.employeeNumber = employeeNumber;
-  }
   if (designation) {
     requestBody.designation = designation;
   }
@@ -260,14 +258,10 @@ export async function updateReviewer(
   const requestBody: Record<string, any> = {
     firstName,
     lastName,
+    // Sent even when blank so the key is always present on the wire.
+    employeeNumber: employeeNumber || "",
     email: updates.email.trim(),
   };
-
-  if (updates.employeeNumber !== undefined) {
-    if (employeeNumber) {
-      requestBody.employeeNumber = employeeNumber;
-    }
-  }
 
   if (designation !== undefined) {
     requestBody.designation = designation;
