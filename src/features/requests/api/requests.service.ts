@@ -96,7 +96,9 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
     refund: raw.refund || (raw.refundStatus ? {
       outcome: raw.refundStatus,
       recordedBy: "Staff",
-      date: raw.refundDate || new Date().toISOString(),
+      // Never fabricate a "now" timestamp when the backend didn't send one —
+      // that would display as if the refund had just been recorded.
+      date: raw.refundDate || undefined,
     } : undefined),
     approvalLetter: raw.approvalLetter,
     letterEmail: raw.letterEmail,

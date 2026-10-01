@@ -338,7 +338,8 @@ interface RefundRecord {
   /** Optional proof of refund / supporting document uploaded by the reviewer. */
   proof?: AttachedFile;
   recordedBy: string;
-  date: string;
+  /** Not yet set for every outcome (e.g. a fresh "awaiting" record has no date until a reviewer acts) — never fabricate one for display. */
+  date?: string;
 }
 
 interface LetterEmailRecord {
