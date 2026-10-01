@@ -17,35 +17,81 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
-import { useRequests, useResidents, useReviewers } from "@/hooks/use-admin-data";
+import { useRequests, useRequestsPage, useResidents, useReviewers } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
-import { IN_FLIGHT, residentFullName } from "@/lib/domain";
+import { residentFullName } from "@/lib/domain";
 import { formatDateTime, formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
+
+// "submitted" with no assignedReviewerId is the same thing by the request
+// lifecycle (assignment moves a request out of "submitted"), so the intake
+// queue is just this one status filter — no "unassigned" query param needed.
+const INTAKE_STATUS = "submitted";
+const ASSIGNED_STATUSES = "assigned,under_review,changes_required,resubmitted,approved";
 
 export default function AssignmentsPage() {
   const router = useRouter();
   const toast = useToast();
-  const { data: requests, isLoading, isFetching, refetch } = useRequests();
-  const { data: residents } = useResidents();
-  const { data: reviewers } = useReviewers();
   const { values, set } = useUrlParams({ tab: "intake", page: "1" });
   const tab: "intake" | "assigned" | "activity" = values.tab === "assigned" || values.tab === "activity" ? values.tab : "intake";
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
   const [target, setTarget] = useState<RequestRecord | null>(null);
 
+  const isIntakeTab = tab === "intake";
+  const isAssignedTab = tab === "assigned";
+  const isActivityTab = tab === "activity";
+
+  const page = Math.max(1, Number(values.page) || 1);
+  const q = search.trim();
+  const qLower = q.toLowerCase();
+
+  // Intake/Assigned counts and table content both come from the same
+  // server-paginated query's `pagination.total` — never a single capped
+  // `useRequests()` fetch sliced on the client, which silently truncated
+  // both the counts and the visible rows once there were more than 20
+  // requests system-wide. The tab that isn't open only needs the total, so
+  // it's fetched with `limit: 1` to keep the background request cheap.
+  const {
+    data: intakePage,
+    isLoading: isLoadingIntake,
+    isFetching: isFetchingIntake,
+    refetch: refetchIntake,
+  } = useRequestsPage({
+    status: INTAKE_STATUS,
+    search: q || undefined,
+    page: isIntakeTab ? page : 1,
+    limit: isIntakeTab ? pageSize : 1,
+  });
+  const {
+    data: assignedPage,
+    isLoading: isLoadingAssigned,
+    isFetching: isFetchingAssigned,
+    refetch: refetchAssigned,
+  } = useRequestsPage({
+    status: ASSIGNED_STATUSES,
+    search: q || undefined,
+    page: isAssignedTab ? page : 1,
+    limit: isAssignedTab ? pageSize : 1,
+  });
+  // The assignment-activity tab has no dedicated backend endpoint — it's
+  // built by scanning every request's own history for assign/reassign
+  // events, so unlike the two tabs above it can't read a single
+  // pagination.total from one filtered query. It stays a bounded
+  // client-side aggregate (widened from the old default-20 fetch to 500)
+  // until a dedicated activity endpoint covers assignment events.
+  const { data: requests, isFetching: isFetchingActivity, refetch: refetchActivity } = useRequests({ limit: 500 });
+  const { data: residents } = useResidents();
+  const { data: reviewers } = useReviewers();
+
   const residentById = useMemo(() => new Map((residents ?? []).map((r) => [r.id, r])), [residents]);
   const reviewerById = useMemo(() => new Map((reviewers ?? []).map((r) => [r.id, r])), [reviewers]);
 
-  const all = requests ?? [];
-  const intake = all.filter((r) => r.status === "submitted" && !r.assignedReviewerId);
-  const assigned = all.filter((r) => r.assignedReviewerId && IN_FLIGHT.includes(r.status));
+  const intakeCount = intakePage?.pagination?.total ?? 0;
+  const assignedCount = assignedPage?.pagination?.total ?? 0;
   const activeReviewers = (reviewers ?? []).filter((r) => r.loginEnabled && r.inviteStatus === "active");
-
-  const q = search.trim().toLowerCase();
 
   // Every assignment / reassignment ever recorded, newest first.
   const activity = useMemo(() => {
@@ -58,22 +104,20 @@ export default function AssignmentsPage() {
     return out.sort((a, b) => b.event.createdAt.localeCompare(a.event.createdAt));
   }, [requests]);
   const activityRows = activity.filter(({ event, request }) => {
-    if (!q) return true;
-    return `${request.code} ${request.categoryName} ${event.actor.name} ${event.assignment?.from ?? ""} ${event.assignment?.to ?? ""}`.toLowerCase().includes(q);
+    if (!qLower) return true;
+    return `${request.code} ${request.categoryName} ${event.actor.name} ${event.assignment?.from ?? ""} ${event.assignment?.to ?? ""}`.toLowerCase().includes(qLower);
   });
 
-  const source = tab === "intake" ? intake : assigned;
-  const rows = tab === "activity" ? [] : source.filter((r) => {
-    if (!q) return true;
-    const res = residentById.get(r.residentId);
-    const rev = r.assignedReviewerId ? reviewerById.get(r.assignedReviewerId) : undefined;
-    return `${r.code} ${r.categoryName} ${residentFullName(res)} ${r.fieldValues.propertyAddress} ${rev?.name ?? ""}`.toLowerCase().includes(q);
-  });
-  const listLength = tab === "activity" ? activityRows.length : rows.length;
-  const pages = Math.max(1, Math.ceil(listLength / pageSize));
-  const page = Math.min(Math.max(1, Number(values.page) || 1), pages);
-  const visible = rows.slice((page - 1) * pageSize, page * pageSize);
-  const visibleActivity = activityRows.slice((page - 1) * pageSize, page * pageSize);
+  const rows = isIntakeTab ? intakePage?.requests ?? [] : isAssignedTab ? assignedPage?.requests ?? [] : [];
+  const total = isIntakeTab ? intakeCount : isAssignedTab ? assignedCount : activityRows.length;
+  const activityPages = Math.max(1, Math.ceil(activityRows.length / pageSize));
+  const activityPage = Math.min(page, activityPages);
+  const visibleActivity = activityRows.slice((activityPage - 1) * pageSize, activityPage * pageSize);
+  const displayPage = isActivityTab ? activityPage : page;
+
+  const isLoading = isIntakeTab ? isLoadingIntake : isAssignedTab ? isLoadingAssigned : false;
+  const isFetching = isIntakeTab ? isFetchingIntake : isAssignedTab ? isFetchingAssigned : isFetchingActivity;
+  const refetch = isIntakeTab ? refetchIntake : isAssignedTab ? refetchAssigned : refetchActivity;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -104,8 +148,8 @@ export default function AssignmentsPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Waiting In Intake" value={intake.length} icon={Inbox} accent="blue" hint="No owner yet" />
-        <StatCard label="Assigned · In Progress" value={assigned.length} icon={ListChecks} accent="navy" hint="Owned by a reviewer" />
+        <StatCard label="Waiting In Intake" value={intakeCount} icon={Inbox} accent="blue" hint="No owner yet" />
+        <StatCard label="Assigned · In Progress" value={assignedCount} icon={ListChecks} accent="navy" hint="Owned by a reviewer" />
         <StatCard label="Active Reviewers" value={activeReviewers.length} icon={Users} accent="emerald" hint="Can be assigned" />
         <StatCard label="Default Reviewers" value={activeReviewers.filter((r) => r.receiveNewRequests).length} icon={Route} accent="gold" hint="Receive new requests" />
       </div>
@@ -116,8 +160,8 @@ export default function AssignmentsPage() {
           value={tab}
           onChange={(v) => set({ tab: v, page: "1" })}
           options={[
-            { value: "intake", label: "Intake queue", icon: Inbox, count: intake.length },
-            { value: "assigned", label: "Assigned requests", icon: UserRoundCheck, count: assigned.length },
+            { value: "intake", label: "Intake queue", icon: Inbox, count: intakeCount },
+            { value: "assigned", label: "Assigned requests", icon: UserRoundCheck, count: assignedCount },
             { value: "activity", label: "Assignment activity", icon: History, count: activity.length },
           ]}
         />
@@ -209,7 +253,7 @@ export default function AssignmentsPage() {
               </Table>
             </div>
             <Pagination
-              page={page}
+              page={displayPage}
               pageSize={pageSize}
               total={activityRows.length}
               onPageChange={(p) => set({ page: String(p) })}
@@ -247,7 +291,7 @@ export default function AssignmentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visible.map((req) => {
+                {rows.map((req) => {
                   const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
                   const resName = residentFullName(residentById.get(req.residentId));
                   return (
@@ -301,9 +345,9 @@ export default function AssignmentsPage() {
             </Table>
           </div>
           <Pagination
-            page={page}
+            page={displayPage}
             pageSize={pageSize}
-            total={rows.length}
+            total={total}
             onPageChange={(p) => set({ page: String(p) })}
             onPageSizeChange={(n) => {
               setPageSize(n);

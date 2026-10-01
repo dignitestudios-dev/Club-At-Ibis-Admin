@@ -26,7 +26,7 @@ import { Pagination } from "@/components/shared/pagination";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useArchiveCategory, useCategories, useCategoriesPage, useRestoreCategory } from "@/hooks/use-admin-data";
+import { useArchiveCategory, useCategoriesPage, useRestoreCategory } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
@@ -51,8 +51,12 @@ export default function CategoriesPage() {
     status: tab,
   });
 
-  // Query full list for accurate counts on the Active / Archived tabs
-  const { data: allCategories, refetch: refetchAll } = useCategories();
+  // Active/Archived tab counts come from the same paginated endpoint's
+  // `pagination.total`, not a separately fetched, differently-capped full
+  // list that can drift from what the table actually shows. The tab that
+  // isn't open only needs the total, so it's fetched with `limit: 1`.
+  const { data: activeTotalsPage, refetch: refetchActiveTotals } = useCategoriesPage({ page: 1, limit: 1, search, status: "active" });
+  const { data: archivedTotalsPage, refetch: refetchArchivedTotals } = useCategoriesPage({ page: 1, limit: 1, search, status: "archived" });
   const archive = useArchiveCategory();
   const restore = useRestoreCategory();
 
@@ -62,8 +66,8 @@ export default function CategoriesPage() {
   const shown = pageResult?.categories ?? [];
   const total = pageResult?.pagination.total ?? 0;
 
-  const activeCount = allCategories ? allCategories.filter((c) => c.status === "active").length : undefined;
-  const archivedCount = allCategories ? allCategories.filter((c) => c.status === "archived").length : undefined;
+  const activeCount = activeTotalsPage?.pagination?.total;
+  const archivedCount = archivedTotalsPage?.pagination?.total;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -77,7 +81,7 @@ export default function CategoriesPage() {
               size="sm"
               onClick={async () => {
                 try {
-                  await Promise.all([refetch(), refetchAll()]);
+                  await Promise.all([refetch(), refetchActiveTotals(), refetchArchivedTotals()]);
                   toast.success("Categories refreshed");
                 } catch {
                   toast.error("Failed to refresh categories");

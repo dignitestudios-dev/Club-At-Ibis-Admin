@@ -5,8 +5,7 @@ import { usePathname } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { navGroups, type NavItem } from "@/components/shared/nav-items";
-import { useNotifications, useRequests } from "@/hooks/use-admin-data";
-import { attentionBuckets } from "@/lib/domain";
+import { useNotifications, useRequestsPage } from "@/hooks/use-admin-data";
 import { cn } from "@/utils/cn";
 
 function findActiveHref(pathname: string, items: NavItem[]): string | null {
@@ -22,12 +21,21 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const allItems = navGroups.flatMap((g) => g.items);
   const activeHref = findActiveHref(pathname, allItems);
 
-  const { data: requests } = useRequests();
+  // Each bucket's count comes straight from its own filtered query's
+  // `pagination.total` — not `.length` of one capped, unfiltered
+  // `useRequests()` fetch — so the sidebar badge always matches what that
+  // bucket's own list page actually shows, no matter how many requests
+  // exist system-wide. `limit: 1` keeps these background requests cheap.
+  const { data: unassignedPage } = useRequestsPage({ status: "submitted", limit: 1 });
+  const { data: resubmittedPage } = useRequestsPage({ status: "resubmitted", limit: 1 });
+  const { data: refundsAwaitingPage } = useRequestsPage({ refundOutcome: "awaiting", limit: 1 });
   const { data: notifications } = useNotifications();
-  const buckets = requests ? attentionBuckets(requests) : null;
+  const unassignedCount = unassignedPage?.pagination?.total ?? 0;
+  const resubmittedCount = resubmittedPage?.pagination?.total ?? 0;
+  const refundsAwaitingCount = refundsAwaitingPage?.pagination?.total ?? 0;
   const counts = {
-    attention: buckets ? buckets.unassigned.length + buckets.resubmitted.length + buckets.refundsAwaiting.length : 0,
-    intake: buckets ? buckets.unassigned.length : 0,
+    attention: unassignedCount + resubmittedCount + refundsAwaitingCount,
+    intake: unassignedCount,
     notifications: notifications?.filter((n) => !n.read).length ?? 0,
   };
 
