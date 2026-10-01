@@ -112,7 +112,9 @@ export function RequestJourney({ request }: { request: RequestRecord }) {
                 step.state === "current" && "border-primary bg-card text-primary ring-4 ring-primary/15 dark:border-amber-400 dark:text-amber-300 dark:ring-amber-400/20",
                 step.state === "todo" && "border-border bg-card text-muted-foreground",
                 step.state === "skipped" && "border-dashed border-border bg-muted text-muted-foreground",
-                step.state === "stopped" && "border-rose-400 bg-rose-50 text-rose-600 dark:bg-rose-950/50"
+                // Fully opaque in both themes — a translucent fill here lets
+                // the connector line behind the circle show through it.
+                step.state === "stopped" && "border-rose-400 bg-rose-50 text-rose-600 dark:border-rose-400 dark:bg-rose-100 dark:text-rose-700"
               )}
             >
               {step.state === "done" ? (

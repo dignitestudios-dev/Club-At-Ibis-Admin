@@ -215,6 +215,32 @@ export default function RequestDetailPage({ id }: { id: string }) {
       )}
 
       {/* Alerts */}
+      {(req.status === "changes_required" || req.status === "resubmitted") && req.feedback && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-300/80 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
+          <FileEdit className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+          <div className="flex-1 text-sm">
+            <p className="font-semibold text-amber-950 dark:text-amber-200">
+              {req.status === "resubmitted" ? "Resident resubmitted corrections" : "Revision requested"}
+            </p>
+            <p className="mt-0.5 text-amber-900/90 dark:text-amber-300/90 break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
+              <span className="font-semibold">Reviewer Instructions: </span>{req.feedback}
+            </p>
+          </div>
+        </div>
+      )}
+      {req.status === "rejected" && req.rejectionReason && (
+        <div className="flex items-start gap-3 rounded-2xl border border-rose-300/80 bg-rose-50 p-4 dark:border-rose-900 dark:bg-rose-950/30">
+          <XCircle className="mt-0.5 size-5 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden="true" />
+          <div className="flex-1 text-sm">
+            <p className="font-semibold text-rose-950 dark:text-rose-200">
+              Rejected{req.decidedAt && ` on ${formatDate(req.decidedAt)}`}
+            </p>
+            <p className="mt-0.5 text-rose-900/90 dark:text-rose-300/90 break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
+              {req.rejectionReason}
+            </p>
+          </div>
+        </div>
+      )}
       {req.status === "withdrawn" && (
         <div className="flex items-start gap-3 rounded-2xl border border-slate-300/80 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/50">
           <Ban className="mt-0.5 size-5 shrink-0 text-slate-600 dark:text-slate-300" aria-hidden="true" />
@@ -397,12 +423,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
                         {value ? value : <span className="text-muted-foreground italic">Not provided</span>}
                       </dd>
                       {review?.state === "flagged" && review.reason && (
-                        <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 break-words [overflow-wrap:anywhere]">
+                        <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 min-w-0 break-words [overflow-wrap:anywhere]">
                           <p className="font-semibold flex items-center gap-1.5 mb-1 text-amber-800 dark:text-amber-300">
-                            <Flag className="size-3.5" />
+                            <Flag className="size-3.5 shrink-0" />
                             Reviewer correction note {review.reviewer ? `(by ${review.reviewer})` : ""}:
                           </p>
-                          <p className="whitespace-pre-wrap">{review.reason}</p>
+                          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{review.reason}</p>
                         </div>
                       )}
                     </div>
@@ -423,9 +449,9 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 const files = req.uploads[field.id] ?? [];
                 const review = req.itemReviews[field.id];
                 return (
-                  <div key={field.id} className="space-y-2.5 py-4">
+                  <div key={field.id} className="space-y-2.5 py-4 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground">{field.label}</p>
+                      <p className="text-sm font-semibold text-foreground break-words [overflow-wrap:anywhere]">{field.label}</p>
                       <span className="text-[11px] text-muted-foreground">{field.required ? "Required" : "Optional"}</span>
                       <ReviewState review={review} />
                     </div>
@@ -446,12 +472,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
                       </div>
                     ))}
                     {review?.state === "flagged" && review.reason && (
-                      <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 break-words [overflow-wrap:anywhere]">
+                      <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 min-w-0 break-words [overflow-wrap:anywhere]">
                         <p className="font-semibold flex items-center gap-1.5 mb-1 text-amber-800 dark:text-amber-300">
-                          <Flag className="size-3.5" />
+                          <Flag className="size-3.5 shrink-0" />
                           Reviewer correction note {review.reviewer ? `(by ${review.reviewer})` : ""}:
                         </p>
-                        <p className="whitespace-pre-wrap">{review.reason}</p>
+                        <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{review.reason}</p>
                       </div>
                     )}
                   </div>
@@ -541,17 +567,17 @@ export default function RequestDetailPage({ id }: { id: string }) {
             </CardHeader>
             <CardContent className="space-y-5 pt-5">
               {req.status === "rejected" && req.rejectionReason && (
-                <div className="rounded-xl border border-rose-300/70 bg-rose-50 p-4 dark:border-rose-900/70 dark:bg-rose-950/30">
+                <div className="rounded-xl border border-rose-300/70 bg-rose-50 p-4 dark:border-rose-900/70 dark:bg-rose-950/30 min-w-0 break-words [overflow-wrap:anywhere]">
                   <p className="flex items-center gap-2 text-sm font-semibold text-rose-950 dark:text-rose-200">
-                    <XCircle className="size-4" aria-hidden="true" /> Rejection reason
+                    <XCircle className="size-4 shrink-0" aria-hidden="true" /> Rejection reason
                   </p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-rose-900/90 dark:text-rose-300/90">{req.rejectionReason}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-rose-900/90 dark:text-rose-300/90 break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap">{req.rejectionReason}</p>
                 </div>
               )}
               {(req.status === "changes_required" || req.status === "resubmitted" || (req.review && flaggedCount > 0)) && (
-                <div className="rounded-xl border border-amber-300/70 bg-amber-50 p-4 dark:border-amber-800/70 dark:bg-amber-950/30">
+                <div className="rounded-xl border border-amber-300/70 bg-amber-50 p-4 dark:border-amber-800/70 dark:bg-amber-950/30 min-w-0 break-words [overflow-wrap:anywhere]">
                   <p className="flex items-center gap-2 text-sm font-semibold text-amber-950 dark:text-amber-200">
-                    <FileEdit className="size-4" aria-hidden="true" />
+                    <FileEdit className="size-4 shrink-0" aria-hidden="true" />
                     {req.status === "resubmitted"
                       ? "Resident resubmitted corrections"
                       : req.status === "changes_required"
@@ -559,28 +585,28 @@ export default function RequestDetailPage({ id }: { id: string }) {
                         : `Active review round · ${flaggedCount} flagged item${flaggedCount === 1 ? "" : "s"}`}
                   </p>
                   {req.review?.items && req.review.items.filter((it) => it.decision === "flagged").length > 0 ? (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-2 min-w-0">
                       {req.review.items
                         .filter((it) => it.decision === "flagged")
                         .map((it) => (
                           <div
                             key={it.fieldId}
-                            className="rounded-lg bg-card/70 p-3 text-xs border border-amber-200/80 dark:border-amber-900/60"
+                            className="rounded-lg bg-card/70 p-3 text-xs border border-amber-200/80 dark:border-amber-900/60 min-w-0 break-words [overflow-wrap:anywhere]"
                           >
                             <div className="flex flex-wrap items-center justify-between gap-1 font-semibold text-foreground">
-                              <span>{it.label}</span>
+                              <span className="break-words [overflow-wrap:anywhere]">{it.label}</span>
                               {it.decidedBy && (
                                 <span className="font-normal text-[10px] text-muted-foreground">
                                   Flagged by {it.decidedBy.displayName} {it.decidedAt ? `· ${formatDateTime(it.decidedAt)}` : ""}
                                 </span>
                               )}
                             </div>
-                            <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{it.reason || "Reviewer flagged this field for correction."}</p>
+                            <p className="mt-1 text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{it.reason || "Reviewer flagged this field for correction."}</p>
                           </div>
                         ))}
                     </div>
                   ) : (
-                    <p className="mt-1.5 text-sm text-amber-900/90 dark:text-amber-300/90 whitespace-pre-wrap">
+                    <p className="mt-1.5 text-sm text-amber-900/90 dark:text-amber-300/90 whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">
                       {req.feedback || "Corrections requested by reviewer."}
                     </p>
                   )}

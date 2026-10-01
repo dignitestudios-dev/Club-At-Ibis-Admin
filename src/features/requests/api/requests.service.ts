@@ -79,14 +79,18 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
     hoaConfirmedAt: raw.hoaConfirmedAt || raw.createdAt || new Date().toISOString(),
     submittedAt: raw.submittedAt || raw.createdAt || new Date().toISOString(),
     updatedAt: raw.updatedAt || new Date().toISOString(),
-    decidedAt: raw.decidedAt,
+    // The decision (approve/reject) lives under `raw.decision`, not at the
+    // top level — `raw.rejectionReason`/`raw.decidedAt` don't exist on the
+    // real response, so reading them directly always came back undefined
+    // and the rejection reason never showed up here.
+    decidedAt: raw.decision?.decidedAt || raw.decidedAt,
     completedAt: raw.completedAt,
     withdrawnAt: raw.withdrawnAt,
     withdrawnFrom: raw.withdrawnFrom,
     // The current round's general feedback lives under `revision.feedback`,
     // not a top-level `feedback` key on the real response.
     feedback: raw.revision?.feedback || raw.feedback || undefined,
-    rejectionReason: raw.rejectionReason,
+    rejectionReason: raw.decision?.rejectionReason || raw.rejectionReason,
     deposit: raw.deposit || {
       required: !!raw.depositRequired,
       amount: raw.depositAmount,

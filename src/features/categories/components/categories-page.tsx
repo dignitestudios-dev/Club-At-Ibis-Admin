@@ -125,10 +125,34 @@ export default function CategoriesPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-52 rounded-2xl" />
-          ))}
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card p-5 shadow-2xs">
+                <div className="flex items-center justify-between gap-3">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-7 w-7 rounded-md" />
+                </div>
+                <div className="mt-4 flex-1 space-y-2">
+                  <Skeleton className="h-5 w-3/4 rounded-md" />
+                  <Skeleton className="h-4 w-full rounded-md" />
+                  <Skeleton className="h-4 w-2/3 rounded-md" />
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                  <Skeleton className="h-6 w-12 rounded-full" />
+                </div>
+                <div className="mt-4 flex items-center justify-end border-t border-border/70 pt-3">
+                  <Skeleton className="h-3.5 w-28 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <Skeleton className="h-4 w-48 rounded-md" />
+            <Skeleton className="h-8 w-56 rounded-md" />
+          </div>
         </div>
       ) : shown.length === 0 ? (
         <EmptyState

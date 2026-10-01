@@ -124,7 +124,7 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
                   {event.type === "item_flagged" && (
                     <span className="font-semibold block mb-0.5 text-amber-800 dark:text-amber-300">Correction Note:</span>
                   )}
-                  <p className="whitespace-pre-wrap">{event.detail}</p>
+                  <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{event.detail}</p>
                 </div>
               )}
 

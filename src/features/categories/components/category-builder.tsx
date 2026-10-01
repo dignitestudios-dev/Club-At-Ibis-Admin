@@ -354,9 +354,15 @@ function FieldPreview({ field }: { field: DraftField }) {
     return (
       <ul className="space-y-1">
         {(field.options ?? []).slice(0, 4).map((o, i) => (
-          <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-            {field.type === "radio" ? <span className="size-3.5 rounded-full border-2 border-muted-foreground/40" /> : field.type === "checkbox" ? <span className="size-3.5 rounded-[3px] border-2 border-muted-foreground/40" /> : <span className="w-3.5 text-center text-xs">{i + 1}.</span>}
-            {o || <span className="italic">Empty option</span>}
+          <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
+            {field.type === "radio" ? (
+              <span className="size-3.5 shrink-0 rounded-full border-2 border-muted-foreground/40" />
+            ) : field.type === "checkbox" ? (
+              <span className="size-3.5 shrink-0 rounded-[3px] border-2 border-muted-foreground/40" />
+            ) : (
+              <span className="w-3.5 shrink-0 text-center text-xs">{i + 1}.</span>
+            )}
+            <span className="min-w-0 break-words [overflow-wrap:anywhere]">{o || <span className="italic">Empty option</span>}</span>
           </li>
         ))}
         {(field.options ?? []).length > 4 && <li className="pl-5 text-xs text-muted-foreground">+ {(field.options ?? []).length - 4} more</li>}
@@ -456,24 +462,105 @@ function FieldCard({
       <div className="min-w-0 flex-1">
         {!active ? (
           /* Collapsed: click to edit */
-          <div role="button" tabIndex={0} onClick={disabled ? undefined : onActivate} onKeyDown={(e) => !disabled && (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onActivate())} className="w-full cursor-pointer space-y-2 px-5 py-4 text-left outline-none focus-visible:bg-muted/40">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={cn("text-base font-medium", field.label ? "text-foreground" : "text-muted-foreground italic")}>
-                {field.label || "Untitled field"}
-              </span>
-              {field.required && <RequiredMark />}
-              <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary dark:text-amber-300">
-                <Icon className="size-3" aria-hidden="true" />
-                {meta.label}
-              </span>
-              <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover/field:opacity-100">
-                <Pencil className="size-3" aria-hidden="true" />
-                Edit
-              </span>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={disabled ? undefined : onActivate}
+            onKeyDown={(e) => !disabled && (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onActivate())}
+            className="w-full cursor-pointer space-y-2.5 px-5 py-3.5 text-left outline-none focus-visible:bg-muted/40"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                <span className={cn("text-base font-medium break-words [overflow-wrap:anywhere]", field.label ? "text-foreground" : "text-muted-foreground italic")}>
+                  {field.label || "Untitled field"}
+                </span>
+                {field.required && <RequiredMark />}
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary dark:text-amber-300">
+                  <Icon className="size-3" aria-hidden="true" />
+                  {meta.label}
+                </span>
+              </div>
+
+              {/* Collapsed actions: sort up/down, duplicate, delete, edit */}
+              <div className="flex shrink-0 items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMove(-1);
+                  }}
+                  disabled={disabled || index === 0}
+                  aria-label="Move field up"
+                  title="Move up"
+                  className="size-8 text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowUp className="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMove(1);
+                  }}
+                  disabled={disabled || index === total - 1}
+                  aria-label="Move field down"
+                  title="Move down"
+                  className="size-8 text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowDown className="size-4" />
+                </Button>
+                <span className="mx-1 h-4 w-px bg-border/70" aria-hidden="true" />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDuplicate();
+                  }}
+                  disabled={disabled}
+                  aria-label="Duplicate field"
+                  title="Duplicate"
+                  className="size-8 text-muted-foreground hover:text-foreground"
+                >
+                  <Copy className="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove();
+                  }}
+                  disabled={disabled}
+                  aria-label="Remove field"
+                  title="Delete field"
+                  className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onActivate();
+                  }}
+                  disabled={disabled}
+                  aria-label="Edit field"
+                  title="Edit field"
+                  className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Pencil className="size-3" aria-hidden="true" />
+                  <span>Edit</span>
+                </Button>
+              </div>
             </div>
+
             {field.helpText && <p className="text-xs break-all text-muted-foreground">{field.helpText}</p>}
             <FieldPreview field={field} />
-            {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
+            {error && <p className="text-xs text-destructive break-words [overflow-wrap:anywhere]" role="alert">{error}</p>}
           </div>
         ) : (
           /* Expanded editor */
