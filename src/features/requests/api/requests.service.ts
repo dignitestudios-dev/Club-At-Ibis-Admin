@@ -83,7 +83,9 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
     completedAt: raw.completedAt,
     withdrawnAt: raw.withdrawnAt,
     withdrawnFrom: raw.withdrawnFrom,
-    feedback: raw.feedback,
+    // The current round's general feedback lives under `revision.feedback`,
+    // not a top-level `feedback` key on the real response.
+    feedback: raw.revision?.feedback || raw.feedback || undefined,
     rejectionReason: raw.rejectionReason,
     deposit: raw.deposit || {
       required: !!raw.depositRequired,
@@ -121,6 +123,7 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
         assignment: h.details?.assignment || h.assignment,
         staffOnly: !!(h.details?.staffOnly || h.staffOnly),
         flaggedItems: Array.isArray(h.details?.flaggedItems) ? h.details.flaggedItems : undefined,
+        feedback: h.details?.feedback || undefined,
         submissionNumber: typeof h.details?.submissionNumber === "number" ? h.details.submissionNumber : undefined,
       };
     }) : (Array.isArray(raw.activity) ? raw.activity.map((a: any) => ({

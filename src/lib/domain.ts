@@ -208,6 +208,14 @@ export function flaggedItemsForSubmission(req: RequestRecord, submissionNumber: 
   return new Map((event?.flaggedItems ?? []).map((item) => [item.fieldId, item.reason]));
 }
 
+/** The reviewer's general feedback for a given submission round — same "revision-requested" history event flaggedItemsForSubmission reads, since submissions[] never carries it either. */
+export function feedbackForSubmission(req: RequestRecord, submissionNumber: number): string | undefined {
+  const event = req.history.find(
+    (e) => e.type === "revision_requested" && e.submissionNumber === submissionNumber
+  );
+  return event?.feedback || undefined;
+}
+
 /* ------------------------------------------------------------------ */
 /* CSV export                                                          */
 /* ------------------------------------------------------------------ */

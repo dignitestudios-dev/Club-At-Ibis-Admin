@@ -342,6 +342,7 @@ function FileConfig({ field, onPatch, disabled = false }: { field: DraftField; o
           })}
         </div>
       )}
+      <p className="text-[11px] text-muted-foreground">Maximum file size: 30MB per file. Enforced on the resident&apos;s upload form.</p>
     </div>
   );
 }
@@ -365,7 +366,7 @@ function FieldPreview({ field }: { field: DraftField }) {
   if (field.type === "file") {
     return (
       <p className="text-xs text-muted-foreground">
-        Upload · {describeAccept(field.accept)} · one file
+        Upload · {describeAccept(field.accept)} · one file · max 30MB
       </p>
     );
   }

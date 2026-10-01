@@ -5,7 +5,7 @@ import { ChevronDown, Eye, FileText, Flag, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { PreviewableFile } from "@/components/shared/file-preview-dialog";
-import { earlierSubmissions, flaggedItemsForSubmission } from "@/lib/domain";
+import { earlierSubmissions, feedbackForSubmission, flaggedItemsForSubmission } from "@/lib/domain";
 import { formatDateTime, formatFileSize } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
@@ -47,6 +47,7 @@ function SubmissionRow({
   // `submissions[]` never carries per-round item reviews — reconstructed
   // from the "revision-requested" history event recorded for this round.
   const flaggedReasons = flaggedItemsForSubmission(request, submission.number);
+  const feedback = feedbackForSubmission(request, submission.number);
 
   function renderFieldItem(field: CategoryField) {
     const reason = flaggedReasons.get(field.id);
@@ -117,6 +118,11 @@ function SubmissionRow({
 
       {open && (
         <div className="space-y-4 border-t border-border/70 px-4 py-4">
+          {feedback && (
+            <div className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs whitespace-pre-line break-words [overflow-wrap:anywhere] text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200">
+              <span className="font-semibold">Feedback sent to the resident:</span> {feedback}
+            </div>
+          )}
           {answerItems.length > 0 && (
             <div className="space-y-2">
               <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Answers</p>

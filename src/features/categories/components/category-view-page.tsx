@@ -614,6 +614,7 @@ function DisabledFieldRenderer({ field }: { field: CategoryField }) {
             <p className="mt-0.5 text-xs text-muted-foreground">
               {describeAccept(field.accept)}
               {field.multiple ? " · Multiple files allowed" : " · Single file"}
+              {" · max 30MB per file"}
             </p>
           </div>
         </div>
