@@ -186,11 +186,17 @@ function ResidentWizardView({
     ];
   }, [commonFields]);
 
-  // 2. Step 2: Dynamic fields (category specific fields)
-  // 3. Step 3: Review & Submit
+  // 2. Step 2: Dynamic fields (category specific, non-file fields)
+  // 3. Step 3: Documents — every file-type field, common or category-specific,
+  //    gets its own step here, same as the resident app's actual 4-step wizard.
+  // 4. Step 4: Review & Submit
+  const categorySpecFields = useMemo(() => dynamicFields.filter((f) => f.type !== "file"), [dynamicFields]);
+  const documentFields = useMemo(() => dynamicFields.filter((f) => f.type === "file"), [dynamicFields]);
+
   const stepperSteps = useMemo(() => [
     { id: "common-info", title: "Project Information" },
     { id: "category-specs", title: "Category Details" },
+    { id: "documents", title: "Documents" },
     { id: "review-submit", title: "Review & Submit" },
   ], []);
 
@@ -317,13 +323,13 @@ function ResidentWizardView({
                 {categoryName} Details
               </h2>
               <p className="text-sm text-muted-foreground">
-                {dynamicFields.length === 0
+                {categorySpecFields.length === 0
                   ? "No additional category-specific fields configured."
-                  : "Provide specific details and required documents for this category."}
+                  : "Provide specific details for this category."}
               </p>
             </div>
 
-            {dynamicFields.length === 0 ? (
+            {categorySpecFields.length === 0 ? (
               <div className="rounded-xl border-2 border-dashed border-border py-12 text-center">
                 <p className="text-sm font-medium text-foreground">No additional custom fields</p>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -332,7 +338,7 @@ function ResidentWizardView({
               </div>
             ) : (
               <div className="space-y-5">
-                {dynamicFields.map((field) => (
+                {categorySpecFields.map((field) => (
                   <div key={field.id}>
                     <DisabledFieldRenderer field={field} />
                   </div>
@@ -343,9 +349,44 @@ function ResidentWizardView({
         )}
 
         {/* ========================================================= */}
-        {/* Step 3: Review & Submit                                   */}
+        {/* Step 3: Documents                                         */}
         {/* ========================================================= */}
         {stepIndex === 2 && (
+          <div className="space-y-5 animate-in fade-in">
+            <div>
+              <h2 className="font-heading text-xl font-medium text-foreground">
+                Documents
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {documentFields.length === 0
+                  ? "No documents are required for this category."
+                  : "Upload the required documents and photos."}
+              </p>
+            </div>
+
+            {documentFields.length === 0 ? (
+              <div className="rounded-xl border-2 border-dashed border-border py-12 text-center">
+                <p className="text-sm font-medium text-foreground">No document fields configured</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  This category doesn&apos;t require any file uploads.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {documentFields.map((field) => (
+                  <div key={field.id}>
+                    <DisabledFieldRenderer field={field} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* Step 4: Review & Submit                                   */}
+        {/* ========================================================= */}
+        {stepIndex === 3 && (
           <div className="space-y-6 animate-in fade-in">
             <div>
               <h2 className="font-heading text-xl font-medium text-foreground">
@@ -371,17 +412,30 @@ function ResidentWizardView({
                 </dl>
               </div>
 
-              {/* Dynamic fields summary */}
-              {dynamicFields.length > 0 && (
+              {/* Category-specific fields summary */}
+              {categorySpecFields.length > 0 && (
                 <div className="space-y-2.5">
-                  <p className="text-sm font-semibold text-foreground">{categoryName} Specifications</p>
+                  <p className="text-sm font-semibold text-foreground">Category Details</p>
                   <dl className="grid gap-3.5 rounded-xl border border-border bg-card p-4 shadow-2xs">
-                    {dynamicFields.map((field) => (
+                    {categorySpecFields.map((field) => (
                       <div key={field.id} className="space-y-0.5">
                         <dt className="text-xs font-medium text-muted-foreground">{field.label}</dt>
-                        <dd className="mt-0.5 text-sm font-medium text-foreground">
-                          {field.type === "file" ? "No documents attached" : "—"}
-                        </dd>
+                        <dd className="mt-0.5 text-sm font-medium text-foreground">—</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+
+              {/* Documents summary */}
+              {documentFields.length > 0 && (
+                <div className="space-y-2.5">
+                  <p className="text-sm font-semibold text-foreground">Documents</p>
+                  <dl className="grid gap-3.5 rounded-xl border border-border bg-card p-4 shadow-2xs">
+                    {documentFields.map((field) => (
+                      <div key={field.id} className="space-y-0.5">
+                        <dt className="text-xs font-medium text-muted-foreground">{field.label}</dt>
+                        <dd className="mt-0.5 text-sm font-medium text-foreground">No documents attached</dd>
                       </div>
                     ))}
                   </dl>
