@@ -17,6 +17,7 @@ import {
   Pencil,
   Plus,
   Save,
+  ScrollText,
   Trash2,
   X,
 } from "lucide-react";
@@ -45,19 +46,26 @@ export function CategoryBuilderSkeleton({ editing = false }: { editing?: boolean
       <Skeleton className="h-4 w-36 rounded" />
 
       {/* Sticky action bar skeleton */}
-      <div className="sticky top-[4.5rem] z-20 flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/95 px-4 py-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1.5">
+      <div className="sticky top-[4.5rem] z-20 flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/95 px-4 py-3 shadow-sm backdrop-blur">
+        <div className="min-w-0 flex-1 space-y-1.5">
           <Skeleton className="h-6 w-48 rounded" />
           <Skeleton className="h-3.5 w-64 rounded" />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Skeleton className="h-9 w-24 rounded-xl" />
-          {editing && <Skeleton className="h-9 w-28 rounded-xl" />}
-          {editing && <Skeleton className="h-9 w-24 rounded-xl" />}
-          <Skeleton className="h-9 w-16 rounded-xl" />
-          <Skeleton className="h-9 w-28 rounded-xl" />
+          {editing ? (
+            <>
+              <Skeleton className="h-9 w-32 rounded-xl" />
+              <Skeleton className="h-9 w-32 rounded-xl" />
+              <Skeleton className="h-9 w-28 rounded-xl" />
+            </>
+          ) : (
+            <Skeleton className="h-9 w-20 rounded-xl" />
+          )}
+          <Skeleton className="h-9 w-32 rounded-xl" />
         </div>
       </div>
+
+      {editing && <Skeleton className="h-16 w-full rounded-2xl" />}
 
       {/* Category details card */}
       <Card className="shadow-2xs">
@@ -1023,18 +1031,24 @@ function BuilderForm({
           {editing && existing && (
             <>
               <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href={`/categories/${existing.id}/activity`} />}>
-                <History className="size-4" />
+                <ScrollText className="size-4" />
                 View Activity
               </Button>
               <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href={`/categories/${existing.id}`} />}>
                 <Eye className="size-4" />
                 Preview Form
               </Button>
+              <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href={`/categories/${existing.id}/versions`} />}>
+                <History className="size-4" />
+                Versions
+              </Button>
             </>
           )}
-          <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href="/categories" />}>
-            Cancel
-          </Button>
+          {!editing && (
+            <Button variant="outline" disabled={saving} nativeButton={false} render={<Link href="/categories" />}>
+              Cancel
+            </Button>
+          )}
           <Button onClick={save} disabled={saving || !dirty}>
             {saving ? <Spinner className="size-4" /> : <Save className="size-4" />}
             {editing ? "Save Changes" : "Save Category"}

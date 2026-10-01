@@ -279,7 +279,7 @@ export function FilePreviewDialog({
         </DialogHeader>
 
         {/* Viewport Content */}
-        <div className="relative flex-1 min-h-0 overflow-auto bg-slate-950/95 dark:bg-[#070d17] flex items-center justify-center p-4">
+        <div className="relative flex-1 min-h-0 min-w-0 overflow-auto bg-slate-950/95 dark:bg-[#070d17] flex items-center justify-center p-4">
           {loadingUrl ? (
             <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
               <Loader2 className="size-8 mb-2 animate-spin" />
@@ -292,16 +292,21 @@ export function FilePreviewDialog({
               <p className="text-xs text-slate-500 mt-1">The file link could not be loaded. Please try again.</p>
             </div>
           ) : isPdf ? (
-            <div className="w-full h-full min-h-0 flex flex-col items-center justify-center relative bg-slate-900/50 rounded-lg overflow-hidden">
+            <div className="w-full h-full min-h-0 min-w-0 flex flex-col items-center justify-center relative bg-slate-900/50 rounded-lg overflow-hidden">
+              {/* `view=FitH` pins the viewer to fit-width — without it Chrome's
+                  built-in PDF viewer falls back to "Automatic" zoom, which
+                  fits to height on a tall page and leaves the page wider than
+                  the pane, horizontally scrolled off-center with a stray
+                  scrollbar instead of showing the full width. */}
               <object
-                data={`${displayUrl}#toolbar=1&navpanes=0`}
+                data={`${displayUrl}#toolbar=1&navpanes=0&view=FitH`}
                 type="application/pdf"
-                className="w-full h-full min-h-0 rounded-lg border-0 bg-white"
+                className="w-full h-full min-h-0 min-w-0 rounded-lg border-0 bg-white"
               >
                 <iframe
-                  src={`${displayUrl}#toolbar=1&navpanes=0`}
+                  src={`${displayUrl}#toolbar=1&navpanes=0&view=FitH`}
                   title={file.name}
-                  className="w-full h-full min-h-0 rounded-lg border-0 bg-white"
+                  className="w-full h-full min-h-0 min-w-0 rounded-lg border-0 bg-white"
                 >
                   <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
                     <FileText className="size-12 mb-2 opacity-40 text-slate-400" />

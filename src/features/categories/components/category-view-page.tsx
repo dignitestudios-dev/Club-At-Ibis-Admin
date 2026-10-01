@@ -26,8 +26,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Field, FieldContent, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RequiredMark } from "@/components/shared/required-mark";
 import { useCategory, useCategoryVersions, useCommonForm } from "@/hooks/use-admin-data";
 import { useUrlParams } from "@/hooks/use-url-params";
 import { describeAccept } from "@/features/categories/components/field-types";
@@ -521,158 +521,228 @@ function ResidentWizardView({
 /* Disabled Resident Field Renderer (All fields disabled)             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Mirrors the resident app's own DynamicField renderer exactly — same
+ * Field/FieldContent/FieldLabel/FieldSet/FieldLegend structure, classNames
+ * and per-type layout (checkbox/radio included) — just with every control
+ * disabled and no form state, since this is a static preview of what the
+ * resident actually sees.
+ */
 function DisabledFieldRenderer({ field }: { field: CategoryField }) {
-  return (
-    <div className="space-y-1.5 opacity-90">
-      <label htmlFor={field.id} className="inline-flex items-center gap-1 text-sm font-medium text-foreground">
-        <span>{field.label}</span>
-        {field.required && (
-          <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
-        )}
-        <FieldHelpTooltip content={field.helpText} />
-      </label>
+  const options = field.options ?? ["Option 1", "Option 2"];
 
-      {/* Text */}
-      {field.type === "text" && (
-        <Input
-          id={field.id}
-          disabled
-          maxLength={255}
-          placeholder={`Enter ${field.label.toLowerCase()}...`}
-          className="bg-muted/20 cursor-not-allowed"
-        />
-      )}
+  switch (field.type) {
+    case "textarea":
+      return (
+        <Field>
+          <FieldLabel htmlFor={field.id} className="flex items-center gap-1">
+            <span>{field.label}</span>
+            {field.required && (
+              <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
+            )}
+            <FieldHelpTooltip content={field.helpText} />
+          </FieldLabel>
+          <FieldContent>
+            <Textarea id={field.id} placeholder={field.helpText} rows={3} disabled />
+          </FieldContent>
+        </Field>
+      );
 
-      {/* Textarea */}
-      {field.type === "textarea" && (
-        <Textarea
-          id={field.id}
-          disabled
-          rows={3}
-          maxLength={2000}
-          placeholder={`Enter ${field.label.toLowerCase()}...`}
-          className="bg-muted/20 cursor-not-allowed"
-        />
-      )}
+    case "number":
+      return (
+        <Field>
+          <FieldLabel htmlFor={field.id} className="flex items-center gap-1">
+            <span>{field.label}</span>
+            {field.required && (
+              <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
+            )}
+            <FieldHelpTooltip content={field.helpText} />
+          </FieldLabel>
+          <FieldContent>
+            <Input id={field.id} type="number" min={0} placeholder={field.helpText || "0"} disabled />
+          </FieldContent>
+        </Field>
+      );
 
-      {/* Number */}
-      {field.type === "number" && (
-        <Input
-          id={field.id}
-          type="number"
-          min={0}
-          maxLength={15}
-          disabled
-          placeholder="0"
-          className="bg-muted/20 cursor-not-allowed"
-        />
-      )}
+    case "email":
+      return (
+        <Field>
+          <FieldLabel htmlFor={field.id} className="flex items-center gap-1">
+            <span>{field.label}</span>
+            {field.required && (
+              <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
+            )}
+            <FieldHelpTooltip content={field.helpText} />
+          </FieldLabel>
+          <FieldContent>
+            <Input id={field.id} type="email" autoComplete="email" placeholder={field.helpText || "name@example.com"} disabled />
+          </FieldContent>
+        </Field>
+      );
 
-      {/* Email */}
-      {field.type === "email" && (
-        <Input
-          id={field.id}
-          type="email"
-          disabled
-          placeholder="name@example.com"
-          className="bg-muted/20 cursor-not-allowed"
-        />
-      )}
+    case "phone":
+      return (
+        <Field>
+          <FieldLabel htmlFor={field.id} className="flex items-center gap-1">
+            <span>{field.label}</span>
+            {field.required && (
+              <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
+            )}
+            <FieldHelpTooltip content={field.helpText} />
+          </FieldLabel>
+          <FieldContent>
+            <Input id={field.id} type="tel" inputMode="tel" placeholder={field.helpText || "(555) 000-0000"} disabled />
+          </FieldContent>
+        </Field>
+      );
 
-      {/* Phone */}
-      {field.type === "phone" && (
-        <Input
-          id={field.id}
-          type="tel"
-          disabled
-          placeholder="(555) 000-0000"
-          className="bg-muted/20 cursor-not-allowed"
-        />
-      )}
+    case "date":
+      return (
+        <Field>
+          <FieldLabel htmlFor={field.id} className="flex items-center gap-1">
+            <span>{field.label}</span>
+            {field.required && (
+              <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
+            )}
+            <FieldHelpTooltip content={field.helpText} />
+          </FieldLabel>
+          <FieldContent>
+            <Input id={field.id} type="date" disabled />
+          </FieldContent>
+        </Field>
+      );
 
-      {/* Date */}
-      {field.type === "date" && (
-        <Input
-          id={field.id}
-          type="date"
-          disabled
-          className="bg-muted/20 cursor-not-allowed"
-        />
-      )}
+    case "time":
+      return (
+        <Field>
+          <FieldLabel htmlFor={field.id} className="flex items-center gap-1">
+            <span>{field.label}</span>
+            {field.required && (
+              <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
+            )}
+            <FieldHelpTooltip content={field.helpText} />
+          </FieldLabel>
+          <FieldContent>
+            <Input id={field.id} type="time" disabled />
+          </FieldContent>
+        </Field>
+      );
 
-      {/* Time */}
-      {field.type === "time" && (
-        <Input
-          id={field.id}
-          type="time"
-          disabled
-          className="bg-muted/20 cursor-not-allowed"
-        />
-      )}
+    case "select":
+      return (
+        <Field>
+          <FieldLabel htmlFor={field.id} className="flex items-center gap-1">
+            <span>{field.label}</span>
+            {field.required && (
+              <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
+            )}
+            <FieldHelpTooltip content={field.helpText} />
+          </FieldLabel>
+          <FieldContent>
+            <Select items={options.map((o) => ({ label: o, value: o }))} disabled>
+              <SelectTrigger id={field.id} className="w-full" disabled>
+                <SelectValue placeholder={field.helpText || "Select an option"} />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((opt) => (
+                  <SelectItem key={opt} value={opt}>
+                    {opt}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FieldContent>
+        </Field>
+      );
 
-      {/* Select (Dropdown opens to view options, items disabled) */}
-      {field.type === "select" && (
-        <Select>
-          <SelectTrigger className="w-full bg-card">
-            <SelectValue placeholder="Choose an option..." />
-          </SelectTrigger>
-          <SelectContent>
-            {(field.options ?? ["Option 1", "Option 2"]).map((opt, i) => (
-              <SelectItem key={i} value={opt} disabled>
-                {opt}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+    case "radio":
+      return (
+        <FieldSet>
+          <FieldLegend variant="label" className="flex items-center gap-1 text-sm font-medium text-foreground">
+            <span>{field.label}</span>
+            {field.required && (
+              <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
+            )}
+            <FieldHelpTooltip content={field.helpText} />
+          </FieldLegend>
+          <FieldContent>
+            <RadioGroup value="" disabled>
+              {options.map((opt) => (
+                <FieldLabel key={opt} htmlFor={`${field.id}-${opt}`} className="flex-row items-center gap-2 font-normal">
+                  <RadioGroupItem id={`${field.id}-${opt}`} value={opt} disabled />
+                  {opt}
+                </FieldLabel>
+              ))}
+            </RadioGroup>
+          </FieldContent>
+        </FieldSet>
+      );
 
-      {/* Radio */}
-      {field.type === "radio" && (
-        <RadioGroup disabled className="space-y-2 pt-1 opacity-70 cursor-not-allowed">
-          {(field.options ?? ["Option 1", "Option 2"]).map((opt, i) => (
-            <div key={i} className="flex items-center gap-2.5">
-              <RadioGroupItem value={opt} id={`${field.id}-opt-${i}`} disabled />
-              <label htmlFor={`${field.id}-opt-${i}`} className="text-sm text-foreground cursor-not-allowed">
-                {opt}
-              </label>
+    case "checkbox":
+      return (
+        <FieldSet>
+          <FieldLegend variant="label" className="flex items-center gap-1 text-sm font-medium text-foreground">
+            <span>{field.label}</span>
+            {field.required && (
+              <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
+            )}
+            <FieldHelpTooltip content={field.helpText} />
+          </FieldLegend>
+          <FieldContent>
+            <div className="flex flex-col gap-2">
+              {options.map((opt) => (
+                <FieldLabel key={opt} htmlFor={`${field.id}-${opt}`} className="flex-row items-center gap-2 font-normal">
+                  <Checkbox id={`${field.id}-${opt}`} checked={false} disabled />
+                  {opt}
+                </FieldLabel>
+              ))}
             </div>
-          ))}
-        </RadioGroup>
-      )}
+          </FieldContent>
+        </FieldSet>
+      );
 
-      {/* Checkbox Group */}
-      {field.type === "checkbox" && (
-        <div className="grid gap-2.5 pt-1 sm:grid-cols-2 opacity-70">
-          {(field.options ?? ["Option 1", "Option 2"]).map((opt, i) => (
-            <label
-              key={i}
-              className="flex items-center gap-2.5 rounded-lg border border-border bg-muted/20 p-3 cursor-not-allowed select-none"
-            >
-              <Checkbox disabled />
-              <span className="text-sm font-medium text-foreground">{opt}</span>
-            </label>
-          ))}
-        </div>
-      )}
+    case "file":
+      return (
+        <Field>
+          <FieldLabel htmlFor={field.id} className="flex items-center gap-1">
+            <span>{field.label}</span>
+            {field.required && (
+              <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
+            )}
+            <FieldHelpTooltip content={field.helpText} />
+          </FieldLabel>
+          <FieldContent>
+            <div className="flex cursor-not-allowed flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-input bg-white dark:bg-card p-6 text-center shadow-2xs">
+              <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary" aria-hidden="true">
+                <Upload className="size-5" />
+              </span>
+              <div>
+                <p className="text-sm font-medium text-primary">
+                  <span>Click to upload</span> or drag and drop
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {describeAccept(field.accept)} · max 30MB per file
+                </p>
+              </div>
+            </div>
+          </FieldContent>
+        </Field>
+      );
 
-      {/* File Dropzone (Disabled) */}
-      {field.type === "file" && (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-input bg-muted/20 p-6 text-center shadow-2xs opacity-80 cursor-not-allowed">
-          <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary" aria-hidden="true">
-            <Upload className="size-5" />
-          </span>
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              Click to upload or drag and drop
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {describeAccept(field.accept)}
-              {field.multiple ? " · Multiple files allowed" : " · Single file"}
-              {" · max 30MB per file"}
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    default:
+      return (
+        <Field>
+          <FieldLabel htmlFor={field.id} className="flex items-center gap-1">
+            <span>{field.label}</span>
+            {field.required && (
+              <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
+            )}
+            <FieldHelpTooltip content={field.helpText} />
+          </FieldLabel>
+          <FieldContent>
+            <Input id={field.id} type="text" placeholder={field.helpText || `Enter ${field.label.toLowerCase()}`} disabled />
+          </FieldContent>
+        </Field>
+      );
+  }
 }

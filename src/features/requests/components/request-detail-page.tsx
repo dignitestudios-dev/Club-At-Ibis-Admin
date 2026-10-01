@@ -218,7 +218,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
       {(req.status === "changes_required" || req.status === "resubmitted") && req.feedback && (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-300/80 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
           <FileEdit className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-          <div className="flex-1 text-sm">
+          <div className="min-w-0 flex-1 text-sm">
             <p className="font-semibold text-amber-950 dark:text-amber-200">
               {req.status === "resubmitted" ? "Resident resubmitted corrections" : "Revision requested"}
             </p>
@@ -231,7 +231,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
       {req.status === "rejected" && req.rejectionReason && (
         <div className="flex items-start gap-3 rounded-2xl border border-rose-300/80 bg-rose-50 p-4 dark:border-rose-900 dark:bg-rose-950/30">
           <XCircle className="mt-0.5 size-5 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden="true" />
-          <div className="flex-1 text-sm">
+          <div className="min-w-0 flex-1 text-sm">
             <p className="font-semibold text-rose-950 dark:text-rose-200">
               Rejected{req.decidedAt && ` on ${formatDate(req.decidedAt)}`}
             </p>
