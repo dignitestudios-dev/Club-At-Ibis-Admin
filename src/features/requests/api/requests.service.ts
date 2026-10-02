@@ -50,6 +50,7 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
     assignedReviewerId: raw.assignedReviewerId || raw.assignedReviewer?.id || null,
     assignmentVersion: raw.assignmentVersion,
     workflowVersion: raw.workflowVersion,
+    mediaRevision: raw.mediaRevision ?? 0,
     draftRevision: raw.draftRevision,
     currentStep: raw.currentStep,
     fieldValues,
@@ -84,28 +85,56 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
     // real response, so reading them directly always came back undefined
     // and the rejection reason never showed up here.
     decidedAt: raw.decision?.decidedAt || raw.decidedAt,
-    completedAt: raw.completedAt,
-    withdrawnAt: raw.withdrawnAt,
-    withdrawnFrom: raw.withdrawnFrom,
+    completedAt: raw.completedAt || raw.completion?.completedAt,
+    withdrawnAt: raw.withdrawnAt || raw.withdrawal?.withdrawnAt,
+    withdrawnFrom: raw.withdrawnFrom || raw.withdrawal?.withdrawnFrom,
     // The current round's general feedback lives under `revision.feedback`,
     // not a top-level `feedback` key on the real response.
     feedback: raw.revision?.feedback || raw.feedback || undefined,
     rejectionReason: raw.decision?.rejectionReason || raw.rejectionReason,
     deposit: raw.deposit || {
       required: !!raw.depositRequired,
-      amount: raw.depositAmount,
+      amount: raw.depositAmount != null ? String(raw.depositAmount) : null,
+      amountMinor: raw.depositAmountMinor,
       status: raw.depositReceived ? "received" : raw.depositRequired ? "pending" : "not_required",
       confirmed: raw.depositRequired !== undefined,
+      receipt: raw.depositReceipt,
+      receivedAt: raw.depositReceivedAt,
     },
-    refund: raw.refund || (raw.refundStatus ? {
-      outcome: raw.refundStatus,
-      recordedBy: "Staff",
-      // Never fabricate a "now" timestamp when the backend didn't send one —
-      // that would display as if the refund had just been recorded.
+    completion: raw.completion || (raw.completedAt || raw.approvalLetter ? {
+      completedAt: raw.completedAt || null,
+      completedBy: raw.completedBy || null,
+      finalApprovalLetter: raw.approvalLetter || null,
+      email: raw.letterEmail ? {
+        status: (raw.letterEmail.status || "SENT").toUpperCase() as EmailDeliveryStatus,
+        attemptCount: 1,
+        retryCycle: 0,
+        sentAt: raw.letterEmail.at || raw.letterEmail.sentAt,
+      } : null,
+    } : null),
+    withdrawal: raw.withdrawal || (raw.withdrawnAt ? {
+      withdrawnAt: raw.withdrawnAt,
+      withdrawnBy: raw.withdrawnBy || null,
+      withdrawnFrom: raw.withdrawnFrom || null,
+      residentContactAcknowledged: true,
+    } : null),
+    refund: raw.refund || (raw.refundStatus || raw.refundOutcome ? {
+      outcome: raw.refundOutcome || raw.refundStatus,
+      refundDate: raw.refundDate || undefined,
+      displayValue: raw.refundDisplayValue || (raw.refundOutcome === "no_refund" ? "-" : raw.refundDate),
+      explanation: raw.refundExplanation || (raw.refundOutcome === "no_refund" ? "A No Refund decision was recorded." : undefined),
+      recordedBy: raw.refundRecordedBy || "Staff",
+      recordedAt: raw.refundRecordedAt,
       date: raw.refundDate || undefined,
-    } : undefined),
-    approvalLetter: raw.approvalLetter,
-    letterEmail: raw.letterEmail,
+      correctionReason: raw.refundCorrectionReason,
+      proof: raw.refundProof,
+    } : null),
+    approvalLetter: raw.approvalLetter || raw.completion?.finalApprovalLetter,
+    letterEmail: raw.letterEmail || raw.completion?.email ? {
+      status: (raw.completion?.email?.status || raw.letterEmail?.status || "sent") as any,
+      at: raw.completion?.email?.sentAt || raw.letterEmail?.at || raw.completedAt || new Date().toISOString(),
+      sentAt: raw.completion?.email?.sentAt,
+    } : undefined,
     history: Array.isArray(raw.history) ? raw.history.map((h: any) => {
       const roleStr = (typeof h.actor === "object" ? h.actor?.role : "") || "";
       const normalizedRole = roleStr.toLowerCase() === "super_admin" || roleStr.toLowerCase() === "admin"
@@ -216,6 +245,25 @@ export async function getRequestById(id: string): Promise<RequestRecord> {
 export async function getAdminFileDownloadUrl(requestId: string, fileId: string): Promise<{ url: string; expiresAt: string }> {
   const { data } = await axiosInstance.get(`/admin/requests/${requestId}/files/${fileId}/download`);
   return data.data.download;
+}
+
+export interface WithdrawRequestAdminPayload {
+  requestId: string;
+  residentContactAcknowledged: boolean;
+  expectedWorkflowVersion?: number;
+}
+
+export async function withdrawRequestAsAdmin({
+  requestId,
+  residentContactAcknowledged,
+  expectedWorkflowVersion,
+}: WithdrawRequestAdminPayload): Promise<RequestRecord> {
+  const { data } = await axiosInstance.post(`/admin/requests/${requestId}/withdraw`, {
+    residentContactAcknowledged,
+    expectedWorkflowVersion,
+  });
+  const req = data?.data?.request ?? data?.request ?? data?.data;
+  return toAdminRequestRecord(req);
 }
 
 export async function recordExport(_count: number, _summary: string): Promise<void> {

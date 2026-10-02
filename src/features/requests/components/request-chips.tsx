@@ -2,8 +2,8 @@ import { CheckCircle2, Clock, Minus } from "lucide-react";
 import { DEPOSIT_LABEL, REFUND_LABEL } from "@/lib/domain";
 import { cn } from "@/utils/cn";
 
-export function DepositChip({ deposit }: { deposit: DepositRecord }) {
-  if (deposit.status === "not_required") {
+export function DepositChip({ deposit }: { deposit?: DepositRecord | null }) {
+  if (!deposit || deposit.status === "not_required") {
     return <span className="text-xs text-muted-foreground">Not required</span>;
   }
   const received = deposit.status === "received";
@@ -18,12 +18,14 @@ export function DepositChip({ deposit }: { deposit: DepositRecord }) {
     >
       {received ? <CheckCircle2 className="size-3" /> : <Clock className="size-3" />}
       {DEPOSIT_LABEL[deposit.status]}
-      {deposit.amount !== undefined && <span className="opacity-80">· ${deposit.amount.toLocaleString()}</span>}
+      {deposit.amount != null && deposit.amount !== "" && (
+        <span className="opacity-80">· ${Number(deposit.amount).toLocaleString()}</span>
+      )}
     </span>
   );
 }
 
-export function RefundChip({ refund }: { refund?: RefundRecord }) {
+export function RefundChip({ refund }: { refund?: RefundRecord | null }) {
   if (!refund) return <span className="text-xs text-muted-foreground">—</span>;
   if (refund.outcome === "no_refund") {
     // A dash represents a *recorded* No Refund decision: always labelled.

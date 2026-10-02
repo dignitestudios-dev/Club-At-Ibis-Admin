@@ -52,6 +52,7 @@ export const DEPOSIT_LABEL: Record<DepositStatus, string> = {
 
 export const REFUND_LABEL: Record<RefundOutcome, string> = {
   awaiting: "Awaiting refund action",
+  awaiting_refund_action: "Awaiting refund action",
   refunded: "Refunded",
   no_refund: "No Refund",
 };
@@ -320,9 +321,9 @@ export function buildRequestsCsv(requests: RequestRecord[], ctx: CsvContext): st
       req.deposit.required ? "Yes" : "No",
       req.deposit.amount,
       DEPOSIT_LABEL[req.deposit.status],
-      ts(req.deposit.receivedAt),
-      req.refund ? (req.refund.outcome === "no_refund" ? "-" : REFUND_LABEL[req.refund.outcome]) : "",
-      req.refund?.outcome === "refunded" ? ts(req.refund.date) : "",
+      ts(req.deposit.receivedAt || undefined),
+      req.refund?.outcome ? (req.refund.outcome === "no_refund" ? "-" : REFUND_LABEL[req.refund.outcome]) : "",
+      req.refund?.outcome === "refunded" ? ts(req.refund.refundDate || req.refund.date || undefined) : "",
       req.approvalLetter?.name,
       req.letterEmail ? "Sent" : "",
       ...[...dynamic.keys()].map((id) => req.fieldValues[id]),

@@ -34,6 +34,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { FilePreviewDialog, type PreviewableFile } from "@/components/shared/file-preview-dialog";
 import { getAdminFileDownloadUrl } from "@/features/requests/api/requests.service";
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
+import { WithdrawRequestAdminDialog } from "@/features/requests/components/withdraw-request-dialog";
 import { EarlierSubmissions } from "@/features/requests/components/earlier-submissions";
 import { HistoryTimeline } from "@/features/requests/components/history-timeline";
 import { RequestJourney } from "@/features/requests/components/request-journey";
@@ -87,6 +88,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [preview, setPreview] = useState<PreviewableFile | null>(null);
   const [assigning, setAssigning] = useState<RequestRecord | null>(null);
+  const [withdrawing, setWithdrawing] = useState<RequestRecord | null>(null);
 
   if (isLoading) {
     return (
@@ -145,6 +147,16 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
   const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
 
+  const canWithdraw = [
+    "submitted",
+    "assigned",
+    "under_review",
+    "changes_required",
+    "resubmitted",
+    "approved",
+    "completed",
+  ].includes(req.status);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
@@ -189,6 +201,18 @@ export default function RequestDetailPage({ id }: { id: string }) {
             </div>
           </div>
 
+          {canWithdraw && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="border-rose-300/80 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                onClick={() => setWithdrawing(req)}
+              >
+                <Ban className="size-4" />
+                Withdraw request
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -656,28 +680,60 @@ export default function RequestDetailPage({ id }: { id: string }) {
               <p className="text-xs text-muted-foreground">The system uses the approval letter uploaded by the reviewer (letters are not auto-generated).</p>
             </CardHeader>
             <CardContent className="pt-5">
-              {!req.approvalLetter ? (
+              {!(req.completion?.finalApprovalLetter || req.approvalLetter) ? (
                 <p className="text-sm text-muted-foreground">No final approval letter has been uploaded yet.</p>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="flex items-center gap-3 rounded-xl border border-border/80 bg-muted/30 px-3.5 py-3">
                     <FileCheck2 className="size-5 text-teal-600 dark:text-teal-400" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{req.approvalLetter.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{formatFileSize(req.approvalLetter.size)}</p>
+                      <p className="truncate text-sm font-medium">{(req.completion?.finalApprovalLetter || req.approvalLetter)!.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{formatFileSize((req.completion?.finalApprovalLetter || req.approvalLetter)!.size)}</p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => setPreview(req.approvalLetter!)}>
+                    <Button variant="outline" size="sm" onClick={() => setPreview((req.completion?.finalApprovalLetter || req.approvalLetter)!)}>
                       <Eye />
                       View
                     </Button>
                   </div>
-                  <div className="flex items-center gap-3 rounded-xl border border-emerald-300/70 bg-emerald-50 px-3.5 py-3 text-sm dark:border-emerald-900/70 dark:bg-emerald-950/30">
-                    <Mail className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-                    <div>
-                      <p className="font-semibold">Emailed to resident</p>
-                      <p className="text-[11px] text-muted-foreground">{req.letterEmail ? formatDateTime(req.letterEmail.at) : "Sent on completion"}</p>
+                  {req.completion?.email ? (
+                    <div className={cn(
+                      "flex items-center gap-3 rounded-xl border px-3.5 py-3 text-sm",
+                      req.completion.email.status === "SENT"
+                        ? "border-emerald-300/70 bg-emerald-50 dark:border-emerald-900/70 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200"
+                        : req.completion.email.status === "FAILED"
+                        ? "border-rose-300/70 bg-rose-50 dark:border-rose-900/70 dark:bg-rose-950/30 text-rose-950 dark:text-rose-200"
+                        : "border-amber-300/70 bg-amber-50 dark:border-amber-900/70 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200"
+                    )}>
+                      <Mail className={cn(
+                        "size-5 shrink-0",
+                        req.completion.email.status === "SENT" ? "text-emerald-600 dark:text-emerald-400" :
+                        req.completion.email.status === "FAILED" ? "text-rose-600 dark:text-rose-400" :
+                        "text-amber-600 dark:text-amber-400"
+                      )} aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold">
+                          {req.completion.email.status === "SENT" ? "Email Delivered to Resident" :
+                           req.completion.email.status === "FAILED" ? "Email Delivery Failed" :
+                           req.completion.email.status === "PROCESSING" ? "Email Sending..." : "Email Queued"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground break-words [overflow-wrap:anywhere]">
+                          {req.completion.email.status === "SENT" && req.completion.email.sentAt
+                            ? `Sent on ${formatDateTime(req.completion.email.sentAt)}`
+                            : req.completion.email.status === "FAILED"
+                            ? req.completion.email.lastErrorMessage || `Attempt #${req.completion.email.attemptCount}`
+                            : "Outbox processing in progress"}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-3 rounded-xl border border-emerald-300/70 bg-emerald-50 px-3.5 py-3 text-sm dark:border-emerald-900/70 dark:bg-emerald-950/30">
+                      <Mail className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                      <div>
+                        <p className="font-semibold">Emailed to resident</p>
+                        <p className="text-[11px] text-muted-foreground">{req.letterEmail ? formatDateTime(req.letterEmail.at) : "Sent on completion"}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -776,9 +832,17 @@ export default function RequestDetailPage({ id }: { id: string }) {
                       </button>
                     </InfoRow>
                   )}
-                  <InfoRow label={req.refund.outcome === "refunded" ? "Refund date" : "Recorded on"}>{formatDateTime(req.refund.date)}</InfoRow>
+                  <InfoRow label={req.refund.outcome === "refunded" ? "Refund date" : "Recorded on"}>
+                    {formatDateTime(req.refund.refundDate || req.refund.date)}
+                  </InfoRow>
+                  {req.refund.correctionReason && (
+                    <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 min-w-0 break-words [overflow-wrap:anywhere]">
+                      <p className="font-semibold mb-0.5 text-amber-800 dark:text-amber-300">Correction Reason:</p>
+                      <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{req.refund.correctionReason}</p>
+                    </div>
+                  )}
                   <p className="text-[11px] text-muted-foreground">
-                    Residents see this as read-only. {REFUND_LABEL[req.refund.outcome]} · partial-refund amounts are out of scope.
+                    Residents see this as read-only. {req.refund.outcome ? REFUND_LABEL[req.refund.outcome] : "—"} · partial-refund amounts are out of scope.
                   </p>
                 </dl>
               )}
@@ -806,6 +870,13 @@ export default function RequestDetailPage({ id }: { id: string }) {
       </Card>
 
       <AssignReviewerDialog request={assigning} onOpenChange={(o) => !o && setAssigning(null)} />
+      {withdrawing && (
+        <WithdrawRequestAdminDialog
+          request={withdrawing}
+          open={!!withdrawing}
+          onOpenChange={(o) => !o && setWithdrawing(null)}
+        />
+      )}
       <FilePreviewDialog
         file={preview}
         open={!!preview}
