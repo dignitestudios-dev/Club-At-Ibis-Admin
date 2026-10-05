@@ -540,7 +540,6 @@ function DisabledFieldRenderer({ field }: { field: CategoryField }) {
             {field.required && (
               <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
             )}
-            <FieldHelpTooltip content={field.helpText} />
           </FieldLabel>
           <FieldContent>
             <Textarea id={field.id} placeholder={field.helpText} rows={3} disabled />
@@ -556,7 +555,6 @@ function DisabledFieldRenderer({ field }: { field: CategoryField }) {
             {field.required && (
               <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
             )}
-            <FieldHelpTooltip content={field.helpText} />
           </FieldLabel>
           <FieldContent>
             <Input id={field.id} type="number" min={0} placeholder={field.helpText || "0"} disabled />
@@ -572,7 +570,6 @@ function DisabledFieldRenderer({ field }: { field: CategoryField }) {
             {field.required && (
               <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
             )}
-            <FieldHelpTooltip content={field.helpText} />
           </FieldLabel>
           <FieldContent>
             <Input id={field.id} type="email" autoComplete="email" placeholder={field.helpText || "name@example.com"} disabled />
@@ -588,7 +585,6 @@ function DisabledFieldRenderer({ field }: { field: CategoryField }) {
             {field.required && (
               <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
             )}
-            <FieldHelpTooltip content={field.helpText} />
           </FieldLabel>
           <FieldContent>
             <Input id={field.id} type="tel" inputMode="tel" placeholder={field.helpText || "(555) 000-0000"} disabled />
@@ -636,7 +632,6 @@ function DisabledFieldRenderer({ field }: { field: CategoryField }) {
             {field.required && (
               <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
             )}
-            <FieldHelpTooltip content={field.helpText} />
           </FieldLabel>
           <FieldContent>
             <Select items={options.map((o) => ({ label: o, value: o }))} disabled>
@@ -737,7 +732,6 @@ function DisabledFieldRenderer({ field }: { field: CategoryField }) {
             {field.required && (
               <span className="text-red-500 font-bold text-sm leading-none" aria-hidden="true">*</span>
             )}
-            <FieldHelpTooltip content={field.helpText} />
           </FieldLabel>
           <FieldContent>
             <Input id={field.id} type="text" placeholder={field.helpText || `Enter ${field.label.toLowerCase()}`} disabled />
