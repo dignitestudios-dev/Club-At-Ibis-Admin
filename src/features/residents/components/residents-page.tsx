@@ -165,7 +165,7 @@ export default function ResidentsPage() {
                   <TableHead className="pl-4 max-w-[240px]">Resident</TableHead>
                   <TableHead className="max-w-[140px]">Resident ID</TableHead>
                   <TableHead className="max-w-[160px]">Joined</TableHead>
-                  <TableHead className="max-w-[120px]">Status</TableHead>
+                  <TableHead className="min-w-[190px]">Status</TableHead>
                   <TableHead className="w-12 pr-4 text-right">
                     <span className="sr-only">Actions</span>
                   </TableHead>
@@ -190,7 +190,7 @@ export default function ResidentsPage() {
                         {formatDate(res.createdAt)}
                         {res.lastLoginAt && <span className="block text-[11px] truncate">Seen {formatRelative(res.lastLoginAt)}</span>}
                       </TableCell>
-                      <TableCell className="max-w-[120px]">
+                      <TableCell className="min-w-[190px]">
                         <ResidentStatusChip status={res.accountStatus} active={res.active} />
                       </TableCell>
                       <TableCell className="pr-4 text-right" onClick={(e) => e.stopPropagation()}>

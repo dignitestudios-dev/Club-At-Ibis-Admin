@@ -57,7 +57,7 @@ export function RequestMiniTable({
             {showResident && <TableHead className="max-w-[180px]">Resident</TableHead>}
             <TableHead className="max-w-[200px]">Property</TableHead>
             {showReviewer && <TableHead className="max-w-[160px]">Reviewer</TableHead>}
-            <TableHead className="max-w-[130px]">Status</TableHead>
+            <TableHead className="min-w-[170px]">Status</TableHead>
             <TableHead className="max-w-[130px]">Submitted</TableHead>
             <TableHead className="w-10 pr-4" />
           </TableRow>
@@ -103,7 +103,7 @@ export function RequestMiniTable({
                     )}
                   </TableCell>
                 )}
-                <TableCell className="max-w-[130px]">
+                <TableCell className="min-w-[170px]">
                   <StatusBadge status={req.status} />
                 </TableCell>
                 <TableCell className="whitespace-nowrap max-w-[130px] truncate" title={format(new Date(req.submittedAt), "PPP")}>
