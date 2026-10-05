@@ -38,7 +38,7 @@ export function ExpandableText({
               buttonClassName
             )}
           >
-            {expanded ? "show less" : "show more"}
+            {expanded ? "Show less" : "Show more"}
           </button>
         </>
       )}
