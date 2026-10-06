@@ -1,5 +1,15 @@
 import axiosInstance from "@/lib/axios";
 
+/**
+ * The backend identifies who recorded a refund with an actor object ({ actorId, role, displayName }),
+ * but the UI shows a plain name — rendering the object crashes the page.
+ */
+function normalizeRefund(refund: any) {
+  if (!refund || typeof refund !== "object") return null;
+  const by = refund.recordedBy;
+  return { ...refund, recordedBy: typeof by === "string" ? by : (by?.displayName ?? by?.name ?? null) };
+}
+
 export function toAdminRequestRecord(raw: any): RequestRecord {
   const code = raw.reference || raw.code || "ARB-PENDING";
   const catId = raw.categoryId || raw.requestTypeId || raw.category?.id || "";
@@ -118,7 +128,7 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
       withdrawnFrom: raw.withdrawnFrom || null,
       residentContactAcknowledged: true,
     } : null),
-    refund: raw.refund || (raw.refundStatus || raw.refundOutcome ? {
+    refund: normalizeRefund(raw.refund) || (raw.refundStatus || raw.refundOutcome ? {
       outcome: raw.refundOutcome || raw.refundStatus,
       refundDate: raw.refundDate || undefined,
       displayValue: raw.refundDisplayValue || (raw.refundOutcome === "no_refund" ? "-" : raw.refundDate),
@@ -158,6 +168,7 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
         assignment: h.details?.assignment || h.assignment,
         staffOnly: !!(h.details?.staffOnly || h.staffOnly),
         flaggedItems: Array.isArray(h.details?.flaggedItems) ? h.details.flaggedItems : undefined,
+      details: h.details && typeof h.details === "object" ? h.details : undefined,
         feedback: h.details?.feedback || undefined,
         submissionNumber: typeof h.details?.submissionNumber === "number" ? h.details.submissionNumber : undefined,
       };

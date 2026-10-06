@@ -254,7 +254,15 @@ type HistoryEventType =
   | "letter_email"
   | "withdrawn"
   | "refunded"
-  | "no_refund";
+  | "no_refund"
+  | "deposit_configured"
+  | "deposit_receipt_recorded"
+  | "final_letter_uploaded"
+  | "completion_email_sent"
+  | "completion_email_failed"
+  | "completion_email_retry_requested"
+  | "refund_outcome_recorded"
+  | "refund_outcome_corrected";
 
 type ActorRole = "resident" | "reviewer" | "super_admin" | "system";
 
@@ -265,6 +273,8 @@ interface HistoryEvent {
   message: string;
   detail?: string;
   createdAt: string;
+  /** The backend's raw `details` for this event (amounts, file names, outcomes...). */
+  details?: Record<string, unknown>;
   /** Set on assigned / reassigned events so the assignment log can show from → to. */
   assignment?: { from?: string; to: string };
   /** Staff-only records are not shown to the resident. */

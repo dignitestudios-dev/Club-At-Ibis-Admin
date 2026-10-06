@@ -20,9 +20,14 @@ import {
   Lock,
   Clock,
   type LucideIcon,
+  HandCoins,
+  MailCheck,
+  PenLine,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { formatDateTime, formatRelative } from "@/utils/format";
+import { describeEvent, titleCase } from "@/lib/history-event-info";
 
 const EVENT_CONFIG: Record<HistoryEventType, { icon: LucideIcon; label: string; node: string }> = {
   submitted: { icon: Send, label: "Submitted", node: "bg-primary text-primary-foreground" },
@@ -43,6 +48,14 @@ const EVENT_CONFIG: Record<HistoryEventType, { icon: LucideIcon; label: string; 
   withdrawn: { icon: Ban, label: "Withdrawn", node: "bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-100" },
   refunded: { icon: Banknote, label: "Refunded", node: "bg-emerald-600 text-white" },
   no_refund: { icon: Minus, label: "No Refund", node: "bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-100" },
+  deposit_configured: { icon: Banknote, label: "Deposit set", node: "bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300" },
+  deposit_receipt_recorded: { icon: ReceiptText, label: "Deposit receipt recorded", node: "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300" },
+  final_letter_uploaded: { icon: FileCheck2, label: "Final letter added", node: "bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300" },
+  completion_email_sent: { icon: MailCheck, label: "Completion email sent", node: "bg-emerald-600 text-white" },
+  completion_email_failed: { icon: MailWarning, label: "Completion email failed", node: "bg-rose-600 text-white" },
+  completion_email_retry_requested: { icon: RefreshCw, label: "Email retry requested", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" },
+  refund_outcome_recorded: { icon: HandCoins, label: "Refund outcome recorded", node: "bg-emerald-600 text-white" },
+  refund_outcome_corrected: { icon: PenLine, label: "Refund outcome corrected", node: "bg-amber-500 text-white" },
 };
 
 const ROLE_LABEL: Record<ActorRole, string> = {
@@ -61,6 +74,7 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
         const cfg = EVENT_CONFIG[event.type] || { icon: Send, label: event.type?.replace(/_/g, " ") || "Update", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" };
         const failed = event.type === "letter_email" && event.message.toLowerCase().includes("failed");
         const Icon = failed ? MailWarning : cfg.icon;
+        const info = describeEvent(event.type, event.details, "staff");
         const isLatest = index === 0;
         const isLast = index === list.length - 1;
         const roleLabel = ROLE_LABEL[event.actor?.role] || event.actor?.role || "User";
@@ -85,7 +99,7 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
             <div className={cn("min-w-0 flex-1 space-y-1.5", isLast ? "pb-1" : "pb-6")}>
               <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-foreground">{failed ? "Letter email failed" : cfg.label}</span>
+                  <span className="text-sm font-semibold text-foreground">{titleCase(failed ? "Letter email failed" : (info.title ?? cfg.label))}</span>
                   {event.staffOnly && (
                     <span
                       className="inline-flex items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-2 py-px text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:border-amber-800/70 dark:bg-amber-950/40 dark:text-amber-300"
@@ -112,6 +126,24 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
               </div>
 
               <p className="text-sm leading-relaxed text-foreground/85 break-words">{event.message}</p>
+              {info.lines.length > 0 && (
+                <ul className="space-y-1 rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs leading-relaxed">
+                  {info.lines.map((line, i) => (
+                    <li
+                      key={i}
+                      className={cn(
+                        "break-words [overflow-wrap:anywhere]",
+                        line.tone === "good" && "font-medium text-emerald-800 dark:text-emerald-300",
+                        line.tone === "warn" && "font-semibold text-amber-900 dark:text-amber-300",
+                        line.tone === "bad" && "font-medium text-rose-700 dark:text-rose-300",
+                        (!line.tone || line.tone === "neutral") && "text-muted-foreground"
+                      )}
+                    >
+                      {line.text}
+                    </li>
+                  ))}
+                </ul>
+              )}
               {event.detail && (
                 <div
                   className={cn(

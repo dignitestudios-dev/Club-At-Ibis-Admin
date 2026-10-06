@@ -1,5 +1,6 @@
 "use client";
 
+import { WithdrawnNotice } from "@/components/shared/withdrawn-notice";
 import { useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -154,7 +155,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
     "changes_required",
     "resubmitted",
     "approved",
-    "completed",
+    // A completed request is final: no withdrawal.
   ].includes(req.status);
 
   return (
@@ -266,17 +267,28 @@ export default function RequestDetailPage({ id }: { id: string }) {
         </div>
       )}
       {req.status === "withdrawn" && (
-        <div className="flex items-start gap-3 rounded-2xl border border-slate-300/80 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/50">
-          <Ban className="mt-0.5 size-5 shrink-0 text-slate-600 dark:text-slate-300" aria-hidden="true" />
-          <div className="text-sm">
-            <p className="font-semibold text-foreground">Withdrawn by resident {req.withdrawnAt && `on ${formatDate(req.withdrawnAt)}`}</p>
-            <p className="text-muted-foreground">
-              Review and completion processing stopped
-              {req.withdrawnFrom && ` (withdrawn while ${req.withdrawnFrom.replace("_", " ")})`}. Documents, earlier decisions and history are preserved.
-              {req.completedAt && " The previous completion record and issued approval letter are retained."}
-            </p>
-          </div>
-        </div>
+        <WithdrawnNotice
+          audience="staff"
+          withdrawnAt={req.withdrawnAt ? formatDate(req.withdrawnAt) : undefined}
+          withdrawnFrom={req.withdrawnFrom ?? req.withdrawal?.withdrawnFrom ?? null}
+          by={req.withdrawal?.withdrawnBy?.displayName || req.withdrawal?.withdrawnBy?.name || "Resident"}
+          refund={
+            req.refund?.outcome === "refunded"
+              ? {
+                  state: "refunded",
+                  date: req.refund.refundDate ? formatDate(req.refund.refundDate) : undefined,
+                  amount:
+                    req.deposit?.amount != null
+                      ? `$${Number(req.deposit.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : undefined,
+                  by: req.refund.recordedBy,
+                }
+              : req.refund?.outcome === "no_refund"
+                ? { state: "no_refund", explanation: req.refund.explanation, by: req.refund.recordedBy }
+                : undefined
+          }
+          note={req.completedAt ? "The previous completion record and issued approval letter are retained." : undefined}
+        />
       )}
       {req.refund?.outcome === "awaiting" && (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-300/80 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
