@@ -175,7 +175,7 @@ export default function ReviewersPage() {
                   <TableHead className="max-w-[130px]">Employee no.</TableHead>
                   <TableHead className="max-w-[180px]">Designation</TableHead>
                   <TableHead className="max-w-[190px]">Receive new requests</TableHead>
-                  <TableHead className="max-w-[150px]">Status</TableHead>
+                  <TableHead className="min-w-[170px]">Status</TableHead>
                   <TableHead className="w-12 pr-4 text-right">
                     <span className="sr-only">Actions</span>
                   </TableHead>
@@ -219,7 +219,7 @@ export default function ReviewersPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="max-w-[150px]">
+                      <TableCell className="min-w-[170px]">
                         <ReviewerStatusChip reviewer={rev} />
                         {rev.lastLoginAt && <span className="mt-0.5 block text-[11px] text-muted-foreground truncate" title={`Seen ${formatRelative(rev.lastLoginAt)}`}>Seen {formatRelative(rev.lastLoginAt)}</span>}
                       </TableCell>

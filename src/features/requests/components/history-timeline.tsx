@@ -25,6 +25,7 @@ import {
   PenLine,
   RefreshCw,
 } from "lucide-react";
+import { ExpandableText } from "@/components/shared/expandable-text";
 import { cn } from "@/utils/cn";
 import { formatDateTime, formatRelative } from "@/utils/format";
 import { describeEvent, titleCase } from "@/lib/history-event-info";
@@ -150,13 +151,21 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
                     "rounded-lg border px-3 py-2 text-xs leading-relaxed break-words [overflow-wrap:anywhere]",
                     event.type === "item_flagged"
                       ? "border-amber-300/80 bg-amber-50/90 text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200"
-                      : "border-border/70 bg-muted/40 text-muted-foreground"
+                      : event.type === "rejected"
+                        ? "border-rose-300/70 bg-rose-50 text-rose-900/90 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-300/90"
+                        : "border-border/70 bg-muted/40 text-muted-foreground"
                   )}
                 >
                   {event.type === "item_flagged" && (
                     <span className="font-semibold block mb-0.5 text-amber-800 dark:text-amber-300">Correction Note:</span>
                   )}
-                  <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{event.detail}</p>
+                  {event.type === "rejected" && (
+                    <span className="mb-0.5 flex items-center gap-1.5 font-semibold text-rose-950 dark:text-rose-200">
+                      <XCircle className="size-3.5 shrink-0" aria-hidden="true" />
+                      Rejection reason
+                    </span>
+                  )}
+                  <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]"><ExpandableText text={event.detail} limit={160} /></p>
                 </div>
               )}
 

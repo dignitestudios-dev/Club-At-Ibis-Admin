@@ -68,8 +68,8 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
             <Skeleton className="h-9 w-24 rounded-lg" />
           </div>
         </div>
-        <div className="grid gap-6 lg:grid-cols-12">
-          <div className="lg:col-span-4">
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+          <div>
             <Card className="shadow-2xs">
               <CardHeader className="border-b border-border/70 pb-3">
                 <Skeleton className="h-5 w-24 rounded" />
@@ -81,7 +81,7 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
               </CardContent>
             </Card>
           </div>
-          <div className="space-y-5 lg:col-span-8">
+          <div className="min-w-0 space-y-5">
             <Card className="shadow-2xs">
               <CardHeader className="border-b border-border/70 pb-3 flex flex-row items-center justify-between">
                 <Skeleton className="h-5 w-32 rounded" />
@@ -173,15 +173,15 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         {/* Version list */}
-        <Card className="shadow-2xs lg:col-span-2">
-          <CardHeader className="border-b border-border/70 pb-3">
+        <Card className="gap-0 overflow-hidden py-0 shadow-2xs lg:sticky lg:top-20 lg:max-h-[calc(100svh-6.5rem)]">
+          <CardHeader className="shrink-0 border-b border-border/70 py-4">
             <CardTitle className="font-heading text-lg font-medium">All versions</CardTitle>
             <p className="text-xs text-muted-foreground">Every saved edit creates a new version. Earlier versions are never changed.</p>
           </CardHeader>
-          <CardContent className="p-0">
-            <ol className="max-h-[36rem] divide-y divide-border/60 overflow-y-auto custom-scrollbar">
+          <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-0 custom-scrollbar">
+            <ol className="max-h-80 divide-y divide-border/60 overflow-y-auto custom-scrollbar lg:max-h-none lg:overflow-visible">
               {versions.map((v) => {
                 const active = v.version === selected.version;
                 const used = counts.get(v.version) ?? 0;
@@ -210,10 +210,10 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
                             <span className="rounded-full bg-emerald-50 px-2 py-px text-[10px] font-bold tracking-wider text-emerald-800 uppercase dark:bg-emerald-950/50 dark:text-emerald-300">Current</span>
                           )}
                         </span>
-                        <span className="block text-xs text-muted-foreground" title={formatDateTime(v.createdAt)}>
+                        <span className="block break-words text-xs text-muted-foreground" title={formatDateTime(v.createdAt)}>
                           {formatRelative(v.createdAt)} · {author}
                         </span>
-                        <span className="mt-1 block truncate text-xs text-foreground/80">{firstChange}{extraChangesCount > 0 ? ` +${extraChangesCount} more` : ""}</span>
+                        <span className="mt-1 line-clamp-2 block break-words text-xs text-foreground/80">{firstChange}{extraChangesCount > 0 ? ` +${extraChangesCount} more` : ""}</span>
                         <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                           <FileText className="size-3" aria-hidden="true" />
                           {used} request{used === 1 ? "" : "s"} submitted on this version
@@ -228,7 +228,7 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
         </Card>
 
         {/* Selected version */}
-        <div className="space-y-5 lg:col-span-3">
+        <div className="min-w-0 space-y-5">
           <Card className="shadow-2xs">
             <CardHeader className="border-b border-border/70 pb-3">
               <div className="flex flex-wrap items-center justify-between gap-3">

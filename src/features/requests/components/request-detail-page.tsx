@@ -1,5 +1,6 @@
 "use client";
 
+import { ExpandableText } from "@/components/shared/expandable-text";
 import { WithdrawnNotice } from "@/components/shared/withdrawn-notice";
 import { useState } from "react";
 import Link from "next/link";
@@ -10,12 +11,12 @@ import {
   Ban,
   Check,
   CheckCircle2,
+  Clock,
   Eye,
   FileCheck2,
   FileImage,
   FileText,
   Flag,
-  History,
   LayoutTemplate,
   Lock,
   Mail,
@@ -177,16 +178,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
                   Submission #{currentSubmissionNumber(req)}
                 </span>
               )}
-              {earlierRounds.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("submissionHistory")}
-                  className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-card px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary dark:hover:text-amber-300"
-                >
-                  <History className="size-3" aria-hidden="true" />
-                  {earlierRounds.length} earlier round{earlierRounds.length === 1 ? "" : "s"}
-                </button>
-              )}
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{req.categoryName}</span>
@@ -248,7 +239,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
               {req.status === "resubmitted" ? "Resident resubmitted corrections" : "Revision requested"}
             </p>
             <p className="mt-0.5 text-amber-900/90 dark:text-amber-300/90 break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
-              <span className="font-semibold">Reviewer Instructions: </span>{req.feedback}
+              <span className="font-semibold">Reviewer Instructions: </span><ExpandableText text={req.feedback} />
             </p>
           </div>
         </div>
@@ -261,7 +252,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
               Rejected{req.decidedAt && ` on ${formatDate(req.decidedAt)}`}
             </p>
             <p className="mt-0.5 text-rose-900/90 dark:text-rose-300/90 break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
-              {req.rejectionReason}
+              <ExpandableText text={req.rejectionReason} />
             </p>
           </div>
         </div>
@@ -306,7 +297,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
       {/* Summary cards */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="shadow-2xs h-full flex flex-col justify-center">
+        <Card className={cn("h-full flex flex-col justify-center shadow-2xs", req.formVersion < currentCategoryVersion && "border-amber-300/80 bg-amber-50/60 dark:border-amber-800/70 dark:bg-amber-950/20")}>
           <CardContent className="space-y-2 py-2 flex flex-1 flex-col justify-center">
             <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Resident</p>
             {resident ? (
@@ -364,23 +355,28 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
         <Card className="shadow-2xs h-full flex flex-col justify-center">
           <CardContent className="space-y-2 py-2 flex flex-1 flex-col justify-center">
-            <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Form configuration</p>
+            <p className={cn("flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase", "text-muted-foreground")}>
+              Form configuration
+              {req.formVersion < currentCategoryVersion && (
+                <span className="rounded-full border border-amber-300/80 bg-amber-100 px-2 py-px text-[10px] font-bold tracking-wider text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">Outdated</span>
+              )}
+            </p>
             <div className="flex items-center gap-2">
-              <span className="flex size-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
+              <span className={cn("flex size-9 items-center justify-center rounded-xl border", req.formVersion < currentCategoryVersion ? "border-amber-300/80 bg-amber-100 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300" : "border-primary/20 bg-primary/10 text-primary dark:text-amber-300")}>
                 <LayoutTemplate className="size-4" aria-hidden="true" />
               </span>
               <div>
                 <p className="text-sm font-semibold text-foreground">Submitted on form v{req.formVersion}</p>
                 <p className="flex items-center text-xs text-muted-foreground">
-                  {req.formVersion === currentCategoryVersion ? "Matches current form" : `Category is now v${currentCategoryVersion}`}
+                  {req.formVersion === currentCategoryVersion ? "Matches current form" : <span className="font-semibold text-amber-800 dark:text-amber-300">Category is now v{currentCategoryVersion}</span>}
                   {req.formVersion !== currentCategoryVersion && (
                     <FieldHelpTooltip content="This request keeps the form and data it was submitted with; later edits only apply to new requests." />
                   )}
                 </p>
               </div>
             </div>
-            <Link href={`/categories/${req.categoryId}/versions?v=${req.formVersion}`} className="inline-block text-xs font-medium text-primary hover:underline dark:text-amber-300">
-              View version history
+            <Link href={`/categories/${req.categoryId}/versions?v=${req.formVersion}`} className={cn("inline-block text-xs underline-offset-2", req.formVersion < currentCategoryVersion ? "font-medium text-primary hover:underline dark:text-amber-300" : "font-medium text-primary hover:underline dark:text-amber-300")}>
+              {req.formVersion < currentCategoryVersion ? "Compare with current version" : "View version history"}
             </Link>
           </CardContent>
         </Card>
@@ -464,7 +460,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                             <Flag className="size-3.5 shrink-0" />
                             Reviewer correction note {review.reviewer ? `(by ${review.reviewer})` : ""}:
                           </p>
-                          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{review.reason}</p>
+                          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]"><ExpandableText text={review.reason} limit={140} /></p>
                         </div>
                       )}
                     </div>
@@ -513,7 +509,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                           <Flag className="size-3.5 shrink-0" />
                           Reviewer correction note {review.reviewer ? `(by ${review.reviewer})` : ""}:
                         </p>
-                        <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{review.reason}</p>
+                        <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]"><ExpandableText text={review.reason} limit={140} /></p>
                       </div>
                     )}
                   </div>
@@ -595,22 +591,29 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 <div>
                   <CardTitle className="font-heading text-lg font-medium">Review decision</CardTitle>
                   <p className="text-xs text-muted-foreground">
-                    {reviewer ? `Decided by the assigned reviewer, ${reviewer.name}.` : "No reviewer has taken ownership yet."}
+                    {["approved", "completed", "rejected", "changes_required"].includes(req.status)
+                      ? reviewer
+                        ? `Decided by the assigned reviewer, ${reviewer.name}.`
+                        : "Review decision recorded."
+                      : reviewer
+                        ? `Assigned reviewer: ${reviewer.name}.`
+                        : "No reviewer has taken ownership yet."}
                   </p>
                 </div>
                 <StatusBadge status={req.status} />
               </div>
             </CardHeader>
             <CardContent className="space-y-5 pt-5">
-              {req.status === "rejected" && req.rejectionReason && (
+              {req.status === "rejected" ? (
                 <div className="rounded-xl border border-rose-300/70 bg-rose-50 p-4 dark:border-rose-900/70 dark:bg-rose-950/30 min-w-0 break-words [overflow-wrap:anywhere]">
                   <p className="flex items-center gap-2 text-sm font-semibold text-rose-950 dark:text-rose-200">
                     <XCircle className="size-4 shrink-0" aria-hidden="true" /> Rejection reason
                   </p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-rose-900/90 dark:text-rose-300/90 break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap">{req.rejectionReason}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-rose-900/90 dark:text-rose-300/90 break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap">
+                    <ExpandableText text={req.rejectionReason || "No rejection reason provided."} />
+                  </p>
                 </div>
-              )}
-              {(req.status === "changes_required" || req.status === "resubmitted" || (req.review && flaggedCount > 0)) && (
+              ) : req.status === "changes_required" || req.status === "resubmitted" || (req.review && flaggedCount > 0) ? (
                 <div className="rounded-xl border border-amber-300/70 bg-amber-50 p-4 dark:border-amber-800/70 dark:bg-amber-950/30 min-w-0 break-words [overflow-wrap:anywhere]">
                   <p className="flex items-center gap-2 text-sm font-semibold text-amber-950 dark:text-amber-200">
                     <FileEdit className="size-4 shrink-0" aria-hidden="true" />
@@ -637,25 +640,61 @@ export default function RequestDetailPage({ id }: { id: string }) {
                                 </span>
                               )}
                             </div>
-                            <p className="mt-1 text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{it.reason || "Reviewer flagged this field for correction."}</p>
+                            <p className="mt-1 text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]"><ExpandableText text={it.reason || "Reviewer flagged this field for correction."} limit={140} /></p>
                           </div>
                         ))}
                     </div>
                   ) : (
                     <p className="mt-1.5 text-sm text-amber-900/90 dark:text-amber-300/90 whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">
-                      {req.feedback || "Corrections requested by reviewer."}
+                      <ExpandableText text={req.feedback || "Corrections requested by reviewer."} />
                     </p>
                   )}
                 </div>
-              )}
-              {["approved", "completed"].includes(req.status) && req.decidedAt && (
+              ) : ["approved", "completed"].includes(req.status) ? (
                 <div className="rounded-xl border border-emerald-300/70 bg-emerald-50 p-4 dark:border-emerald-900/70 dark:bg-emerald-950/30">
                   <p className="flex items-center gap-2 text-sm font-semibold text-emerald-950 dark:text-emerald-200">
-                    <CheckCircle2 className="size-4" aria-hidden="true" /> Approved on {formatDate(req.decidedAt)}
+                    <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" /> Approved{req.decidedAt ? ` on ${formatDate(req.decidedAt)}` : ""}
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 p-5 text-center sm:p-6">
+                  <div className="mx-auto mb-2.5 flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    {req.status === "withdrawn" ? (
+                      <Ban className="size-5" aria-hidden="true" />
+                    ) : (
+                      <Clock className="size-5" aria-hidden="true" />
+                    )}
+                  </div>
+                  <h4 className="text-sm font-semibold text-foreground">
+                    {req.status === "assigned"
+                      ? "Awaiting Review Decision"
+                      : req.status === "under_review"
+                        ? "Review In Progress"
+                        : req.status === "submitted"
+                          ? "Awaiting Reviewer Assignment"
+                          : req.status === "withdrawn"
+                            ? "Request Withdrawn"
+                            : "No Decision Yet"}
+                  </h4>
+                  <p className="mt-1 text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                    {req.status === "assigned"
+                      ? reviewer
+                        ? `This request has been assigned to ${reviewer.name}, but a review decision has not been recorded yet.`
+                        : "This request has been assigned, but a review decision has not been recorded yet."
+                      : req.status === "under_review"
+                        ? reviewer
+                          ? `${reviewer.name} is currently reviewing this request. A review decision has not been submitted yet.`
+                          : "This request is currently under review. A review decision has not been submitted yet."
+                        : req.status === "submitted"
+                          ? "This request is newly submitted and waiting to be assigned to a reviewer."
+                          : req.status === "withdrawn"
+                            ? req.withdrawnAt
+                              ? `This request was withdrawn on ${formatDate(req.withdrawnAt)}. No review decision is required.`
+                              : "This request was withdrawn and is no longer active for review."
+                            : "No review decision has been recorded for this request yet."}
                   </p>
                 </div>
               )}
-
             </CardContent>
           </Card>
 
@@ -678,7 +717,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                     .map((r) => (
                       <div key={r.number} className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2.5 text-xs dark:border-amber-800/70 dark:bg-amber-950/30">
                         <p className="font-semibold text-amber-950 dark:text-amber-200">Round {r.number}</p>
-                        <p className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-amber-900/90 dark:text-amber-300/90">{r.feedback}</p>
+                        <p className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-amber-900/90 dark:text-amber-300/90"><ExpandableText text={r.feedback} /></p>
                       </div>
                     ))}
                 </CardContent>

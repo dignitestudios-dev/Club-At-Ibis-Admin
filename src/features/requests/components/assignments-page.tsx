@@ -279,7 +279,7 @@ export default function AssignmentsPage() {
                   <TableHead className="pl-4 w-[180px] min-w-[180px] max-w-[180px]">Request</TableHead>
                   <TableHead className="w-[180px] min-w-[160px] max-w-[180px]">Resident</TableHead>
                   <TableHead className="w-[200px] min-w-[180px] max-w-[200px]">Property</TableHead>
-                  <TableHead className="w-[130px] min-w-[120px] max-w-[130px]">Status</TableHead>
+                  <TableHead className="min-w-[170px]">Status</TableHead>
                   <TableHead className="w-[130px] min-w-[120px] max-w-[130px]">Submitted</TableHead>
                   <TableHead className="w-[180px] min-w-[160px] max-w-[180px]">{tab === "intake" ? "Owner" : "Assigned reviewer"}</TableHead>
                   <TableHead className="w-[120px] min-w-[110px] max-w-[120px] text-right">
@@ -312,7 +312,7 @@ export default function AssignmentsPage() {
                       <TableCell className="w-[200px] min-w-[180px] max-w-[200px]">
                         <span className="block truncate text-sm text-muted-foreground" title={req.fieldValues.propertyAddress}>{req.fieldValues.propertyAddress}</span>
                       </TableCell>
-                      <TableCell className="w-[130px] min-w-[120px] max-w-[130px]">
+                      <TableCell className="min-w-[170px]">
                         <StatusBadge status={req.status} />
                       </TableCell>
                       <TableCell className="w-[130px] min-w-[120px] max-w-[130px] whitespace-nowrap truncate" title={format(new Date(req.submittedAt), "PPP")}>

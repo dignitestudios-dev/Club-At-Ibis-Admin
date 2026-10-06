@@ -339,7 +339,7 @@ export default function RequestsListPage() {
                   <TableHead className="w-[170px] min-w-[150px] max-w-[170px]">Resident</TableHead>
                   <TableHead className="w-[190px] min-w-[160px] max-w-[190px]">Property</TableHead>
                   <TableHead className="w-[130px] min-w-[120px] max-w-[130px]">Submitted</TableHead>
-                  <TableHead className="w-[140px] min-w-[130px] max-w-[140px]">Status</TableHead>
+                  <TableHead className="min-w-[170px]">Status</TableHead>
                   <TableHead className="w-[160px] min-w-[150px] max-w-[160px]">Reviewer</TableHead>
                   <TableHead className="w-[140px] min-w-[130px] max-w-[140px]">Deposit / refund</TableHead>
                   <TableHead className="w-[120px] min-w-[110px] max-w-[120px] text-right">
@@ -402,7 +402,7 @@ export default function RequestsListPage() {
                         <div className="text-[11px] text-muted-foreground truncate block">{propLot}</div>
                       </TableCell>
                       <TableCell className="w-[130px] min-w-[120px] max-w-[130px] text-sm whitespace-nowrap text-muted-foreground truncate" title={format(new Date(req.submittedAt), "PPP")}>{format(new Date(req.submittedAt), "MMM d, yyyy")}</TableCell>
-                      <TableCell className="w-[140px] min-w-[130px] max-w-[140px]">
+                      <TableCell className="min-w-[170px]">
                         <StatusBadge status={req.status} />
                       </TableCell>
                       <TableCell className="w-[160px] min-w-[150px] max-w-[160px]">

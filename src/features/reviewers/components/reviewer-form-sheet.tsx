@@ -26,9 +26,6 @@ const baseSchema = {
     .min(1, "First name is required")
     .max(30, "First name cannot exceed 30 characters")
     .regex(nameRegex, "First name cannot contain numbers or special characters"),
-  // The backend always requires a last name (admin.model.js: `required: true`),
-  // on both create and edit — it can never be blanked out, so this must be a
-  // real required field here too rather than silently omitted when empty.
   lastName: z
     .string()
     .trim()
@@ -147,8 +144,8 @@ export function ReviewerFormSheet({
     if (!open) return;
     const { firstName, lastName } = splitReviewerName(reviewer?.name);
     reset({
-      firstName,
-      lastName,
+      firstName: reviewer?.firstName ?? firstName,
+      lastName: reviewer?.lastName !== undefined ? reviewer.lastName : lastName,
       employeeNumber: reviewer?.employeeNumber ?? "",
       designation: reviewer?.designation ?? "",
       email: reviewer?.email ?? "",
@@ -164,11 +161,11 @@ export function ReviewerFormSheet({
 
   function onSubmit(values: FormValues) {
     const trimmedFirstName = values.firstName.trim();
-    const trimmedLastName = values.lastName.trim();
+    const trimmedLastName = (values.lastName || "").trim();
     const trimmedEmp = values.employeeNumber ? values.employeeNumber.trim() : "";
     const trimmedDesignation = values.designation.trim();
     const trimmedEmail = values.email.trim();
-    const fullName = `${trimmedFirstName} ${trimmedLastName}`;
+    const fullName = trimmedLastName ? `${trimmedFirstName} ${trimmedLastName}` : trimmedFirstName;
 
     if (editing && reviewer) {
       update.mutate(
@@ -178,7 +175,7 @@ export function ReviewerFormSheet({
             name: fullName,
             firstName: trimmedFirstName,
             lastName: trimmedLastName,
-            employeeNumber: trimmedEmp || undefined,
+            employeeNumber: trimmedEmp,
             designation: trimmedDesignation,
             email: trimmedEmail,
           },

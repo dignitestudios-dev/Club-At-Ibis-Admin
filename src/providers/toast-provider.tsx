@@ -6,6 +6,15 @@ import { ToastViewport } from "@/components/shared/toast/toast-viewport";
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 const TOAST_DURATION_MS = 4000;
+const MAX_ERROR_TOASTS = 5;
+
+/** Never keep more than MAX_ERROR_TOASTS error toasts on screen: the oldest ones make room for new ones. */
+function capErrorToasts(list: ToastRecord[]): ToastRecord[] {
+  const errors = list.filter((t) => t.variant === "error");
+  if (errors.length <= MAX_ERROR_TOASTS) return list;
+  const drop = new Set(errors.slice(0, errors.length - MAX_ERROR_TOASTS).map((t) => t.id));
+  return list.filter((t) => !drop.has(t.id));
+}
 
 export default function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastRecord[]>([]);
@@ -16,7 +25,7 @@ export default function ToastProvider({ children }: { children: React.ReactNode 
 
   function show(variant: ToastVariant, title: string, description?: string) {
     const id = crypto.randomUUID();
-    setToasts((prev) => [...prev, { id, variant, title, description }]);
+    setToasts((prev) => capErrorToasts([...prev, { id, variant, title, description }]));
     setTimeout(() => dismiss(id), TOAST_DURATION_MS);
   }
 
@@ -36,7 +45,7 @@ export default function ToastProvider({ children }: { children: React.ReactNode 
         if (prev.some((t) => t.title === title)) return prev;
         const id = crypto.randomUUID();
         setTimeout(() => dismiss(id), TOAST_DURATION_MS);
-        return [...prev, { id, variant: "error", title, description }];
+        return capErrorToasts([...prev, { id, variant: "error", title, description }]);
       });
     };
 
