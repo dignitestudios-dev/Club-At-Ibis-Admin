@@ -1,5 +1,17 @@
 import axiosInstance from "@/lib/axios";
 
+/** The `withdrawal` object has no "from" status; the withdraw history event records it as `details.previousStatus`. */
+function withdrawnFromHistory(history: any[] | undefined): string | undefined {
+  const event = history?.find((h) => h?.type === "request.withdrawn");
+  return event?.details?.previousStatus ?? undefined;
+}
+
+/** Actor objects ({ actorId, role, displayName }) -> a display name. */
+function actorName(actor: any): string | null {
+  if (!actor) return null;
+  return typeof actor === "string" ? actor : (actor.displayName ?? actor.name ?? null);
+}
+
 /**
  * The backend identifies who recorded a refund with an actor object ({ actorId, role, displayName }),
  * but the UI shows a plain name — rendering the object crashes the page.
@@ -97,7 +109,7 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
     decidedAt: raw.decision?.decidedAt || raw.decidedAt,
     completedAt: raw.completedAt || raw.completion?.completedAt,
     withdrawnAt: raw.withdrawnAt || raw.withdrawal?.withdrawnAt,
-    withdrawnFrom: raw.withdrawnFrom || raw.withdrawal?.withdrawnFrom,
+    withdrawnFrom: raw.withdrawnFrom || raw.withdrawal?.withdrawnFrom || withdrawnFromHistory(raw.history),
     // The current round's general feedback lives under `revision.feedback`,
     // not a top-level `feedback` key on the real response.
     feedback: raw.revision?.feedback || raw.feedback || undefined,

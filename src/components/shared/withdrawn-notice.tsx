@@ -72,7 +72,7 @@ export function WithdrawnNotice({
     refundValue = (
       <>
         {[refund.amount, refund.date].filter(Boolean).join(" · ") || "Processed"}
-        {audience === "staff" && refund.by && (
+        {refund.by && (
           <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">Recorded by {refund.by}</span>
         )}
       </>
@@ -81,6 +81,7 @@ export function WithdrawnNotice({
     refundValue = (
       <>
         Deposit retained
+        {refund.by && <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">Recorded by {refund.by}</span>}
         {refund.explanation && <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">{refund.explanation}</span>}
       </>
     );
