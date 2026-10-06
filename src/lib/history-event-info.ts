@@ -51,7 +51,7 @@ export function describeEvent(type: string, details: Details, audience: "staff" 
         return {
           title: "Deposit required",
           lines: [
-            { text: `${amount ?? "A security deposit"} security deposit`, tone: "warn" },
+            { text: amount ? `${amount} security deposit` : "A security deposit is required", tone: "warn" },
             {
               text: staff
                 ? "Paid outside the portal. Attach the payment receipt once it is received."

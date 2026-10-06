@@ -821,7 +821,11 @@ export default function RequestDetailPage({ id }: { id: string }) {
               ) : (
                 <dl className="space-y-3">
                   <InfoRow label="Amount">
-                    <span className="font-mono text-lg font-bold">${req.deposit.amount?.toLocaleString()}</span>
+                    <span className="font-mono text-lg font-bold">
+                      {req.deposit.amount != null && req.deposit.amount !== ""
+                        ? `$${Number(req.deposit.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : <span className="font-sans text-sm font-normal text-muted-foreground">Not specified</span>}
+                    </span>
                   </InfoRow>
                   <InfoRow label="Status">
                     <DepositChip deposit={{ ...req.deposit, amount: undefined }} />
