@@ -172,7 +172,7 @@ const TYPE_OPTIONS: { value: ActivityType; label: string }[] = [
 
 export default function ActivityPage() {
   const toast = useToast();
-  const { values, set } = useUrlParams({ type: "all", page: "1", limit: "20" });
+  const { values, set } = useUrlParams({ type: "all", page: "1", limit: "50" });
 
   const categoryParam = values.type as ActivityType;
   const category: ActivityType =
@@ -184,7 +184,7 @@ export default function ActivityPage() {
       : "all";
 
   const page = Math.max(1, Number(values.page) || 1);
-  const [pageSize, setPageSize] = useState(() => Math.max(10, Number(values.limit) || 20));
+  const [pageSize, setPageSize] = useState(() => Math.max(10, Number(values.limit) || 50));
 
   const { data: pageResult, isLoading, isFetching, refetch } = useActivitiesPage({
     type: category !== "all" ? category : undefined,

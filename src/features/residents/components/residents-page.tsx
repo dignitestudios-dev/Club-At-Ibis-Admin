@@ -14,6 +14,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TableFrame } from "@/components/shared/table-frame";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ResidentStatusChip } from "@/features/residents/components/resident-status-chip";
 import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
@@ -157,81 +158,82 @@ export default function ResidentsPage() {
       ) : visible.length === 0 ? (
         <EmptyState icon={Users} title="No Residents Found" description="Try a different name, resident ID or email." />
       ) : (
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="pl-4 max-w-[240px]">Resident</TableHead>
-                  <TableHead className="max-w-[140px]">Resident ID</TableHead>
-                  <TableHead className="max-w-[160px]">Joined</TableHead>
-                  <TableHead className="min-w-[190px]">Status</TableHead>
-                  <TableHead className="w-12 pr-4 text-right">
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visible.map((res) => {
-                  const name = residentFullName(res);
-                  return (
-                    <TableRow key={res.id} className={`cursor-pointer ${res.active ? "" : "opacity-70"}`} onClick={() => router.push(`/residents/${res.id}`)}>
-                      <TableCell className="pl-4 max-w-[240px]">
-                        <div className="flex items-center gap-3 min-w-0" title={`${name} (${res.email})`}>
-                          <PersonAvatar name={name} className="size-9 shrink-0" />
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium text-foreground">{name}</span>
-                            <span className="block truncate text-xs text-muted-foreground">{res.email}</span>
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground max-w-[140px] truncate" title={res.residentIdNumber}>{res.residentIdNumber}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[160px] truncate" title={`Joined: ${formatDate(res.createdAt)}${res.lastLoginAt ? `, Seen: ${formatRelative(res.lastLoginAt)}` : ''}`}>
-                        {formatDate(res.createdAt)}
-                        {res.lastLoginAt && <span className="block text-[11px] truncate">Seen {formatRelative(res.lastLoginAt)}</span>}
-                      </TableCell>
-                      <TableCell className="min-w-[190px]">
-                        <ResidentStatusChip status={res.accountStatus} active={res.active} />
-                      </TableCell>
-                      <TableCell className="pr-4 text-right" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${name}`} />}>
-                            <MoreHorizontal />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-52">
-                            <DropdownMenuItem disabled={!res.active} onClick={() => setResetTarget({ kind: "resident", id: res.id, name, email: res.email })}>
-                              <KeyRound />
-                              Send Password Reset
-                            </DropdownMenuItem>
-                            <DropdownMenuItem disabled={!res.active} onClick={() => setPasswordTarget({ kind: "resident", id: res.id, name, email: res.email })}>
-                              <LockKeyhole />
-                              Change Password
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem variant={res.active ? "destructive" : "default"} onClick={() => setToggling(res)}>
-                              <Power />
-                              {res.active ? "Deactivate Account" : "Activate Account"}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+        <TableFrame
+          footer={
           <Pagination
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={(p) => set({ page: String(p) })}
-            onPageSizeChange={(n) => {
-              setPageSize(n);
-              set({ page: "1" });
-            }}
-          />
-        </div>
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={(p) => set({ page: String(p) })}
+        onPageSizeChange={(n) => {
+          setPageSize(n);
+          set({ page: "1" });
+        }}
+      />
+          }
+        >
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableHead className="pl-4 max-w-[240px]">Resident</TableHead>
+                <TableHead className="max-w-[140px]">Resident ID</TableHead>
+                <TableHead className="max-w-[160px]">Joined</TableHead>
+                <TableHead className="min-w-[190px]">Status</TableHead>
+                <TableHead className="w-12 pr-4 text-right">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visible.map((res) => {
+                const name = residentFullName(res);
+                return (
+                  <TableRow key={res.id} className={`cursor-pointer ${res.active ? "" : "opacity-70"}`} onClick={() => router.push(`/residents/${res.id}`)}>
+                    <TableCell className="pl-4 max-w-[240px]">
+                      <div className="flex items-center gap-3 min-w-0" title={`${name} (${res.email})`}>
+                        <PersonAvatar name={name} className="size-9 shrink-0" />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium text-foreground">{name}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{res.email}</span>
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground max-w-[140px] truncate" title={res.residentIdNumber}>{res.residentIdNumber}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground max-w-[160px] truncate" title={`Joined: ${formatDate(res.createdAt)}${res.lastLoginAt ? `, Seen: ${formatRelative(res.lastLoginAt)}` : ''}`}>
+                      {formatDate(res.createdAt)}
+                      {res.lastLoginAt && <span className="block text-[11px] truncate">Seen {formatRelative(res.lastLoginAt)}</span>}
+                    </TableCell>
+                    <TableCell className="min-w-[190px]">
+                      <ResidentStatusChip status={res.accountStatus} active={res.active} />
+                    </TableCell>
+                    <TableCell className="pr-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${name}`} />}>
+                          <MoreHorizontal />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52">
+                          <DropdownMenuItem disabled={!res.active} onClick={() => setResetTarget({ kind: "resident", id: res.id, name, email: res.email })}>
+                            <KeyRound />
+                            Send Password Reset
+                          </DropdownMenuItem>
+                          <DropdownMenuItem disabled={!res.active} onClick={() => setPasswordTarget({ kind: "resident", id: res.id, name, email: res.email })}>
+                            <LockKeyhole />
+                            Change Password
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem variant={res.active ? "destructive" : "default"} onClick={() => setToggling(res)}>
+                            <Power />
+                            {res.active ? "Deactivate Account" : "Activate Account"}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableFrame>
       )}
 
       <SendResetDialog target={resetTarget} onOpenChange={(o) => !o && setResetTarget(null)} />

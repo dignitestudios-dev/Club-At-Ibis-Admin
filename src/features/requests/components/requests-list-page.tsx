@@ -1,6 +1,6 @@
 "use client";
 
-import { ProcessingChip, isRefundPending } from "@/components/shared/processing-chip";
+import { ProcessingChip, hasProcessingState, isRefundPending } from "@/components/shared/processing-chip";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TableFrame } from "@/components/shared/table-frame";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DepositChip, RefundChip } from "@/features/requests/components/request-chips";
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
@@ -330,129 +331,131 @@ export default function RequestsListPage() {
           }
         />
       ) : (
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="pl-4 w-[150px] min-w-[150px] max-w-[150px] whitespace-nowrap">Reference</TableHead>
-                  <TableHead className="w-[180px] min-w-[160px] max-w-[180px]">Category</TableHead>
-                  <TableHead className="w-[170px] min-w-[150px] max-w-[170px]">Resident</TableHead>
-                  <TableHead className="w-[190px] min-w-[160px] max-w-[190px]">Property</TableHead>
-                  <TableHead className="w-[130px] min-w-[120px] max-w-[130px]">Submitted</TableHead>
-                  <TableHead className="min-w-[170px]">Status</TableHead>
-                  <TableHead className="w-[160px] min-w-[150px] max-w-[160px]">Reviewer</TableHead>
-                  <TableHead className="w-[140px] min-w-[130px] max-w-[140px]">Deposit / refund</TableHead>
-                  <TableHead className="w-[120px] min-w-[110px] max-w-[120px] text-right">
-                    <span className="sr-only">Action</span>
-                  </TableHead>
-                  <TableHead className="w-10 pr-4">
-                    <span className="sr-only">Open</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {requests.map((req) => {
-                  const resident = req.resident
-                    ? {
-                        id: req.resident.id,
-                        residentIdNumber: req.resident.residentId || req.resident.residentIdNumber || "",
-                        firstName: req.resident.firstName || "",
-                        lastName: req.resident.lastName || "",
-                        displayName: req.resident.displayName || "",
-                        email: req.resident.email || "",
-                        phone: req.resident.phone || "",
-                        active: true,
-                        address: req.property?.address || req.fieldValues?.propertyAddress || "",
-                        lotNo: req.property?.lotNo || req.fieldValues?.lotNo || "",
-                        createdAt: "",
-                      }
-                    : residentById.get(req.residentId);
-                  const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
-                  const category = categoryById.get(req.categoryId);
-                  const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
-                  const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
-                  return (
-                    <TableRow key={req.id} onClick={() => router.push(`/requests/${req.id}`)} className={cn("group cursor-pointer", isRefundPending(req) && "bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/15 dark:hover:bg-amber-950/25")}>
-                      <TableCell className="pl-4 w-[150px] min-w-[150px] max-w-[150px] whitespace-nowrap">
-                        <Link
-                          href={`/requests/${req.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap block truncate"
-                          title={req.code}
-                        >
-                          {req.code}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="w-[180px] min-w-[160px] max-w-[180px]">
-                        <div className="flex flex-col gap-0.5 min-w-0">
-                          <span className="text-sm font-medium truncate text-foreground block" title={req.categoryName}>{req.categoryName}</span>
-                          {category?.status === "archived" && (
-                            <span className="w-fit rounded-full bg-slate-200 px-1.5 text-[9px] font-bold tracking-wider text-slate-700 uppercase dark:bg-slate-700 dark:text-slate-200">
-                              Archived
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="w-[170px] min-w-[150px] max-w-[170px]">
-                        <div className="text-sm font-medium truncate block" title={`${residentFullName(resident)} (${resident?.residentIdNumber || ''})`}>{residentFullName(resident)}</div>
-                        <div className="text-[11px] text-muted-foreground truncate block">{resident?.residentIdNumber}</div>
-                      </TableCell>
-                      <TableCell className="w-[190px] min-w-[160px] max-w-[190px]">
-                        <div className="truncate text-sm block" title={`${propAddress} (Lot: ${propLot})`}>{propAddress}</div>
-                        <div className="text-[11px] text-muted-foreground truncate block">{propLot}</div>
-                      </TableCell>
-                      <TableCell className="w-[130px] min-w-[120px] max-w-[130px] text-sm whitespace-nowrap text-muted-foreground truncate" title={format(new Date(req.submittedAt), "PPP")}>{format(new Date(req.submittedAt), "MMM d, yyyy")}</TableCell>
-                      <TableCell className="min-w-[170px]">
-                        <div className="flex flex-col items-start gap-1">
-                          <StatusBadge status={req.status} />
-                          <ProcessingChip request={req} />
-                        </div>
-                      </TableCell>
-                      <TableCell className="w-[160px] min-w-[150px] max-w-[160px]">
-                        {reviewer ? (
-                          <div className="flex items-center gap-2 min-w-0" title={reviewer.name}>
-                            <PersonAvatar name={reviewer.name} className="size-6 shrink-0" fallbackClassName="text-[9px]" />
-                            <span className="text-sm truncate block">{reviewer.name}</span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground italic">Unassigned</span>
+        <TableFrame
+          footer={
+          <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={totalCount}
+        onPageChange={(p) => setUrl({ page: String(p) })}
+        onPageSizeChange={(n) => {
+          setPageSize(n);
+          setUrl({ page: "1" });
+        }}
+      />
+          }
+        >
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableHead className="pl-4 w-[150px] min-w-[150px] max-w-[150px] whitespace-nowrap">Reference</TableHead>
+                <TableHead className="w-[180px] min-w-[160px] max-w-[180px]">Category</TableHead>
+                <TableHead className="w-[170px] min-w-[150px] max-w-[170px]">Resident</TableHead>
+                <TableHead className="w-[190px] min-w-[160px] max-w-[190px]">Property</TableHead>
+                <TableHead className="w-[130px] min-w-[120px] max-w-[130px]">Submitted</TableHead>
+                <TableHead className="min-w-[170px]">Status</TableHead>
+                <TableHead className="w-[160px] min-w-[150px] max-w-[160px]">Reviewer</TableHead>
+                <TableHead className="w-[170px] min-w-[150px] max-w-[170px]">Deposit / refund</TableHead>
+                <TableHead className="w-[120px] min-w-[110px] max-w-[120px] text-right">
+                  <span className="sr-only">Action</span>
+                </TableHead>
+                <TableHead className="w-10 pr-4">
+                  <span className="sr-only">Open</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {requests.map((req) => {
+                const resident = req.resident
+                  ? {
+                      id: req.resident.id,
+                      residentIdNumber: req.resident.residentId || req.resident.residentIdNumber || "",
+                      firstName: req.resident.firstName || "",
+                      lastName: req.resident.lastName || "",
+                      displayName: req.resident.displayName || "",
+                      email: req.resident.email || "",
+                      phone: req.resident.phone || "",
+                      active: true,
+                      address: req.property?.address || req.fieldValues?.propertyAddress || "",
+                      lotNo: req.property?.lotNo || req.fieldValues?.lotNo || "",
+                      createdAt: "",
+                    }
+                  : residentById.get(req.residentId);
+                const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
+                const category = categoryById.get(req.categoryId);
+                const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
+                const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
+                return (
+                  <TableRow key={req.id} onClick={() => router.push(`/requests/${req.id}`)} className={cn("group cursor-pointer", isRefundPending(req) && "bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/15 dark:hover:bg-amber-950/25")}>
+                    <TableCell className="pl-4 w-[150px] min-w-[150px] max-w-[150px] whitespace-nowrap">
+                      <Link
+                        href={`/requests/${req.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap block truncate"
+                        title={req.code}
+                      >
+                        {req.code}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="w-[180px] min-w-[160px] max-w-[180px]">
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-sm font-medium truncate text-foreground block" title={req.categoryName}>{req.categoryName}</span>
+                        {category?.status === "archived" && (
+                          <span className="w-fit rounded-full bg-slate-200 px-1.5 text-[9px] font-bold tracking-wider text-slate-700 uppercase dark:bg-slate-700 dark:text-slate-200">
+                            Archived
+                          </span>
                         )}
-                      </TableCell>
-                      <TableCell className="w-[140px] min-w-[130px] max-w-[140px]">
+                      </div>
+                    </TableCell>
+                    <TableCell className="w-[170px] min-w-[150px] max-w-[170px]">
+                      <div className="text-sm font-medium truncate block" title={`${residentFullName(resident)} (${resident?.residentIdNumber || ''})`}>{residentFullName(resident)}</div>
+                      <div className="text-[11px] text-muted-foreground truncate block">{resident?.residentIdNumber}</div>
+                    </TableCell>
+                    <TableCell className="w-[190px] min-w-[160px] max-w-[190px]">
+                      <div className="truncate text-sm block" title={`${propAddress} (Lot: ${propLot})`}>{propAddress}</div>
+                      <div className="text-[11px] text-muted-foreground truncate block">{propLot}</div>
+                    </TableCell>
+                    <TableCell className="w-[130px] min-w-[120px] max-w-[130px] text-sm whitespace-nowrap text-muted-foreground truncate" title={format(new Date(req.submittedAt), "PPP")}>{format(new Date(req.submittedAt), "MMM d, yyyy")}</TableCell>
+                    <TableCell className="min-w-[170px]">
+                        <StatusBadge status={req.status} />
+                    </TableCell>
+                    <TableCell className="w-[160px] min-w-[150px] max-w-[160px]">
+                      {reviewer ? (
+                        <div className="flex items-center gap-2 min-w-0" title={reviewer.name}>
+                          <PersonAvatar name={reviewer.name} className="size-6 shrink-0" fallbackClassName="text-[9px]" />
+                          <span className="text-sm truncate block">{reviewer.name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="w-[140px] min-w-[130px] max-w-[140px]">
+                      {hasProcessingState(req) ? (
+                        <ProcessingChip request={req} />
+                      ) : (
                         <div className="flex flex-col items-start gap-1">
                           <DepositChip deposit={req.deposit} />
                           {req.refund && <RefundChip refund={req.refund} />}
                         </div>
-                      </TableCell>
-                      <TableCell className="w-[120px] min-w-[110px] max-w-[120px] text-right" onClick={(e) => e.stopPropagation()}>
-                        {IN_FLIGHT.includes(req.status) && (
-                          <Button size="sm" variant={reviewer ? "outline" : "default"} onClick={() => setAssigning(req)}>
-                            <UserRoundPlus />
-                            {reviewer ? "Reassign" : "Assign"}
-                          </Button>
-                        )}
-                      </TableCell>
-                      <TableCell className="w-10 pr-4">
-                        <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-          <Pagination
-            page={page}
-            pageSize={pageSize}
-            total={totalCount}
-            onPageChange={(p) => setUrl({ page: String(p) })}
-            onPageSizeChange={(n) => {
-              setPageSize(n);
-              setUrl({ page: "1" });
-            }}
-          />
-        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="w-[120px] min-w-[110px] max-w-[120px] text-right" onClick={(e) => e.stopPropagation()}>
+                      {IN_FLIGHT.includes(req.status) && (
+                        <Button size="sm" variant={reviewer ? "outline" : "default"} onClick={() => setAssigning(req)}>
+                          <UserRoundPlus />
+                          {reviewer ? "Reassign" : "Assign"}
+                        </Button>
+                      )}
+                    </TableCell>
+                    <TableCell className="w-10 pr-4">
+                      <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableFrame>
       )}
 
       <ExportDialog

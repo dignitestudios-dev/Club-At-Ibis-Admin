@@ -43,6 +43,11 @@ export function isRefundPending(req: ProcessingSubject): boolean {
   return processingState(req) === "refund_pending";
 }
 
+/** True when the request has a deposit / refund state worth showing. */
+export function hasProcessingState(req: ProcessingSubject): boolean {
+  return processingState(req) !== null;
+}
+
 const UI = {
   deposit_required: {
     label: "Deposit required",

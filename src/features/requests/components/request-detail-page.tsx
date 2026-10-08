@@ -327,10 +327,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
             <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Key dates</p>
             <dl className="space-y-1.5 text-sm">
               <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Submitted</dt><dd className="font-medium">{formatDate(req.submittedAt)}</dd></div>
-              <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Last update</dt><dd className="font-medium">{formatDate(req.updatedAt)}</dd></div>
-              {req.decidedAt && <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Decision</dt><dd className="font-medium">{formatDate(req.decidedAt)}</dd></div>}
-              {req.completedAt && <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Completed</dt><dd className="font-medium">{formatDate(req.completedAt)}</dd></div>}
-              {req.withdrawnAt && <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Withdrawn</dt><dd className="font-medium">{formatDate(req.withdrawnAt)}</dd></div>}
+              <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Last update</dt><dd className="flex items-center gap-2 font-medium"><StatusBadge status={req.status} className="px-2 py-0 text-[11px]" />{formatDate(req.updatedAt)}</dd></div>
             </dl>
           </CardContent>
         </Card>
