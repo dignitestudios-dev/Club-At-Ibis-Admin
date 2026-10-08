@@ -143,7 +143,7 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
     refund: normalizeRefund(raw.refund) || (raw.refundStatus || raw.refundOutcome ? {
       outcome: raw.refundOutcome || raw.refundStatus,
       refundDate: raw.refundDate || undefined,
-      displayValue: raw.refundDisplayValue || (raw.refundOutcome === "no_refund" ? "-" : raw.refundDate),
+      displayValue: raw.refundDisplayValue || (raw.refundOutcome === "no_refund" ? "No Refund" : raw.refundDate),
       explanation: raw.refundExplanation || (raw.refundOutcome === "no_refund" ? "A No Refund decision was recorded." : undefined),
       recordedBy: raw.refundRecordedBy || "Staff",
       recordedAt: raw.refundRecordedAt,

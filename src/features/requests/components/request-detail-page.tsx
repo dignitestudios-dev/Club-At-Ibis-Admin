@@ -855,11 +855,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
                     <InfoRow label="Outcome">
                       <RefundChip refund={req.refund} />
                     </InfoRow>
-                    {req.refund.outcome === "no_refund" && (
-                      <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                        <span className="font-semibold text-foreground">“-” indicates No Refund.</span> A reviewer recorded that a refund is not applicable or approved; this is not an unresolved refund.
-                      </p>
-                    )}
                     <InfoRow label="Recorded by">{req.refund.recordedBy}</InfoRow>
                     {req.refund.proof && (
                       <InfoRow label="Proof">

@@ -226,7 +226,7 @@ function OptionsEditor({ field, onChange, disabled = false }: { field: DraftFiel
   };
 
   const handleRemoveOption = (indexToRemove: number) => {
-    if (options.length <= 1) return;
+    if (options.length <= 2) return;
     pendingFocusIdx.current = Math.max(0, indexToRemove - 1);
     onChange(options.filter((_, j) => j !== indexToRemove));
   };
@@ -285,7 +285,7 @@ function OptionsEditor({ field, onChange, disabled = false }: { field: DraftFiel
             variant="ghost"
             size="icon-xs"
             onClick={() => handleRemoveOption(i)}
-            disabled={disabled || options.length <= 1}
+            disabled={disabled || options.length <= 2}
             aria-label={`Remove option ${i + 1}`}
             className="text-muted-foreground"
           >
@@ -804,7 +804,7 @@ function BuilderForm({
       required: type === "file",
       helpText: "",
       order: 0,
-      options: isChoiceType(type) ? [""] : undefined,
+      options: isChoiceType(type) ? ["", ""] : undefined,
       accept: type === "file" ? [] : undefined,
     };
     const isFile = type === "file";
@@ -848,7 +848,7 @@ function BuilderForm({
           ? {
             ...f,
             type,
-            options: isChoiceType(type) ? (f.options && f.options.length ? f.options : [""]) : undefined,
+            options: isChoiceType(type) ? [...(f.options ?? []), "", ""].slice(0, Math.max(2, (f.options ?? []).length)) : undefined,
           }
           : f
       )
@@ -931,7 +931,7 @@ function BuilderForm({
       else if (isChoiceType(f.type)) {
         const opts = (f.options ?? []).map((o) => o.trim());
         if (opts.length === 0 || opts.some((o) => !o)) next.fields[f.key] = "Every option needs a value. Please fill in or remove empty options.";
-        else if ((f.type === "select" || f.type === "radio") && opts.length < 2) next.fields[f.key] = "Add at least two options so residents have a real choice.";
+        else if (opts.length < 2) next.fields[f.key] = "Add at least two options so residents have a real choice.";
         else if (new Set(opts.map((o) => o.toLowerCase())).size !== opts.length) next.fields[f.key] = "Options must be unique.";
       }
       seen.add(label);

@@ -322,7 +322,7 @@ export function buildRequestsCsv(requests: RequestRecord[], ctx: CsvContext): st
       req.deposit.amount,
       DEPOSIT_LABEL[req.deposit.status],
       ts(req.deposit.receivedAt || undefined),
-      req.refund?.outcome ? (req.refund.outcome === "no_refund" ? "-" : REFUND_LABEL[req.refund.outcome]) : "",
+      req.refund?.outcome ? (req.refund.outcome === "no_refund" ? "No Refund" : REFUND_LABEL[req.refund.outcome]) : "",
       req.refund?.outcome === "refunded" ? ts(req.refund.refundDate || req.refund.date || undefined) : "",
       req.approvalLetter?.name,
       req.letterEmail ? "Sent" : "",
