@@ -116,9 +116,9 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
     rejectionReason: raw.decision?.rejectionReason || raw.rejectionReason,
     deposit: raw.deposit || {
       required: !!raw.depositRequired,
-      amount: raw.depositAmount != null ? String(raw.depositAmount) : null,
+      amount: raw.depositAmount != null ? String(raw.depositAmount) : raw.depositAmountMinor != null ? (raw.depositAmountMinor / 100).toFixed(2) : null,
       amountMinor: raw.depositAmountMinor,
-      status: raw.depositReceived ? "received" : raw.depositRequired ? "pending" : "not_required",
+      status: raw.depositStatus || (raw.depositReceived ? "received" : raw.depositRequired ? "pending" : "not_required"),
       confirmed: raw.depositRequired !== undefined,
       receipt: raw.depositReceipt,
       receivedAt: raw.depositReceivedAt,
@@ -268,25 +268,6 @@ export async function getRequestById(id: string): Promise<RequestRecord> {
 export async function getAdminFileDownloadUrl(requestId: string, fileId: string): Promise<{ url: string; expiresAt: string }> {
   const { data } = await axiosInstance.get(`/admin/requests/${requestId}/files/${fileId}/download`);
   return data.data.download;
-}
-
-export interface WithdrawRequestAdminPayload {
-  requestId: string;
-  residentContactAcknowledged: boolean;
-  expectedWorkflowVersion?: number;
-}
-
-export async function withdrawRequestAsAdmin({
-  requestId,
-  residentContactAcknowledged,
-  expectedWorkflowVersion,
-}: WithdrawRequestAdminPayload): Promise<RequestRecord> {
-  const { data } = await axiosInstance.post(`/admin/requests/${requestId}/withdraw`, {
-    residentContactAcknowledged,
-    expectedWorkflowVersion,
-  });
-  const req = data?.data?.request ?? data?.request ?? data?.data;
-  return toAdminRequestRecord(req);
 }
 
 export async function recordExport(_count: number, _summary: string): Promise<void> {

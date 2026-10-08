@@ -222,7 +222,7 @@ export function FilePreviewDialog({
                 </Badge>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                {formatFileSize(file.size)}
+                {file.size > 0 ? formatFileSize(file.size) : ""}
               </p>
             </div>
           </div>
@@ -353,7 +353,7 @@ export function FilePreviewDialog({
               </div>
               <p className="text-base font-semibold text-slate-200">{file.name}</p>
               <p className="text-xs text-slate-400 mt-1">
-                {formatFileSize(file.size)} • {ext} Document
+                {file.size > 0 ? `${formatFileSize(file.size)} • ` : ""}{ext} Document
               </p>
               <p className="text-xs text-slate-500 mt-2 mb-6">
                 Direct inline preview is not supported for {ext} files in the browser. Download the file to view its full content.

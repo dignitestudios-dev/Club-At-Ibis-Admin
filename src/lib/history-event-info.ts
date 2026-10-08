@@ -10,7 +10,15 @@ export interface EventLine {
   tone?: "good" | "warn" | "bad" | "neutral";
 }
 
+/** The stored file a receipt / final-letter event points at (`details.fileId`), so the timeline can open it. */
+export interface EventFile {
+  id: string;
+  name: string;
+  kind: "receipt" | "letter";
+}
+
 export interface EventInfo {
+  file?: EventFile;
   /** Replaces the generic title when the event itself says more (e.g. "Deposit required" vs "No deposit required"). */
   title?: string;
   lines: EventLine[];
@@ -65,6 +73,7 @@ export function describeEvent(type: string, details: Details, audience: "staff" 
 
     case "deposit_receipt_recorded":
       return {
+        file: str(d.fileId) ? { id: str(d.fileId)!, name: str(d.fileName) ?? "Deposit receipt", kind: "receipt" } : undefined,
         lines: [
           { text: "Payment receipt attached. The deposit is marked as received.", tone: "good" },
           ...(str(d.fileName) ? [{ text: `File: ${str(d.fileName)}${typeof d.version === "number" && d.version > 1 ? ` (version ${d.version})` : ""}` }] : []),
@@ -73,6 +82,7 @@ export function describeEvent(type: string, details: Details, audience: "staff" 
 
     case "final_letter_uploaded":
       return {
+        file: str(d.fileId) ? { id: str(d.fileId)!, name: str(d.fileName) ?? "Final approval letter", kind: "letter" } : undefined,
         lines: [
           { text: "The resident can see it once the request is completed." },
           ...(str(d.fileName) ? [{ text: `File: ${str(d.fileName)}${typeof d.version === "number" && d.version > 1 ? ` (version ${d.version})` : ""}` }] : []),

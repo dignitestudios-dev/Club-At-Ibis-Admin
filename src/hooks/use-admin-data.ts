@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getReviewers, getReviewersPage, getReviewer, createReviewer, updateReviewer, setReceiveNewRequests, setLoginEnabled, resendInvitation } from "@/features/reviewers/api/reviewers.service";
 import { getResidents, getResidentsPage, getResident, setResidentActive } from "@/features/residents/api/residents.service";
 import { getCategories, getCategoriesPage, getCategory, getCommonForm, getCategoryVersions, getCategoryVersion, compareCategoryVersions, createCategory, updateCategory, archiveCategory, restoreCategory, restoreCategoryVersion } from "@/features/categories/api/categories.service";
-import { getRequests, getRequestsPage, getRequestById, recordExport, withdrawRequestAsAdmin, type RequestsQueryParams, type WithdrawRequestAdminPayload } from "@/features/requests/api/requests.service";
+import { getRequests, getRequestsPage, getRequestById, recordExport, type RequestsQueryParams } from "@/features/requests/api/requests.service";
 import { assignRequest, type AssignPayload } from "@/features/requests/api/assignments.service";
 import { getActivity, getActivitiesPage } from "@/features/activity/api/activity.service";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "@/features/notifications/api/notifications.service";
@@ -247,13 +247,5 @@ export function useSetUserPassword() {
   return useMutation({
     mutationFn: (payload: SetPasswordPayload) => setUserPassword(payload),
     onSuccess: () => invalidate(keys.activity, keys.reviewers),
-  });
-}
-
-export function useWithdrawRequestAsAdmin() {
-  const invalidate = useInvalidate();
-  return useMutation({
-    mutationFn: (payload: WithdrawRequestAdminPayload) => withdrawRequestAsAdmin(payload),
-    onSuccess: () => invalidate(keys.requests, keys.activity, keys.notifications),
   });
 }

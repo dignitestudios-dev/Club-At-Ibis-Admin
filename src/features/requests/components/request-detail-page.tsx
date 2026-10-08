@@ -36,7 +36,6 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { FilePreviewDialog, type PreviewableFile } from "@/components/shared/file-preview-dialog";
 import { getAdminFileDownloadUrl } from "@/features/requests/api/requests.service";
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
-import { WithdrawRequestAdminDialog } from "@/features/requests/components/withdraw-request-dialog";
 import { EarlierSubmissions } from "@/features/requests/components/earlier-submissions";
 import { HistoryTimeline } from "@/features/requests/components/history-timeline";
 import { RequestJourney } from "@/features/requests/components/request-journey";
@@ -90,7 +89,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [preview, setPreview] = useState<PreviewableFile | null>(null);
   const [assigning, setAssigning] = useState<RequestRecord | null>(null);
-  const [withdrawing, setWithdrawing] = useState<RequestRecord | null>(null);
 
   if (isLoading) {
     return (
@@ -149,15 +147,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
   const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
 
-  const canWithdraw = [
-    "submitted",
-    "assigned",
-    "under_review",
-    "changes_required",
-    "resubmitted",
-    "approved",
-    // A completed request is final: no withdrawal.
-  ].includes(req.status);
+  // Deposit / Refund only exist for some requests: the Deposit tab when a deposit is required, the Refund
+  // tab once a request with a received deposit has been withdrawn.
+  const showDepositTab = req.deposit?.required === true;
+  const showRefundTab = req.status === "withdrawn" && req.deposit?.status === "received";
+  const visibleTab =
+    (activeTab === "deposit" && !showDepositTab) || (activeTab === "refund" && !showRefundTab) ? "overview" : activeTab;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -192,19 +187,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
               <span>{propLot}</span>
             </div>
           </div>
-
-          {canWithdraw && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                className="border-rose-300/80 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-950/40"
-                onClick={() => setWithdrawing(req)}
-              >
-                <Ban className="size-4" />
-                Withdraw request
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -385,12 +367,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
       {/* Tabs */}
       <Card className="shadow-2xs">
         <CardContent className="pt-1">
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)}>
+      <Tabs value={visibleTab} onValueChange={(v) => setActiveTab(v as string)}>
         <TabsList aria-label="Request sections">
           <TabsTrigger value="overview">Details</TabsTrigger>
           <TabsTrigger value="decisions">Decision</TabsTrigger>
-          <TabsTrigger value="deposit">Deposit</TabsTrigger>
-          <TabsTrigger value="refund">Refund</TabsTrigger>
+          {showDepositTab && <TabsTrigger value="deposit">Deposit</TabsTrigger>}
+          {showRefundTab && <TabsTrigger value="refund">Refund</TabsTrigger>}
           <TabsTrigger value="history">Activity timeline{req.history.length > 0 ? ` (${req.history.length})` : ""}</TabsTrigger>
           {earlierRounds.length > 0 && (
             <TabsTrigger value="submissionHistory">Submission History ({earlierRounds.length})</TabsTrigger>
@@ -792,118 +774,122 @@ export default function RequestDetailPage({ id }: { id: string }) {
         </TabsContent>
 
         {/* Deposit */}
-        <TabsContent value="deposit" className="space-y-5 pt-4">
-          {req.deposit.receipt && (
+        {showDepositTab && (
+          <TabsContent value="deposit" className="space-y-5 pt-4">
+            {req.deposit.receipt && (
+              <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
+                <CardHeader className="border-b border-border/70 pb-3">
+                  <CardTitle className="font-heading text-lg font-medium">Staff documents</CardTitle>
+                  <p className="text-xs text-muted-foreground">Uploaded by the assigned reviewer when the deposit was recorded.</p>
+                </CardHeader>
+                <CardContent className="space-y-2.5 pt-4">
+                  <StaffFile label="Deposit payment receipt" staffOnly file={req.deposit.receipt} onPreview={setPreview} />
+                </CardContent>
+              </Card>
+            )}
             <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
               <CardHeader className="border-b border-border/70 pb-3">
-                <CardTitle className="font-heading text-lg font-medium">Staff documents</CardTitle>
-                <p className="text-xs text-muted-foreground">Uploaded by the assigned reviewer when the deposit was recorded.</p>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="font-heading text-lg font-medium">Deposit</CardTitle>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
+                    <Lock className="size-2.5" /> Staff only
+                  </span>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-2.5 pt-4">
-                <StaffFile label="Deposit payment receipt" staffOnly file={req.deposit.receipt} onPreview={setPreview} />
+              <CardContent className="space-y-4 pt-5">
+                {!req.deposit.required ? (
+                  <p className="text-sm text-muted-foreground">
+                    {req.decidedAt ? "The reviewer marked this request as not requiring a deposit." : "Deposit is set by the reviewer after approval."}
+                  </p>
+                ) : (
+                  <dl className="space-y-3">
+                    <InfoRow label="Amount">
+                      <span className="font-mono text-lg font-bold">
+                        {req.deposit.amount != null && req.deposit.amount !== ""
+                          ? `$${Number(req.deposit.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          : <span className="font-sans text-sm font-normal text-muted-foreground">Not specified</span>}
+                      </span>
+                    </InfoRow>
+                    <InfoRow label="Status">
+                      <DepositChip deposit={{ ...req.deposit, amount: undefined }} />
+                    </InfoRow>
+                    {req.deposit.receivedAt && <InfoRow label="Received">{formatDateTime(req.deposit.receivedAt)}</InfoRow>}
+                    {req.deposit.receipt && (
+                      <InfoRow label="Receipt">
+                        <button
+                          type="button"
+                          onClick={() => setPreview(req.deposit.receipt!)}
+                          className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300"
+                        >
+                          <ReceiptText className="size-3.5" />
+                          {req.deposit.receipt.name}
+                        </button>
+                      </InfoRow>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">Payment happens outside the application. Deposit entry is a reviewer-only action.</p>
+                  </dl>
+                )}
               </CardContent>
             </Card>
-          )}
-          <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-            <CardHeader className="border-b border-border/70 pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="font-heading text-lg font-medium">Deposit</CardTitle>
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
-                  <Lock className="size-2.5" /> Staff only
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-5">
-              {!req.deposit.required ? (
-                <p className="text-sm text-muted-foreground">
-                  {req.decidedAt ? "The reviewer marked this request as not requiring a deposit." : "Deposit is set by the reviewer after approval."}
-                </p>
-              ) : (
-                <dl className="space-y-3">
-                  <InfoRow label="Amount">
-                    <span className="font-mono text-lg font-bold">
-                      {req.deposit.amount != null && req.deposit.amount !== ""
-                        ? `$${Number(req.deposit.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : <span className="font-sans text-sm font-normal text-muted-foreground">Not specified</span>}
-                    </span>
-                  </InfoRow>
-                  <InfoRow label="Status">
-                    <DepositChip deposit={{ ...req.deposit, amount: undefined }} />
-                  </InfoRow>
-                  {req.deposit.receivedAt && <InfoRow label="Received">{formatDateTime(req.deposit.receivedAt)}</InfoRow>}
-                  {req.deposit.receipt && (
-                    <InfoRow label="Receipt">
-                      <button
-                        type="button"
-                        onClick={() => setPreview(req.deposit.receipt!)}
-                        className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300"
-                      >
-                        <ReceiptText className="size-3.5" />
-                        {req.deposit.receipt.name}
-                      </button>
-                    </InfoRow>
-                  )}
-                  <p className="text-[11px] text-muted-foreground">Payment happens outside the application. Deposit entry is a reviewer-only action.</p>
-                </dl>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+          </TabsContent>
+        )}
 
         {/* Refund */}
-        <TabsContent value="refund" className="space-y-5 pt-4">
-          <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-            <CardHeader className="border-b border-border/70 pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="font-heading text-lg font-medium">Refund outcome</CardTitle>
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
-                  <Lock className="size-2.5" /> Staff only
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-5">
-              {!req.refund ? (
-                <p className="text-sm text-muted-foreground">
-                  {req.deposit.status === "received" && req.status !== "withdrawn"
-                    ? "A refund outcome is only recorded if the request is withdrawn after a deposit is received."
-                    : "No refund applies to this request."}
-                </p>
-              ) : (
-                <dl className="space-y-3">
-                  <InfoRow label="Outcome">
-                    <RefundChip refund={req.refund} />
-                  </InfoRow>
-                  {req.refund.outcome === "no_refund" && (
-                    <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                      <span className="font-semibold text-foreground">“-” indicates No Refund.</span> A reviewer recorded that a refund is not applicable or approved; this is not an unresolved refund.
-                    </p>
-                  )}
-                  <InfoRow label="Recorded by">{req.refund.recordedBy}</InfoRow>
-                  {req.refund.proof && (
-                    <InfoRow label="Proof">
-                      <button type="button" onClick={() => setPreview(req.refund!.proof!)} className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300">
-                        <ReceiptText className="size-3.5" />
-                        {req.refund.proof.name}
-                      </button>
-                    </InfoRow>
-                  )}
-                  <InfoRow label={req.refund.outcome === "refunded" ? "Refund date" : "Recorded on"}>
-                    {formatDateTime(req.refund.refundDate || req.refund.date)}
-                  </InfoRow>
-                  {req.refund.correctionReason && (
-                    <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 min-w-0 break-words [overflow-wrap:anywhere]">
-                      <p className="font-semibold mb-0.5 text-amber-800 dark:text-amber-300">Correction Reason:</p>
-                      <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{req.refund.correctionReason}</p>
-                    </div>
-                  )}
-                  <p className="text-[11px] text-muted-foreground">
-                    Residents see this as read-only. {req.refund.outcome ? REFUND_LABEL[req.refund.outcome] : "—"} · partial-refund amounts are out of scope.
+        {showRefundTab && (
+          <TabsContent value="refund" className="space-y-5 pt-4">
+            <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
+              <CardHeader className="border-b border-border/70 pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="font-heading text-lg font-medium">Refund outcome</CardTitle>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
+                    <Lock className="size-2.5" /> Staff only
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-5">
+                {!req.refund ? (
+                  <p className="text-sm text-muted-foreground">
+                    {req.deposit.status === "received" && req.status !== "withdrawn"
+                      ? "A refund outcome is only recorded if the request is withdrawn after a deposit is received."
+                      : "No refund applies to this request."}
                   </p>
-                </dl>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                ) : (
+                  <dl className="space-y-3">
+                    <InfoRow label="Outcome">
+                      <RefundChip refund={req.refund} />
+                    </InfoRow>
+                    {req.refund.outcome === "no_refund" && (
+                      <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                        <span className="font-semibold text-foreground">“-” indicates No Refund.</span> A reviewer recorded that a refund is not applicable or approved; this is not an unresolved refund.
+                      </p>
+                    )}
+                    <InfoRow label="Recorded by">{req.refund.recordedBy}</InfoRow>
+                    {req.refund.proof && (
+                      <InfoRow label="Proof">
+                        <button type="button" onClick={() => setPreview(req.refund!.proof!)} className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300">
+                          <ReceiptText className="size-3.5" />
+                          {req.refund.proof.name}
+                        </button>
+                      </InfoRow>
+                    )}
+                    <InfoRow label={req.refund.outcome === "refunded" ? "Refund date" : "Recorded on"}>
+                      {formatDateTime(req.refund.refundDate || req.refund.date)}
+                    </InfoRow>
+                    {req.refund.correctionReason && (
+                      <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 min-w-0 break-words [overflow-wrap:anywhere]">
+                        <p className="font-semibold mb-0.5 text-amber-800 dark:text-amber-300">Correction Reason:</p>
+                        <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{req.refund.correctionReason}</p>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      Residents see this as read-only. {req.refund.outcome ? REFUND_LABEL[req.refund.outcome] : "—"} · partial-refund amounts are out of scope.
+                    </p>
+                  </dl>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         {/* History */}
         <TabsContent value="history" className="pt-4">
@@ -916,7 +902,14 @@ export default function RequestDetailPage({ id }: { id: string }) {
               </p>
             </CardHeader>
             <CardContent className="pt-5">
-              <HistoryTimeline events={req.history} />
+              <HistoryTimeline
+                    events={req.history}
+                    onViewFile={(f) => {
+                      // Older versions aren't on the request any more, so size is only known for the current files.
+                      const known = [req.deposit?.receipt, req.approvalLetter, req.completion?.finalApprovalLetter].find((k) => k?.id === f.id);
+                      setPreview({ id: f.id, name: f.name, size: known?.size ?? 0, uploadedAt: known?.uploadedAt });
+                    }}
+                  />
             </CardContent>
           </Card>
         </TabsContent>
@@ -925,13 +918,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
       </Card>
 
       <AssignReviewerDialog request={assigning} onOpenChange={(o) => !o && setAssigning(null)} />
-      {withdrawing && (
-        <WithdrawRequestAdminDialog
-          request={withdrawing}
-          open={!!withdrawing}
-          onOpenChange={(o) => !o && setWithdrawing(null)}
-        />
-      )}
       <FilePreviewDialog
         file={preview}
         open={!!preview}

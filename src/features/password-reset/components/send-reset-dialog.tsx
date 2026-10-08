@@ -53,7 +53,7 @@ export function SendResetDialog({
 
   return (
     <Dialog open={!!target} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
         {!sent ? (
           <>
             <DialogHeader>

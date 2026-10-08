@@ -1,5 +1,6 @@
 "use client";
 
+import { ProcessingChip, isRefundPending } from "@/components/shared/processing-chip";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -295,7 +296,7 @@ export default function AssignmentsPage() {
                   const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
                   const resName = residentFullName(residentById.get(req.residentId));
                   return (
-                    <TableRow key={req.id} className="group cursor-pointer" onClick={() => router.push(`/requests/${req.id}`)}>
+                    <TableRow key={req.id} className={cn("group cursor-pointer", isRefundPending(req) && "bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/15 dark:hover:bg-amber-950/25")} onClick={() => router.push(`/requests/${req.id}`)}>
                       <TableCell className="pl-4 w-[180px] min-w-[180px] max-w-[180px]">
                         <div className="flex items-center gap-3 min-w-0">
                           <span className="min-w-0">
@@ -313,7 +314,10 @@ export default function AssignmentsPage() {
                         <span className="block truncate text-sm text-muted-foreground" title={req.fieldValues.propertyAddress}>{req.fieldValues.propertyAddress}</span>
                       </TableCell>
                       <TableCell className="min-w-[170px]">
-                        <StatusBadge status={req.status} />
+                        <div className="flex flex-col items-start gap-1">
+                          <StatusBadge status={req.status} />
+                          <ProcessingChip request={req} />
+                        </div>
                       </TableCell>
                       <TableCell className="w-[130px] min-w-[120px] max-w-[130px] whitespace-nowrap truncate" title={format(new Date(req.submittedAt), "PPP")}>
                         <span className="block text-sm truncate">{formatRelative(req.submittedAt)}</span>

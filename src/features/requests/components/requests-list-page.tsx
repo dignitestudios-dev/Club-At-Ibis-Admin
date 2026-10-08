@@ -1,5 +1,6 @@
 "use client";
 
+import { ProcessingChip, isRefundPending } from "@/components/shared/processing-chip";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -372,7 +373,7 @@ export default function RequestsListPage() {
                   const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
                   const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
                   return (
-                    <TableRow key={req.id} onClick={() => router.push(`/requests/${req.id}`)} className="group cursor-pointer">
+                    <TableRow key={req.id} onClick={() => router.push(`/requests/${req.id}`)} className={cn("group cursor-pointer", isRefundPending(req) && "bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/15 dark:hover:bg-amber-950/25")}>
                       <TableCell className="pl-4 w-[150px] min-w-[150px] max-w-[150px] whitespace-nowrap">
                         <Link
                           href={`/requests/${req.id}`}
@@ -403,7 +404,10 @@ export default function RequestsListPage() {
                       </TableCell>
                       <TableCell className="w-[130px] min-w-[120px] max-w-[130px] text-sm whitespace-nowrap text-muted-foreground truncate" title={format(new Date(req.submittedAt), "PPP")}>{format(new Date(req.submittedAt), "MMM d, yyyy")}</TableCell>
                       <TableCell className="min-w-[170px]">
-                        <StatusBadge status={req.status} />
+                        <div className="flex flex-col items-start gap-1">
+                          <StatusBadge status={req.status} />
+                          <ProcessingChip request={req} />
+                        </div>
                       </TableCell>
                       <TableCell className="w-[160px] min-w-[150px] max-w-[160px]">
                         {reviewer ? (

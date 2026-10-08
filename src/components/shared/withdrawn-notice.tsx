@@ -82,7 +82,7 @@ export function WithdrawnNotice({
       <>
         Deposit retained
         {refund.by && <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">Recorded by {refund.by}</span>}
-        {refund.explanation && <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">{refund.explanation}</span>}
+        {refund.explanation && <span className="block text-xs font-normal text-slate-500 dark:text-slate-400 break-words [overflow-wrap:anywhere]">{refund.explanation}</span>}
       </>
     );
   } else if (refund?.state === "awaiting") {

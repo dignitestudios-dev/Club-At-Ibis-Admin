@@ -1,6 +1,7 @@
 import {
   Ban,
   Banknote,
+  Eye,
   CheckCheck,
   CheckCircle2,
   ClipboardCheck,
@@ -26,9 +27,10 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { ExpandableText } from "@/components/shared/expandable-text";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
 import { formatDateTime, formatRelative } from "@/utils/format";
-import { describeEvent, titleCase } from "@/lib/history-event-info";
+import { describeEvent, titleCase, type EventFile } from "@/lib/history-event-info";
 
 const EVENT_CONFIG: Record<HistoryEventType, { icon: LucideIcon; label: string; node: string }> = {
   submitted: { icon: Send, label: "Submitted", node: "bg-primary text-primary-foreground" },
@@ -66,7 +68,14 @@ const ROLE_LABEL: Record<ActorRole, string> = {
   system: "System",
 };
 
-export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
+export function HistoryTimeline({
+  events,
+  onViewFile,
+}: {
+  events: HistoryEvent[];
+  /** Opens the file a receipt / letter event refers to. Omit to hide the button. */
+  onViewFile?: (file: EventFile) => void;
+}) {
   const list = events ?? [];
 
   return (
@@ -144,6 +153,19 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
                     </li>
                   ))}
                 </ul>
+              )}
+              {info.file && onViewFile && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  className="gap-1.5"
+                  onClick={() => onViewFile(info.file!)}
+                  aria-label={`View ${info.file.kind === "receipt" ? "receipt" : "letter"} ${info.file.name}`}
+                >
+                  <Eye className="size-3.5" aria-hidden="true" />
+                  {info.file.kind === "receipt" ? "View receipt" : "View letter"}
+                </Button>
               )}
               {event.detail && (
                 <div

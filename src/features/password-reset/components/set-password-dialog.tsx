@@ -64,7 +64,7 @@ export function SetPasswordDialog({
 
   return (
     <Dialog open={!!target} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
         <form onSubmit={submit} noValidate className="grid gap-4 min-w-0 w-full">
           <DialogHeader>
             <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
