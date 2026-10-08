@@ -218,7 +218,7 @@ export function ReviewerFormSheet({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet disablePointerDismissal open={open} onOpenChange={onOpenChange}>
         <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md">
           <SheetHeader className="border-b border-border px-6 py-5">
             <SheetTitle className="font-heading text-xl font-medium">{editing ? "Edit Reviewer" : "Add Reviewer"}</SheetTitle>

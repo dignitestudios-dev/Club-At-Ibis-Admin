@@ -77,7 +77,7 @@ export function AssignReviewerDialog({
   }
 
   return (
-    <Dialog open={!!request} onOpenChange={onOpenChange}>
+    <Dialog disablePointerDismissal open={!!request} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader>
           <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
