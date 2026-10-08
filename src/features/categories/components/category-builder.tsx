@@ -931,6 +931,7 @@ function BuilderForm({
       else if (isChoiceType(f.type)) {
         const opts = (f.options ?? []).map((o) => o.trim());
         if (opts.length === 0 || opts.some((o) => !o)) next.fields[f.key] = "Every option needs a value. Please fill in or remove empty options.";
+        else if ((f.type === "select" || f.type === "radio") && opts.length < 2) next.fields[f.key] = "Add at least two options so residents have a real choice.";
         else if (new Set(opts.map((o) => o.toLowerCase())).size !== opts.length) next.fields[f.key] = "Options must be unique.";
       }
       seen.add(label);
