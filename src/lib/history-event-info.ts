@@ -59,10 +59,10 @@ export function describeEvent(type: string, details: Details, audience: "staff" 
         return {
           title: "Deposit required",
           lines: [
-            { text: amount ? `${amount} security deposit` : "A security deposit is required", tone: "warn" },
+            { text: amount ? `${amount} deposit` : "A deposit is required", tone: "warn" },
             {
               text: staff
-                ? "Paid outside the portal. Attach the payment receipt once it is received."
+                ? "Paid outside the portal. The reviewer marks it as received once paid."
                 : "Paid outside the portal. You will be notified once it is received.",
             },
           ],
@@ -71,11 +71,14 @@ export function describeEvent(type: string, details: Details, audience: "staff" 
       return { title: "No deposit required", lines: [{ text: "Nothing to collect for this project.", tone: "good" }] };
     }
 
+    case "deposit_received":
+      return { lines: [{ text: "The deposit was marked as received.", tone: "good" }] };
+
     case "deposit_receipt_recorded":
       return {
         file: str(d.fileId) ? { id: str(d.fileId)!, name: str(d.fileName) ?? "Deposit receipt", kind: "receipt" } : undefined,
         lines: [
-          { text: "Payment receipt attached. The deposit is marked as received.", tone: "good" },
+          { text: "Payment receipt attached.", tone: "good" },
           ...(str(d.fileName) ? [{ text: `File: ${str(d.fileName)}${typeof d.version === "number" && d.version > 1 ? ` (version ${d.version})` : ""}` }] : []),
         ],
       };

@@ -258,6 +258,7 @@ type HistoryEventType =
   | "refunded"
   | "no_refund"
   | "deposit_configured"
+  | "deposit_received"
   | "deposit_receipt_recorded"
   | "final_letter_uploaded"
   | "completion_email_sent"

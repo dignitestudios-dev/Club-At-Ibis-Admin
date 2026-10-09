@@ -14,7 +14,7 @@ type ProcessingState = "deposit_required" | "deposit_submitted" | "refund_pendin
 
 /**
  * The money side of a request, in one place:
- *  - approved + deposit required  -> "Deposit required" until the receipt is in, then "Deposit submitted"
+ *  - approved + deposit required  -> "Deposit required" until it is marked received, then "Deposit submitted"
  *  - completed                    -> nothing (the status says it all)
  *  - withdrawn + deposit received -> "Refund pending", then "Refunded" / "No refund"
  */
@@ -53,13 +53,13 @@ const UI = {
     label: "Deposit required",
     Icon: Banknote,
     cls: "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200",
-    title: "A security deposit is required for this approved request.",
+    title: "A deposit is required for this approved request.",
   },
   deposit_submitted: {
     label: "Deposit submitted",
     Icon: ReceiptText,
     cls: "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
-    title: "The deposit receipt has been recorded.",
+    title: "The deposit has been marked as received.",
   },
   refund_pending: {
     label: "Refund pending",
