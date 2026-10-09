@@ -49,6 +49,7 @@ const EVENT_CONFIG: Record<HistoryEventType, { icon: LucideIcon; label: string; 
   completed: { icon: ClipboardCheck, label: "Completed", node: "bg-teal-600 text-white" },
   letter_email: { icon: Mail, label: "Letter email", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" },
   withdrawn: { icon: Ban, label: "Withdrawn", node: "bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-100" },
+  refund_awaiting: { icon: Clock, label: "Awaiting refund", node: "bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300" },
   refunded: { icon: Banknote, label: "Refunded", node: "bg-emerald-600 text-white" },
   no_refund: { icon: Minus, label: "No Refund", node: "bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-100" },
   deposit_configured: { icon: Banknote, label: "Deposit set", node: "bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300" },

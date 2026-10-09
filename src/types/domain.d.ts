@@ -255,6 +255,7 @@ type HistoryEventType =
   | "completed"
   | "letter_email"
   | "withdrawn"
+  | "refund_awaiting"
   | "refunded"
   | "no_refund"
   | "deposit_configured"
