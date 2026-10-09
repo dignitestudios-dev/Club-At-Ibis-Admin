@@ -867,11 +867,11 @@ export default function RequestDetailPage({ id }: { id: string }) {
                       <RefundChip refund={req.refund} />
                     </InfoRow>
                     <InfoRow label="Recorded by">{req.refund.recordedBy}</InfoRow>
-                    {req.refund.proof && (
-                      <InfoRow label="Proof">
-                        <button type="button" onClick={() => setPreview(req.refund!.proof!)} className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300">
+                    {(req.refund.receipt || req.refund.proof) && (
+                      <InfoRow label="Refund receipt">
+                        <button type="button" onClick={() => setPreview((req.refund!.receipt ?? req.refund!.proof)!)} className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300">
                           <ReceiptText className="size-3.5" />
-                          {req.refund.proof.name}
+                          {(req.refund.receipt ?? req.refund.proof)!.name}
                         </button>
                       </InfoRow>
                     )}

@@ -260,6 +260,7 @@ type HistoryEventType =
   | "no_refund"
   | "deposit_configured"
   | "deposit_received"
+  | "refund_receipt_recorded"
   | "deposit_receipt_recorded"
   | "final_letter_uploaded"
   | "completion_email_sent"
@@ -380,6 +381,8 @@ interface RefundRecord {
   explanation?: string | null;
   /** Optional proof of refund / supporting document uploaded by the reviewer. */
   proof?: AttachedFile | null;
+  /** Optional refund receipt uploaded by the reviewer (staff only). */
+  receipt?: AttachedFile | null;
   recordedBy?: string | null;
   recordedAt?: string | null;
   date?: string | null;

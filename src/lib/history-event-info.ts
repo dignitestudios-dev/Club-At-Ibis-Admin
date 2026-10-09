@@ -74,6 +74,15 @@ export function describeEvent(type: string, details: Details, audience: "staff" 
     case "deposit_received":
       return { lines: [{ text: "The deposit was marked as received.", tone: "good" }] };
 
+    case "refund_receipt_recorded":
+      return {
+        file: str(d.fileId) ? { id: str(d.fileId)!, name: str(d.fileName) ?? "Refund receipt", kind: "receipt" } : undefined,
+        lines: [
+          { text: "Refund receipt attached.", tone: "good" },
+          ...(str(d.fileName) ? [{ text: `File: ${str(d.fileName)}${typeof d.version === "number" && d.version > 1 ? ` (version ${d.version})` : ""}` }] : []),
+        ],
+      };
+
     case "deposit_receipt_recorded":
       return {
         file: str(d.fileId) ? { id: str(d.fileId)!, name: str(d.fileName) ?? "Deposit receipt", kind: "receipt" } : undefined,

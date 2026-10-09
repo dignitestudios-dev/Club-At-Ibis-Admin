@@ -54,6 +54,7 @@ const EVENT_CONFIG: Record<HistoryEventType, { icon: LucideIcon; label: string; 
   no_refund: { icon: Minus, label: "No Refund", node: "bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-100" },
   deposit_configured: { icon: Banknote, label: "Deposit set", node: "bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300" },
   deposit_received: { icon: Banknote, label: "Deposit received", node: "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300" },
+  refund_receipt_recorded: { icon: ReceiptText, label: "Refund receipt recorded", node: "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300" },
   deposit_receipt_recorded: { icon: ReceiptText, label: "Deposit receipt recorded", node: "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300" },
   final_letter_uploaded: { icon: FileCheck2, label: "Final letter added", node: "bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300" },
   completion_email_sent: { icon: MailCheck, label: "Completion email sent", node: "bg-emerald-600 text-white" },
