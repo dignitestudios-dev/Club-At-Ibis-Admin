@@ -6,9 +6,10 @@ import { cn } from "@/utils/cn";
 const MIN_HEIGHT = 380;
 
 /**
- * Gives a table the rest of the screen: the frame is as tall as the space left below where it starts
- * (never shorter than MIN_HEIGHT), the rows scroll inside it with a sticky header, and `footer`
- * (pagination) stays pinned underneath. On short screens the page itself scrolls instead.
+ * Sizes a table to its rows, up to the rest of the screen: a few rows make a short table, and once the rows
+ * need more room than is left below where the table starts (never less than MIN_HEIGHT) they scroll inside it
+ * with a sticky header, while `footer` (pagination) stays right underneath. On very short screens the page
+ * itself scrolls instead.
  * Wrap any table-based list in this so they all behave the same.
  */
 export function TableFrame({
@@ -44,10 +45,10 @@ export function TableFrame({
   }, []);
 
   return (
-    <div ref={ref} style={{ height }} className={cn("flex min-h-[380px] flex-col gap-3", className)}>
+    <div ref={ref} style={{ maxHeight: height }} className={cn("flex flex-col gap-3", className)}>
       <div
         className={cn(
-          "min-h-0 flex-1 overflow-auto rounded-2xl border border-border/80 bg-card shadow-2xs",
+          "min-h-0 overflow-auto rounded-2xl border border-border/80 bg-card shadow-2xs",
           "[&_[data-slot=table-container]]:overflow-visible",
           "[&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:bg-muted"
         )}
