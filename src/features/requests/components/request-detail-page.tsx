@@ -230,7 +230,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
               {req.status === "resubmitted" ? "Resident resubmitted corrections" : "Revision requested"}
             </p>
             <p className="mt-0.5 text-amber-900/90 dark:text-amber-300/90 break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
-              <span className="font-semibold">Reviewer Instructions: </span><ExpandableText text={req.feedback} />
+              <span className="font-semibold">Reviewer Feedback and Instructions: </span><ExpandableText text={req.feedback} />
             </p>
           </div>
         </div>
