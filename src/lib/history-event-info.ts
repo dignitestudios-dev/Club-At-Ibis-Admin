@@ -72,13 +72,13 @@ export function describeEvent(type: string, details: Details, audience: "staff" 
     }
 
     case "deposit_received":
-      return { lines: [{ text: "The deposit was marked as received.", tone: "good" }] };
+      return { lines: [{ text: `${money(d.amountMinor) ? `${money(d.amountMinor)} deposit` : "The deposit"} was marked as received.`, tone: "good" }] };
 
     case "refund_receipt_recorded":
       return {
         file: str(d.fileId) ? { id: str(d.fileId)!, name: str(d.fileName) ?? "Refund receipt", kind: "receipt" } : undefined,
         lines: [
-          { text: "Refund receipt attached.", tone: "good" },
+          { text: `Refund receipt attached${money(d.amountMinor) ? ` for the ${money(d.amountMinor)} deposit` : ""}.`, tone: "good" },
           ...(str(d.fileName) ? [{ text: `File: ${str(d.fileName)}${typeof d.version === "number" && d.version > 1 ? ` (version ${d.version})` : ""}` }] : []),
         ],
       };
@@ -87,7 +87,7 @@ export function describeEvent(type: string, details: Details, audience: "staff" 
       return {
         file: str(d.fileId) ? { id: str(d.fileId)!, name: str(d.fileName) ?? "Deposit receipt", kind: "receipt" } : undefined,
         lines: [
-          { text: "Payment receipt attached.", tone: "good" },
+          { text: `Payment receipt attached${money(d.amountMinor) ? ` for the ${money(d.amountMinor)} deposit` : ""}.`, tone: "good" },
           ...(str(d.fileName) ? [{ text: `File: ${str(d.fileName)}${typeof d.version === "number" && d.version > 1 ? ` (version ${d.version})` : ""}` }] : []),
         ],
       };
@@ -135,6 +135,7 @@ export function describeEvent(type: string, details: Details, audience: "staff" 
     case "withdrawn": {
       const lines: EventLine[] = [];
       if (stage(d.previousStatus)) lines.push({ text: `Withdrawn while ${stage(d.previousStatus)}.` });
+      if (money(d.amountMinor)) lines.push({ text: `${money(d.amountMinor)} deposit had been received.` });
       if (str(d.refundOutcome)) lines.push({ text: "A deposit had been received, so a refund outcome is now needed.", tone: "warn" });
       return { lines };
     }
@@ -145,8 +146,8 @@ export function describeEvent(type: string, details: Details, audience: "staff" 
       const refunded = d.outcome === "refunded";
       const lines: EventLine[] = [
         refunded
-          ? { text: `Deposit refunded${date(d.refundDate) ? ` on ${date(d.refundDate)}` : ""}.`, tone: "good" }
-          : { text: "No refund: the deposit was retained or is non-refundable.", tone: "neutral" },
+          ? { text: `${money(d.amountMinor) ? `${money(d.amountMinor)} deposit` : "Deposit"} refunded${date(d.refundDate) ? ` on ${date(d.refundDate)}` : ""}.`, tone: "good" }
+          : { text: `No refund: the ${money(d.amountMinor) ? `${money(d.amountMinor)} ` : ""}deposit was retained or is non-refundable.`, tone: "neutral" },
       ];
       if (corrected) {
         const prev = d.previousOutcome === "refunded" ? `refunded${date(d.previousRefundDate) ? ` on ${date(d.previousRefundDate)}` : ""}` : d.previousOutcome === "no_refund" ? "no refund" : null;
