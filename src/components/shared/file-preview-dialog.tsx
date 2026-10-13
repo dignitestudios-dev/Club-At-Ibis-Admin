@@ -204,7 +204,7 @@ export function FilePreviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] h-[85vh] flex flex-col p-0 text-left overflow-hidden border border-border shadow-2xl rounded-2xl">
         {/* Header */}
-        <DialogHeader className="flex flex-row items-center justify-between text-left border-b border-border bg-slate-50/90 dark:bg-card px-5 py-3 shrink-0">
+        <DialogHeader className="flex flex-row items-center justify-between text-left [&_[data-slot=dialog-title]]:text-left border-b border-border bg-slate-50/90 dark:bg-card px-5 py-3 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary">
               {isImage ? <ImageIcon className="size-4" /> : <FileText className="size-4" />}

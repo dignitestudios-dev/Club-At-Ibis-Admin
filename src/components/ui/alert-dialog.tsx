@@ -69,7 +69,7 @@ function AlertDialogHeader({
     <div
       data-slot="alert-dialog-header"
       className={cn(
-        "grid grid-rows-[auto_1fr] place-items-center gap-1.5 text-center has-data-[slot=alert-dialog-media]:grid-rows-[auto_auto_1fr] has-data-[slot=alert-dialog-media]:gap-x-4",
+        "flex flex-col gap-1.5 [&>[data-slot=alert-dialog-media]]:self-center [&_[data-slot=alert-dialog-title]]:text-center",
         className
       )}
       {...props}
@@ -85,7 +85,7 @@ function AlertDialogFooter({
     <div
       data-slot="alert-dialog-footer"
       className={cn(
-        "flex flex-col-reverse sm:flex-row sm:justify-center gap-3 pt-2",
+        "flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2",
         className
       )}
       {...props}

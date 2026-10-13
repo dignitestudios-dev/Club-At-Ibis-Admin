@@ -288,7 +288,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
       {/* Summary cards */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className={cn("h-full flex flex-col justify-center shadow-2xs", req.formVersion < currentCategoryVersion && "border-amber-300/80 bg-amber-50/60 dark:border-amber-800/70 dark:bg-amber-950/20")}>
+        <Card className="shadow-2xs h-full flex flex-col justify-center">
           <CardContent className="space-y-2 py-2 flex flex-1 flex-col justify-center">
             <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Resident</p>
             {resident ? (
@@ -343,7 +343,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
           </CardContent>
         </Card>
 
-        <Card className="shadow-2xs h-full flex flex-col justify-center">
+        <Card className={cn("shadow-2xs h-full flex flex-col justify-center", req.formVersion < currentCategoryVersion && "border-amber-300/80 bg-amber-50/60 dark:border-amber-800/70 dark:bg-amber-950/20")}>
           <CardContent className="space-y-2 py-2 flex flex-1 flex-col justify-center">
             <p className={cn("flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase", "text-muted-foreground")}>
               Form configuration
