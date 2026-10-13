@@ -33,7 +33,7 @@ export function ServerErrorDialog() {
             We&apos;re having trouble connecting right now. Please try again in a moment.
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="gap-2.5 sm:gap-3 sm:justify-end">
+        <DialogFooter className="gap-2.5 sm:gap-3 sm:justify-center">
           <Button variant="outline" onClick={() => setOpen(false)}>
             Close
           </Button>

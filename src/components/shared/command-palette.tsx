@@ -131,7 +131,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="top-[18%] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl">
+      <DialogContent showCloseButton={false} className="top-[18%] translate-y-0 gap-0 overflow-hidden p-0 text-left sm:max-w-xl">
         <DialogTitle className="sr-only">Search the console</DialogTitle>
         <DialogDescription className="sr-only">
           Jump to requests, residents, reviewers, categories and pages.
