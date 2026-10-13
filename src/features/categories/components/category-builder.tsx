@@ -285,9 +285,12 @@ function OptionsEditor({ field, onChange, disabled = false }: { field: DraftFiel
             variant="ghost"
             size="icon-xs"
             onClick={() => handleRemoveOption(i)}
-            disabled={disabled || options.length <= 2}
+            disabled={disabled}
             aria-label={`Remove option ${i + 1}`}
-            className="text-muted-foreground"
+            // A choice field needs at least two options, so the remove button is hidden (space kept) until a third exists.
+            className={cn("text-muted-foreground", options.length <= 2 && "invisible")}
+            tabIndex={options.length <= 2 ? -1 : undefined}
+            aria-hidden={options.length <= 2 || undefined}
           >
             <X />
           </Button>
