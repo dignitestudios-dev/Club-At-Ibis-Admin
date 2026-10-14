@@ -109,12 +109,12 @@ export function SegmentedTabs<T extends string>({
       ref={listRef}
       role="tablist"
       aria-label={label}
-      className={cn("relative flex w-fit max-w-full items-center gap-1 overflow-x-auto border-b border-border/70", className)}
+      className={cn("relative flex w-fit max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-border/70", className)}
     >
       <span
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute -bottom-px h-0.5 rounded-full bg-primary transition-[left,width,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none dark:bg-amber-300",
+          "pointer-events-none absolute bottom-0 h-0.5 rounded-full bg-primary transition-[left,width,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none dark:bg-amber-300",
           line ? "opacity-100" : "opacity-0"
         )}
         style={line ? { left: line.left, width: line.width } : undefined}

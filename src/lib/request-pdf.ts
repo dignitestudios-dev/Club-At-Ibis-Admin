@@ -1,52 +1,46 @@
 /**
- * Request PDF: a branded, text-based (selectable / searchable) PDF of one request, with the uploaded documents
- * laid out one by one under their titles in a Documents section.
+ * Request PDF: a formal, business-style record of one request (text-based, selectable / searchable).
  *
+ * - Sections mirror the request page (request information, resident, project, category, deposit, ...), each a
+ *   titled block of bordered label / value cells; the Documents section follows, one titled block per document.
  * - Built with jsPDF's built-in fonts, so no font files are needed. jsPDF is imported lazily: it is only
  *   downloaded when someone presses the download button.
- * - Layout is fully dynamic: every block is measured before it is drawn, long text wraps (even unbroken
- *   strings), and content flows onto as many pages as it needs. A small request is a one-page summary; a large
- *   one with many fields and documents simply gets more pages.
- * - Images (PNG / JPG / WEBP) are embedded. Other files (PDF, ...) get a document card with their details, since
- *   their pages can't be drawn into the PDF.
+ * - Layout is fully dynamic: every cell is measured before it is drawn, long text wraps (even unbroken
+ *   strings), and content flows onto as many pages as it needs.
+ * - Uploaded images (PNG / JPG / WEBP) are embedded at a readable size. Other files (PDF, ...) get a plain
+ *   "on file" box, since their pages can't be drawn into the PDF.
  * - The module is app-agnostic: each portal maps its own request record to `RequestPdfInput`.
  */
 
-export interface RequestPdfField {
+export interface RequestPdfRow {
   label: string;
   value: string;
-  required?: boolean;
-  /** Reviewer correction note, shown under the answer. */
+  /** Spans the full width (long answers); otherwise two rows share a line. */
+  wide?: boolean;
+  /** Reviewer correction note shown under the value. */
   note?: string | null;
+}
+
+export interface RequestPdfSection {
+  title: string;
+  rows: RequestPdfRow[];
 }
 
 export interface RequestPdfDocument {
   /** The document's title: the form field it was uploaded for. */
   title: string;
   fileId: string;
+  /** Only used to recognise the file type; never printed. */
   name: string;
-  size?: number;
   mimeType?: string;
-  uploadedAt?: string;
-  required?: boolean;
   note?: string | null;
 }
 
 export interface RequestPdfInput {
   reference: string;
   categoryName: string;
-  title?: string;
-  /** Raw request status (`approved`, `changes_required`, ...): picks the chip colour. */
-  status: string;
   statusLabel: string;
-  submittedAt?: string;
-  updatedAt?: string;
-  resident?: { name?: string; idNumber?: string; email?: string; phone?: string };
-  property?: { address?: string; lotNo?: string };
-  reviewer?: string;
-  /** Extra label / value pairs for the summary block (deposit, completion date, ...). */
-  summary?: { label: string; value: string }[];
-  fields: RequestPdfField[];
+  sections: RequestPdfSection[];
   documents: RequestPdfDocument[];
   /** Returns a fresh, short-lived download URL for a file. */
   getFileUrl: (fileId: string) => Promise<string>;
@@ -56,33 +50,23 @@ export interface RequestPdfInput {
 type RGB = [number, number, number];
 
 const NAVY: RGB = [17, 38, 54];
-const GOLD: RGB = [160, 135, 74];
-const IVORY: RGB = [247, 244, 236];
-const INK: RGB = [33, 37, 41];
-const MUTED: RGB = [108, 117, 125];
-const RULE: RGB = [222, 226, 230];
-const SOFT: RGB = [248, 249, 250];
-
-const STATUS_COLORS: Record<string, { bg: RGB; fg: RGB }> = {
-  approved: { bg: [220, 245, 232], fg: [20, 108, 67] },
-  completed: { bg: [214, 240, 240], fg: [13, 110, 110] },
-  rejected: { bg: [252, 226, 228], fg: [160, 28, 48] },
-  changes_required: { bg: [255, 239, 207], fg: [146, 84, 4] },
-  resubmitted: { bg: [236, 227, 250], fg: [95, 52, 160] },
-  withdrawn: { bg: [233, 236, 239], fg: [73, 80, 87] },
-  under_review: { bg: [218, 236, 252], fg: [12, 84, 150] },
-  assigned: { bg: [225, 228, 252], fg: [60, 68, 160] },
-  submitted: { bg: [233, 236, 239], fg: [52, 58, 64] },
-};
+const INK: RGB = [28, 32, 36];
+const MUTED: RGB = [96, 104, 112];
+const BORDER: RGB = [190, 196, 202];
+const BAND: RGB = [238, 241, 244];
+const SOFT_FILL: RGB = [246, 247, 249];
+const NOTE_BG: RGB = [250, 246, 235];
+const NOTE_BORDER: RGB = [214, 196, 150];
 
 const PAGE_W = 612; // US Letter, points
 const PAGE_H = 792;
-const MARGIN = 46;
+const MARGIN = 48;
 const CONTENT_W = PAGE_W - MARGIN * 2;
-const HEADER_FIRST = 128;
-const HEADER_NEXT = 54;
-const FOOTER_H = 40;
-const IMAGE_MAX_H = 380;
+const FOOTER_H = 38;
+const TOP_FIRST = 52;
+const TOP_NEXT = 50;
+const IMAGE_MAX_H = 400;
+const CELL_PAD = 8;
 
 /** Standard PDF fonts only cover Latin-1: swap typographic punctuation, drop anything else. */
 function clean(text: string | null | undefined): string {
@@ -97,18 +81,8 @@ function clean(text: string | null | undefined): string {
     .replace(/[^\n\x20-\x7E¡-ÿ]/g, "");
 }
 
-function fmtDate(value?: string): string {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
-}
-
-function fmtSize(bytes?: number): string {
-  if (!bytes || bytes <= 0) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function today(): string {
+  return new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 }
 
 function fileKind(doc: RequestPdfDocument): "image" | "pdf" | "other" {
@@ -128,26 +102,26 @@ function blobToDataUrl(blob: Blob): Promise<string | null> {
   });
 }
 
+function loadElement(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => resolve(null);
+    el.src = src;
+  });
+}
+
 async function loadStatic(src: string): Promise<{ data: string; w: number; h: number } | null> {
   try {
     const res = await fetch(src);
     if (!res.ok) return null;
     const data = await blobToDataUrl(await res.blob());
     if (!data) return null;
-    const size = await imageSize(data);
-    return size ? { data, ...size } : null;
+    const img = await loadElement(data);
+    return img ? { data, w: img.naturalWidth, h: img.naturalHeight } : null;
   } catch {
     return null;
   }
-}
-
-function imageSize(dataUrl: string): Promise<{ w: number; h: number } | null> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
-    img.onerror = () => resolve(null);
-    img.src = dataUrl;
-  });
 }
 
 /** Downloads an uploaded image and re-encodes it as a bounded JPEG, so any format works and the PDF stays small. */
@@ -157,14 +131,9 @@ async function loadUploadedImage(url: string): Promise<{ data: string; w: number
     if (!res.ok) return null;
     const source = await blobToDataUrl(await res.blob());
     if (!source) return null;
-    const img = await new Promise<HTMLImageElement | null>((resolve) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
-      el.onerror = () => resolve(null);
-      el.src = source;
-    });
+    const img = await loadElement(source);
     if (!img || !img.naturalWidth || !img.naturalHeight) return null;
-    const MAX = 1600;
+    const MAX = 1800;
     const scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
     const w = Math.max(1, Math.round(img.naturalWidth * scale));
     const h = Math.max(1, Math.round(img.naturalHeight * scale));
@@ -176,7 +145,7 @@ async function loadUploadedImage(url: string): Promise<{ data: string; w: number
     ctx.fillStyle = "#ffffff"; // flatten transparency
     ctx.fillRect(0, 0, w, h);
     ctx.drawImage(img, 0, 0, w, h);
-    return { data: canvas.toDataURL("image/jpeg", 0.85), w, h };
+    return { data: canvas.toDataURL("image/jpeg", 0.88), w, h };
   } catch {
     return null;
   }
@@ -201,7 +170,7 @@ export async function buildRequestPdf(input: RequestPdfInput): Promise<Blob> {
   const progress = input.onProgress ?? (() => {});
 
   progress("Preparing…");
-  const [markIvory, markNavy] = await Promise.all([loadStatic("/brand/ibis-mark-ivory.png"), loadStatic("/brand/ibis-mark-navy.png")]);
+  const mark = await loadStatic("/brand/ibis-mark-navy.png");
 
   // Download every uploaded image up front (a few at a time) so layout can use the real sizes.
   const images = await pool(input.documents, 3, async (d, i) => {
@@ -216,12 +185,12 @@ export async function buildRequestPdf(input: RequestPdfInput): Promise<Blob> {
 
   progress("Building PDF…");
   const doc = new jsPDF({ unit: "pt", format: "letter", compress: true });
-  let y = 0;
+  let y = TOP_FIRST;
 
   const text = (rgb: RGB) => doc.setTextColor(rgb[0], rgb[1], rgb[2]);
   const fill = (rgb: RGB) => doc.setFillColor(rgb[0], rgb[1], rgb[2]);
   const draw = (rgb: RGB) => doc.setDrawColor(rgb[0], rgb[1], rgb[2]);
-  const bottomLimit = PAGE_H - FOOTER_H - 14;
+  const bottomLimit = PAGE_H - FOOTER_H - 16;
 
   /** Wraps `value` to `width`, also breaking words that are wider than the line. */
   function wrap(value: string, width: number): string[] {
@@ -251,367 +220,351 @@ export async function buildRequestPdf(input: RequestPdfInput): Promise<Blob> {
 
   function newPage() {
     doc.addPage();
-    y = HEADER_NEXT + 14;
+    y = TOP_NEXT + 22;
   }
 
   function ensure(height: number) {
     if (y + height > bottomLimit) newPage();
   }
 
-  /* ------------------------------ headers ------------------------------ */
-  function firstHeader() {
-    fill(NAVY);
-    doc.rect(0, 0, PAGE_W, HEADER_FIRST, "F");
-    fill(GOLD);
-    doc.rect(0, HEADER_FIRST, PAGE_W, 3, "F");
+  /* ------------------------------ letterhead ----------------------------- */
+  function letterhead() {
     let textX = MARGIN;
-    if (markIvory) {
-      const h = 52;
-      const w = (markIvory.w / markIvory.h) * h;
-      doc.addImage(markIvory.data, "PNG", MARGIN, 38, w, h);
-      textX = MARGIN + w + 16;
+    if (mark) {
+      const h = 36;
+      const w = (mark.w / mark.h) * h;
+      doc.addImage(mark.data, "PNG", MARGIN, y - 4, w, h);
+      textX = MARGIN + w + 12;
     }
-    doc.setFont("times", "bold");
-    doc.setFontSize(24);
-    text(IVORY);
-    doc.text("The Club at Ibis", textX, 62);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    text(NAVY);
+    doc.text("The Club at Ibis", textX, y + 12);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    text(GOLD);
-    doc.setCharSpace(1.6);
-    doc.text("ARCHITECTURAL REVIEW BOARD", textX, 80);
-    doc.setCharSpace(0);
-    doc.setFontSize(8);
-    text([190, 200, 208]);
-    doc.text("REQUEST SUMMARY", PAGE_W - MARGIN, 62, { align: "right" });
-    y = HEADER_FIRST + 34;
+    doc.setFontSize(8.5);
+    text(MUTED);
+    doc.text("Architectural Review Board", textX, y + 26);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    text(NAVY);
+    doc.text("ARCHITECTURAL REQUEST RECORD", PAGE_W - MARGIN, y + 12, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    text(MUTED);
+    doc.text(`Reference: ${clean(input.reference)}`, PAGE_W - MARGIN, y + 26, { align: "right" });
+
+    y += 44;
+    fill(NAVY);
+    doc.rect(MARGIN, y, CONTENT_W, 2, "F");
+    y += 18;
   }
 
   function runningHeader() {
-    // Drawn on pages 2+ at the end (so it never depends on flow position).
-    fill(NAVY);
-    doc.rect(0, 0, PAGE_W, HEADER_NEXT - 8, "F");
-    fill(GOLD);
-    doc.rect(0, HEADER_NEXT - 8, PAGE_W, 2, "F");
-    let textX = MARGIN;
-    if (markIvory) {
-      const h = 22;
-      const w = (markIvory.w / markIvory.h) * h;
-      doc.addImage(markIvory.data, "PNG", MARGIN, 11, w, h);
-      textX = MARGIN + w + 10;
-    }
-    doc.setFont("times", "bold");
-    doc.setFontSize(12);
-    text(IVORY);
-    doc.text("The Club at Ibis", textX, 27);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    text(NAVY);
+    doc.text("The Club at Ibis  |  Architectural Review Board", MARGIN, 34);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    text([190, 200, 208]);
-    doc.text(clean(input.reference), PAGE_W - MARGIN, 27, { align: "right" });
+    text(MUTED);
+    doc.text(`Reference: ${clean(input.reference)}`, PAGE_W - MARGIN, 34, { align: "right" });
+    fill(NAVY);
+    doc.rect(MARGIN, 42, CONTENT_W, 1, "F");
   }
 
   function footer(page: number, total: number) {
-    draw(RULE);
-    doc.setLineWidth(0.6);
+    draw(BORDER);
+    doc.setLineWidth(0.5);
     doc.line(MARGIN, PAGE_H - FOOTER_H, PAGE_W - MARGIN, PAGE_H - FOOTER_H);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     text(MUTED);
-    doc.text(`The Club at Ibis  |  Architectural Review Board  |  Generated ${fmtDate(new Date().toISOString())}`, MARGIN, PAGE_H - FOOTER_H + 16);
-    doc.text(`Page ${page} of ${total}`, PAGE_W - MARGIN, PAGE_H - FOOTER_H + 16, { align: "right" });
+    doc.text(`Generated ${today()}  |  Confidential: contains resident information`, MARGIN, PAGE_H - FOOTER_H + 15);
+    doc.text(`Page ${page} of ${total}`, PAGE_W - MARGIN, PAGE_H - FOOTER_H + 15, { align: "right" });
   }
 
-  /* ------------------------------ sections ----------------------------- */
-  function chip(label: string, x: number, baseline: number, colors: { bg: RGB; fg: RGB }): number {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    const w = doc.getTextWidth(clean(label).toUpperCase()) + 20;
-    fill(colors.bg);
-    doc.roundedRect(x, baseline - 12, w, 19, 9.5, 9.5, "F");
-    text(colors.fg);
-    doc.text(clean(label).toUpperCase(), x + 10, baseline + 1);
-    return w;
-  }
-
+  /* ------------------------------ sections ------------------------------- */
   function titleBlock() {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    text(NAVY);
-    doc.text(clean(input.reference), MARGIN, y);
-    const refW = doc.getTextWidth(clean(input.reference));
-    chip(input.statusLabel, MARGIN + refW + 14, y - 2, STATUS_COLORS[input.status] ?? STATUS_COLORS.submitted);
-    y += 22;
-    doc.setFont("times", "normal");
-    doc.setFontSize(14);
+    doc.setFontSize(18);
     text(INK);
-    for (const line of wrap(input.title && input.title !== input.categoryName ? `${input.categoryName} - ${input.title}` : input.categoryName, CONTENT_W)) {
-      ensure(18);
-      doc.text(line, MARGIN, y);
-      y += 18;
+    for (const line of wrap(input.categoryName || "Architectural Request", CONTENT_W - 140)) {
+      doc.text(line, MARGIN, y + 6);
+      y += 22;
     }
-    y += 6;
-  }
-
-  function sectionHeading(label: string, count?: number) {
-    ensure(44);
-    y += 8;
-    fill(GOLD);
-    doc.rect(MARGIN, y - 11, 3, 15, "F");
-    doc.setFont("times", "bold");
-    doc.setFontSize(15);
+    // status: a plain bordered label, top right of the title
+    const label = `STATUS: ${clean(input.statusLabel).toUpperCase()}`;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    const w = doc.getTextWidth(label) + 18;
+    draw(NAVY);
+    doc.setLineWidth(0.9);
+    doc.rect(PAGE_W - MARGIN - w, y - 22, w, 20, "S");
     text(NAVY);
-    doc.text(clean(label) + (count !== undefined ? `  (${count})` : ""), MARGIN + 11, y + 1);
-    y += 10;
-    draw(RULE);
-    doc.setLineWidth(0.6);
-    doc.line(MARGIN, y, PAGE_W - MARGIN, y);
-    y += 14;
+    doc.text(label, PAGE_W - MARGIN - w + 9, y - 9);
+    y += 8;
   }
 
-  function summaryGrid() {
-    const cells: { label: string; value: string }[] = [];
-    const push = (label: string, value?: string | null) => {
-      if (value && value.trim()) cells.push({ label, value: value.trim() });
-    };
-    push("Resident", [input.resident?.name, input.resident?.idNumber ? `#${input.resident.idNumber}` : ""].filter(Boolean).join("  "));
-    push("Contact", [input.resident?.email, input.resident?.phone].filter(Boolean).join("  |  "));
-    push("Property", input.property?.address);
-    push("Lot No.", input.property?.lotNo);
-    push("Category", input.categoryName);
-    push("Assigned reviewer", input.reviewer);
-    push("Submitted", fmtDate(input.submittedAt));
-    push("Last update", fmtDate(input.updatedAt));
-    (input.summary ?? []).forEach((s) => push(s.label, s.value));
+  function sectionHeader(title: string, withRows = true) {
+    ensure(withRows ? 76 : 40);
+    fill(BAND);
+    draw(BORDER);
+    doc.setLineWidth(0.6);
+    doc.rect(MARGIN, y, CONTENT_W, 22, "FD");
+    fill(NAVY);
+    doc.rect(MARGIN, y, 3, 22, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    text(NAVY);
+    doc.setCharSpace(0.7);
+    doc.text(clean(title).toUpperCase(), MARGIN + 12, y + 14.5);
+    doc.setCharSpace(0);
+    y += 22;
+  }
 
-    const colW = (CONTENT_W - 12) / 2;
-    const pad = 11;
-    for (let i = 0; i < cells.length; i += 2) {
-      const row = cells.slice(i, i + 2);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      const measured = row.map((c) => wrap(c.value, colW - pad * 2));
-      const h = Math.max(...measured.map((l) => l.length)) * 13 + 31;
-      ensure(h + 8);
-      row.forEach((c, k) => {
-        const x = MARGIN + k * (colW + 12);
-        fill(SOFT);
-        draw(RULE);
-        doc.setLineWidth(0.6);
-        doc.roundedRect(x, y, colW, h, 6, 6, "FD");
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(7);
-        text(GOLD);
-        doc.setCharSpace(0.8);
-        doc.text(clean(c.label).toUpperCase(), x + pad, y + 15);
-        doc.setCharSpace(0);
+  /** One bordered cell: small label over the value, with an optional note below. Returns its height. */
+  function cellHeight(row: RequestPdfRow, width: number): { h: number; value: string[]; note: string[]; label: string[] } {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    const label = wrap(row.label.toUpperCase(), width - CELL_PAD * 2);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    const value = wrap(row.value && row.value.trim() ? row.value : "Not provided", width - CELL_PAD * 2);
+    doc.setFontSize(8.5);
+    const note = row.note ? wrap(`Reviewer note: ${row.note}`, width - CELL_PAD * 2 - 14) : [];
+    const h = CELL_PAD + label.length * 9 + 4 + value.length * 13 + (note.length ? note.length * 11 + 16 : 0) + CELL_PAD - 2;
+    return { h, value, note, label };
+  }
+
+  function drawCell(row: RequestPdfRow, x: number, top: number, width: number, height: number, m: ReturnType<typeof cellHeight>) {
+    draw(BORDER);
+    doc.setLineWidth(0.6);
+    doc.rect(x, top, width, height, "S");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    text(MUTED);
+    doc.setCharSpace(0.4);
+    m.label.forEach((l, i) => doc.text(l, x + CELL_PAD, top + CELL_PAD + 5 + i * 9));
+    doc.setCharSpace(0);
+    const empty = !row.value || !row.value.trim();
+    doc.setFont("helvetica", empty ? "italic" : "normal");
+    doc.setFontSize(10);
+    text(empty ? MUTED : INK);
+    const vy = top + CELL_PAD + m.label.length * 9 + 12;
+    m.value.forEach((l, i) => doc.text(l, x + CELL_PAD, vy + i * 13));
+    if (m.note.length) {
+      const ny = vy + (m.value.length - 1) * 13 + 10;
+      const nh = m.note.length * 11 + 8;
+      fill(NOTE_BG);
+      draw(NOTE_BORDER);
+      doc.setLineWidth(0.5);
+      doc.rect(x + CELL_PAD, ny, width - CELL_PAD * 2, nh, "FD");
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8.5);
+      text([110, 82, 20]);
+      m.note.forEach((l, i) => doc.text(l, x + CELL_PAD + 7, ny + 12 + i * 11));
+    }
+  }
+
+  function section(s: RequestPdfSection) {
+    if (!s.rows.length) return;
+    sectionHeader(s.title);
+    const half = CONTENT_W / 2;
+    let i = 0;
+    while (i < s.rows.length) {
+      const row = s.rows[i];
+      const next = s.rows[i + 1];
+      const pair = !row.wide && next && !next.wide;
+      if (pair) {
+        const a = cellHeight(row, half);
+        const b = cellHeight(next, half);
+        const h = Math.max(a.h, b.h);
+        if (h <= 300) ensure(h);
+        else ensure(80);
+        drawCell(row, MARGIN, y, half, h, a);
+        drawCell(next, MARGIN + half, y, half, h, b);
+        y += h;
+        i += 2;
+      } else {
+        const m = cellHeight(row, CONTENT_W);
+        if (m.h <= 300) {
+          ensure(m.h);
+          drawCell(row, MARGIN, y, CONTENT_W, m.h, m);
+          y += m.h;
+        } else {
+          // A very long answer: lay it out line by line across as many pages as needed.
+          drawLongCell(row, m);
+        }
+        i += 1;
+      }
+    }
+    y += 16;
+  }
+
+  function drawLongCell(row: RequestPdfRow, m: ReturnType<typeof cellHeight>) {
+    ensure(70);
+    let top = y;
+    draw(BORDER);
+    doc.setLineWidth(0.6);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    text(MUTED);
+    doc.setCharSpace(0.4);
+    m.label.forEach((l, i) => doc.text(l, MARGIN + CELL_PAD, top + CELL_PAD + 5 + i * 9));
+    doc.setCharSpace(0);
+    let ly = top + CELL_PAD + m.label.length * 9 + 12;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    text(INK);
+    for (const line of m.value) {
+      if (ly + 6 > bottomLimit) {
+        doc.rect(MARGIN, top, CONTENT_W, bottomLimit - top, "S");
+        newPage();
+        top = y;
+        ly = top + CELL_PAD + 8;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         text(INK);
-        measured[k].forEach((line, li) => doc.text(line, x + pad, y + 29 + li * 13));
-      });
-      y += h + 8;
+      }
+      doc.text(line, MARGIN + CELL_PAD, ly);
+      ly += 13;
     }
-    y += 4;
-  }
-
-  function fieldsSection() {
-    sectionHeading("Project Information", input.fields.length);
-    if (input.fields.length === 0) {
+    let endY = ly - 13 + CELL_PAD;
+    if (m.note.length) {
+      const nh = m.note.length * 11 + 8;
+      if (endY + nh + 8 > bottomLimit) {
+        doc.rect(MARGIN, top, CONTENT_W, bottomLimit - top, "S");
+        newPage();
+        top = y;
+        endY = top;
+      }
+      fill(NOTE_BG);
+      draw(NOTE_BORDER);
+      doc.rect(MARGIN + CELL_PAD, endY + 2, CONTENT_W - CELL_PAD * 2, nh, "FD");
       doc.setFont("helvetica", "italic");
-      doc.setFontSize(10);
-      text(MUTED);
-      doc.text("No form answers were recorded for this request.", MARGIN, y);
-      y += 18;
-      return;
+      doc.setFontSize(8.5);
+      text([110, 82, 20]);
+      m.note.forEach((l, i) => doc.text(l, MARGIN + CELL_PAD + 7, endY + 14 + i * 11));
+      endY += nh + 8;
     }
-    const labelW = 150;
-    const valueX = MARGIN + labelW + 12;
-    const valueW = CONTENT_W - labelW - 12;
-    input.fields.forEach((f, idx) => {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      const labelLines = wrap(f.label.toUpperCase(), labelW);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      const valueLines = wrap(f.value && f.value.trim() ? f.value : "Not provided", valueW);
-      const noteLines = f.note ? (doc.setFontSize(9), wrap(`Reviewer note: ${f.note}`, valueW - 16)) : [];
-      const blockH = Math.max(labelLines.length * 10 + (f.required === false ? 11 : 0), valueLines.length * 13.5) + (noteLines.length ? noteLines.length * 12 + 14 : 0) + 14;
-
-      // Keep a short row together; a very long answer flows line by line across pages.
-      if (blockH <= 240) ensure(blockH);
-      else ensure(60);
-
-      const top = y;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      text(MUTED);
-      doc.setCharSpace(0.4);
-      labelLines.forEach((l, i) => doc.text(l, MARGIN, top + 9 + i * 10));
-      doc.setCharSpace(0);
-      if (f.required === false) {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(7.5);
-        doc.text("optional", MARGIN, top + 9 + labelLines.length * 10 + 1);
-      }
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      const empty = !f.value || !f.value.trim();
-      text(empty ? MUTED : INK);
-      if (empty) doc.setFont("helvetica", "italic");
-      let ly = top + 10;
-      valueLines.forEach((line) => {
-        if (ly > bottomLimit) {
-          newPage();
-          ly = y + 10;
-        }
-        doc.text(line, valueX, ly);
-        ly += 13.5;
-      });
-      let endY = Math.max(ly - 13.5 + 4, top + labelLines.length * 10 + 6);
-
-      if (noteLines.length) {
-        const noteH = noteLines.length * 12 + 10;
-        if (endY + noteH > bottomLimit) {
-          newPage();
-          endY = y;
-        }
-        fill([255, 246, 224]);
-        draw([240, 214, 150]);
-        doc.setLineWidth(0.5);
-        doc.roundedRect(valueX, endY + 4, valueW, noteH, 4, 4, "FD");
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(9);
-        text([120, 72, 8]);
-        noteLines.forEach((l, i) => doc.text(l, valueX + 8, endY + 18 + i * 12));
-        endY += noteH + 6;
-      }
-
-      y = endY + 8;
-      if (idx < input.fields.length - 1) {
-        draw(RULE);
-        doc.setLineWidth(0.5);
-        doc.line(MARGIN, y, PAGE_W - MARGIN, y);
-        y += 10;
-      }
-    });
-    y += 6;
+    draw(BORDER);
+    doc.setLineWidth(0.6);
+    doc.rect(MARGIN, top, CONTENT_W, endY - top, "S");
+    y = endY;
   }
 
   function documentsSection() {
-    sectionHeading("Documents", input.documents.length);
+    sectionHeader("Documents", false);
     if (input.documents.length === 0) {
+      ensure(40);
+      draw(BORDER);
+      doc.setLineWidth(0.6);
+      doc.rect(MARGIN, y, CONTENT_W, 34, "S");
       doc.setFont("helvetica", "italic");
       doc.setFontSize(10);
       text(MUTED);
-      doc.text("No documents were uploaded with this request.", MARGIN, y);
-      y += 18;
+      doc.text("No documents were uploaded with this request.", MARGIN + CELL_PAD, y + 21);
+      y += 50;
       return;
     }
 
+    // Group files by title so one titled block can hold several files.
+    const groups: { title: string; items: { d: RequestPdfDocument; i: number }[] }[] = [];
     input.documents.forEach((d, i) => {
-      const kind = fileKind(d);
-      const image = images[i];
-      const meta = [d.name, fmtSize(d.size), fmtDate(d.uploadedAt) ? `Uploaded ${fmtDate(d.uploadedAt)}` : ""].filter(Boolean).join("  |  ");
+      const g = groups.find((x) => x.title === d.title);
+      if (g) g.items.push({ d, i });
+      else groups.push({ title: d.title, items: [{ d, i }] });
+    });
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11.5);
-      const titleLines = wrap(d.title || d.name, CONTENT_W - 100);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      const metaLines = wrap(meta, CONTENT_W - 28);
-      const noteLines = d.note ? wrap(`Reviewer note: ${d.note}`, CONTENT_W - 44) : [];
-      const headH = 14 + titleLines.length * 15 + metaLines.length * 11 + 10;
+    groups.forEach((g, gi) => {
+      g.items.forEach(({ d, i }, k) => {
+        const image = images[i];
+        const kind = fileKind(d);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10.5);
+        const titleText = g.items.length > 1 ? `${g.title}  (${k + 1} of ${g.items.length})` : g.title;
+        const titleLines = wrap(titleText, CONTENT_W - CELL_PAD * 2);
+        const titleH = CELL_PAD + titleLines.length * 14 + 4;
 
-      // Image scaled to the card width, bounded in height.
-      let imgW = 0;
-      let imgH = 0;
-      if (image) {
-        const maxW = CONTENT_W - 28;
-        const scale = Math.min(maxW / image.w, IMAGE_MAX_H / image.h);
-        imgW = image.w * scale;
-        imgH = image.h * scale;
-      }
-      const placeholderH = !image ? 46 : 0;
-      const bodyH = (image ? imgH + 16 : placeholderH + 8) + (noteLines.length ? noteLines.length * 12 + 16 : 0);
-      const total = headH + bodyH;
-
-      ensure(Math.min(total, 260));
-      if (y + total > bottomLimit) newPage();
-
-      const top = y;
-      fill(SOFT);
-      draw(RULE);
-      doc.setLineWidth(0.7);
-      doc.roundedRect(MARGIN, top, CONTENT_W, total, 7, 7, "FD");
-      fill(GOLD);
-      doc.rect(MARGIN, top + 10, 3, headH - 18, "F");
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11.5);
-      text(NAVY);
-      titleLines.forEach((l, k) => doc.text(l, MARGIN + 14, top + 22 + k * 15));
-      // type tag
-      const tag = kind === "image" ? "IMAGE" : kind === "pdf" ? "PDF" : "FILE";
-      doc.setFontSize(7.5);
-      const tagW = doc.getTextWidth(tag) + 14;
-      fill(kind === "pdf" ? [252, 226, 228] : [218, 236, 252]);
-      doc.roundedRect(MARGIN + CONTENT_W - tagW - 12, top + 10, tagW, 15, 7.5, 7.5, "F");
-      text(kind === "pdf" ? [160, 28, 48] : [12, 84, 150]);
-      doc.text(tag, MARGIN + CONTENT_W - tagW - 5, top + 20.5);
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      text(MUTED);
-      metaLines.forEach((l, k) => doc.text(l, MARGIN + 14, top + 22 + titleLines.length * 15 + k * 11 - 3));
-
-      let by = top + headH;
-      if (image) {
-        const x = MARGIN + (CONTENT_W - imgW) / 2;
-        draw(RULE);
-        doc.setLineWidth(0.6);
-        doc.roundedRect(x - 1, by - 1, imgW + 2, imgH + 2, 3, 3, "S");
-        doc.addImage(image.data, "JPEG", x, by, imgW, imgH);
-        by += imgH + 16;
-      } else {
-        fill([255, 255, 255]);
-        draw(RULE);
-        doc.setLineWidth(0.6);
-        doc.roundedRect(MARGIN + 14, by, CONTENT_W - 28, placeholderH, 5, 5, "FD");
+        let imgW = 0;
+        let imgH = 0;
+        if (image) {
+          const maxW = CONTENT_W - CELL_PAD * 2;
+          const scale = Math.min(maxW / image.w, IMAGE_MAX_H / image.h, 1.6);
+          imgW = image.w * scale;
+          imgH = image.h * scale;
+        }
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(9.5);
-        text(MUTED);
-        const message =
-          kind === "image"
-            ? "This image could not be loaded into the PDF. Open it in the portal to view it."
-            : kind === "pdf"
-              ? "PDF document. Its pages are not embedded here; open it in the portal to view the full file."
-              : "This file type can't be previewed in the PDF. Open it in the portal to view it.";
-        wrap(message, CONTENT_W - 56).forEach((l, k) => doc.text(l, MARGIN + 28, by + 19 + k * 12));
-        by += placeholderH + 8;
-      }
+        doc.setFontSize(8.5);
+        const noteLines = d.note ? wrap(`Reviewer note: ${d.note}`, CONTENT_W - CELL_PAD * 2 - 14) : [];
+        const placeholderH = image ? 0 : 44;
+        const bodyH = (image ? imgH + CELL_PAD * 2 : placeholderH + CELL_PAD * 2) + (noteLines.length ? noteLines.length * 11 + 16 : 0);
+        const total = titleH + bodyH;
 
-      if (noteLines.length) {
-        const noteH = noteLines.length * 12 + 10;
-        fill([255, 246, 224]);
-        draw([240, 214, 150]);
-        doc.setLineWidth(0.5);
-        doc.roundedRect(MARGIN + 14, by, CONTENT_W - 28, noteH, 4, 4, "FD");
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(9);
-        text([120, 72, 8]);
-        noteLines.forEach((l, k) => doc.text(l, MARGIN + 22, by + 14 + k * 12));
-      }
+        ensure(Math.min(total, 200));
+        if (y + total > bottomLimit) newPage();
+        const top = y;
 
-      y = top + total + 14;
+        draw(BORDER);
+        doc.setLineWidth(0.6);
+        doc.rect(MARGIN, top, CONTENT_W, total, "S");
+        // title row
+        fill(SOFT_FILL);
+        doc.rect(MARGIN, top, CONTENT_W, titleH, "F");
+        draw(BORDER);
+        doc.line(MARGIN, top + titleH, MARGIN + CONTENT_W, top + titleH);
+        doc.rect(MARGIN, top, CONTENT_W, total, "S");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10.5);
+        text(NAVY);
+        titleLines.forEach((l, li) => doc.text(l, MARGIN + CELL_PAD, top + CELL_PAD + 9 + li * 14));
+
+        let by = top + titleH + CELL_PAD;
+        if (image) {
+          const x = MARGIN + (CONTENT_W - imgW) / 2;
+          doc.addImage(image.data, "JPEG", x, by, imgW, imgH);
+          draw(BORDER);
+          doc.setLineWidth(0.5);
+          doc.rect(x, by, imgW, imgH, "S");
+          by += imgH + CELL_PAD;
+        } else {
+          draw(BORDER);
+          doc.setLineWidth(0.5);
+          doc.rect(MARGIN + CELL_PAD, by, CONTENT_W - CELL_PAD * 2, placeholderH, "S");
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9.5);
+          text(MUTED);
+          const message =
+            kind === "image"
+              ? "Image on file. It could not be loaded into this copy; it is available in the portal."
+              : kind === "pdf"
+                ? "PDF document on file. Its pages are not reproduced in this copy; it is available in the portal."
+                : "Document on file. It is available in the portal.";
+          wrap(message, CONTENT_W - CELL_PAD * 4).forEach((l, li) => doc.text(l, MARGIN + CELL_PAD * 2, by + 18 + li * 12));
+          by += placeholderH + CELL_PAD;
+        }
+
+        if (noteLines.length) {
+          const nh = noteLines.length * 11 + 8;
+          fill(NOTE_BG);
+          draw(NOTE_BORDER);
+          doc.setLineWidth(0.5);
+          doc.rect(MARGIN + CELL_PAD, by, CONTENT_W - CELL_PAD * 2, nh, "FD");
+          doc.setFont("helvetica", "italic");
+          doc.setFontSize(8.5);
+          text([110, 82, 20]);
+          noteLines.forEach((l, li) => doc.text(l, MARGIN + CELL_PAD + 7, by + 12 + li * 11));
+        }
+        y = top + total + 12;
+      });
+      void gi;
     });
   }
 
-  /* -------------------------------- build ------------------------------ */
-  firstHeader();
+  /* --------------------------------- build ------------------------------- */
+  letterhead();
   titleBlock();
-  summaryGrid();
-  fieldsSection();
+  input.sections.forEach(section);
   documentsSection();
 
   const pages = doc.getNumberOfPages();
@@ -620,10 +573,10 @@ export async function buildRequestPdf(input: RequestPdfInput): Promise<Blob> {
     if (p > 1) runningHeader();
     footer(p, pages);
   }
-  void markNavy;
 
   return doc.output("blob");
 }
+
 
 /** Builds the PDF and saves it to the device. */
 export async function downloadRequestPdf(input: RequestPdfInput): Promise<void> {

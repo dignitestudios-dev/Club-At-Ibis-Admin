@@ -23,7 +23,7 @@ function Tabs({
 }
 
 const tabsListVariants = cva(
-  "group/tabs-list relative inline-flex max-w-full items-center overflow-x-auto text-muted-foreground group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col",
+  "group/tabs-list relative inline-flex max-w-full items-center overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-muted-foreground group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col",
   {
     variants: {
       variant: {
@@ -58,7 +58,7 @@ function TabsList({
           "pointer-events-none absolute z-0 transition-[left,top,width,height] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
           "left-(--active-tab-left) w-(--active-tab-width)",
           // default: 2px underline on the list's bottom rule
-          "group-data-[variant=default]/tabs-list:-bottom-px group-data-[variant=default]/tabs-list:h-0.5 group-data-[variant=default]/tabs-list:rounded-full group-data-[variant=default]/tabs-list:bg-primary dark:group-data-[variant=default]/tabs-list:bg-amber-300",
+          "group-data-[variant=default]/tabs-list:bottom-0 group-data-[variant=default]/tabs-list:h-0.5 group-data-[variant=default]/tabs-list:rounded-full group-data-[variant=default]/tabs-list:bg-primary dark:group-data-[variant=default]/tabs-list:bg-amber-300",
           // pill: raised thumb behind the tab
           "group-data-[variant=pill]/tabs-list:top-(--active-tab-top) group-data-[variant=pill]/tabs-list:h-(--active-tab-height) group-data-[variant=pill]/tabs-list:rounded-lg group-data-[variant=pill]/tabs-list:bg-background group-data-[variant=pill]/tabs-list:shadow-sm group-data-[variant=pill]/tabs-list:ring-1 group-data-[variant=pill]/tabs-list:ring-border/70 dark:group-data-[variant=pill]/tabs-list:bg-card"
         )}
