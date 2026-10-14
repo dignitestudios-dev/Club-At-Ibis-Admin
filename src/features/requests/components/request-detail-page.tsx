@@ -37,6 +37,7 @@ import { FilePreviewDialog, type PreviewableFile } from "@/components/shared/fil
 import { getAdminFileDownloadUrl } from "@/features/requests/api/requests.service";
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
 import { EarlierSubmissions } from "@/features/requests/components/earlier-submissions";
+import { DownloadRequestPdfButton } from "@/features/requests/components/download-request-pdf-button";
 import { HistoryTimeline } from "@/features/requests/components/history-timeline";
 import { RequestJourney } from "@/features/requests/components/request-journey";
 import { DepositChip, RefundChip } from "@/features/requests/components/request-chips";
@@ -195,6 +196,14 @@ export default function RequestDetailPage({ id }: { id: string }) {
               <span aria-hidden="true">·</span>
               <span>{propLot}</span>
             </div>
+          </div>
+          <div className="shrink-0">
+            <DownloadRequestPdfButton
+              request={req}
+              residentName={residentFullName(resident)}
+              residentIdNumber={resident?.residentIdNumber}
+              reviewerName={reviewer?.name}
+            />
           </div>
         </div>
       </div>
