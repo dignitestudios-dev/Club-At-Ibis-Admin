@@ -38,6 +38,7 @@ import { getAdminFileDownloadUrl } from "@/features/requests/api/requests.servic
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
 import { EarlierSubmissions } from "@/features/requests/components/earlier-submissions";
 import { DownloadRequestPdfButton } from "@/features/requests/components/download-request-pdf-button";
+import { TabWithTooltip } from "@/components/shared/tab-with-tooltip";
 import { HistoryTimeline } from "@/features/requests/components/history-timeline";
 import { RequestJourney } from "@/features/requests/components/request-journey";
 import { DepositChip, RefundChip } from "@/features/requests/components/request-chips";
@@ -385,13 +386,13 @@ export default function RequestDetailPage({ id }: { id: string }) {
         <CardContent className="pt-1">
       <Tabs value={visibleTab} onValueChange={(v) => setActiveTab(v as string)}>
         <TabsList aria-label="Request sections">
-          <TabsTrigger value="overview">Details</TabsTrigger>
-          <TabsTrigger value="decisions">Decision</TabsTrigger>
-          {showDepositTab && <TabsTrigger value="deposit">Deposit</TabsTrigger>}
-          {showRefundTab && <TabsTrigger value="refund">Refund</TabsTrigger>}
-          <TabsTrigger value="history">Activity timeline{req.history.length > 0 ? ` (${req.history.length})` : ""}</TabsTrigger>
+          <TabWithTooltip value="overview" tip="The resident's latest submission: project and category answers, uploaded documents and review progress.">Details</TabWithTooltip>
+          <TabWithTooltip value="decisions" tip="The review outcome: approved, rejected or changes requested, with the reviewer's feedback and reasons.">Decision</TabWithTooltip>
+          {showDepositTab && <TabWithTooltip value="deposit" tip="Deposit requirement, amount and status, including when it was received and the receipt.">Deposit</TabWithTooltip>}
+          {showRefundTab && <TabWithTooltip value="refund" tip="What happened to the deposit after withdrawal: the refund outcome, date and receipt.">Refund</TabWithTooltip>}
+          <TabWithTooltip value="history" tip="A chronological log of everything that happened on this request, who did it and when.">Activity timeline{req.history.length > 0 ? ` (${req.history.length})` : ""}</TabWithTooltip>
           {earlierRounds.length > 0 && (
-            <TabsTrigger value="submissionHistory">Submission History ({earlierRounds.length})</TabsTrigger>
+            <TabWithTooltip value="submissionHistory" tip="Earlier rounds of this request: what the resident submitted before, what was flagged, and what changed.">Submission History ({earlierRounds.length})</TabWithTooltip>
           )}
         </TabsList>
 
