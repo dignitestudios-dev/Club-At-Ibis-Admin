@@ -39,7 +39,6 @@ export interface RequestPdfDocument {
 export interface RequestPdfInput {
   reference: string;
   categoryName: string;
-  statusLabel: string;
   sections: RequestPdfSection[];
   documents: RequestPdfDocument[];
   /** Returns a fresh, short-lived download URL for a file. */
@@ -63,7 +62,7 @@ const PAGE_H = 792;
 const MARGIN = 48;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 const FOOTER_H = 38;
-const TOP_FIRST = 52;
+const TOP_FIRST = 40;
 const TOP_NEXT = 50;
 const IMAGE_MAX_H = 400;
 const CELL_PAD = 8;
@@ -170,7 +169,7 @@ export async function buildRequestPdf(input: RequestPdfInput): Promise<Blob> {
   const progress = input.onProgress ?? (() => {});
 
   progress("Preparing…");
-  const mark = await loadStatic("/brand/ibis-mark-navy.png");
+  const [logo, mark] = await Promise.all([loadStatic("/brand/club-at-ibis-logo.png"), loadStatic("/brand/ibis-mark-navy.png")]);
 
   // Download every uploaded image up front (a few at a time) so layout can use the real sizes.
   const images = await pool(input.documents, 3, async (d, i) => {
@@ -229,45 +228,48 @@ export async function buildRequestPdf(input: RequestPdfInput): Promise<Blob> {
 
   /* ------------------------------ letterhead ----------------------------- */
   function letterhead() {
-    let textX = MARGIN;
-    if (mark) {
-      const h = 36;
-      const w = (mark.w / mark.h) * h;
-      doc.addImage(mark.data, "PNG", MARGIN, y - 4, w, h);
-      textX = MARGIN + w + 12;
+    // The Club at Ibis logo, with the document title on the right.
+    const logoH = 66;
+    if (logo) {
+      const w = (logo.w / logo.h) * logoH;
+      doc.addImage(logo.data, "PNG", MARGIN, y - 6, w, logoH);
+    } else {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      text(NAVY);
+      doc.text("The Club at Ibis", MARGIN, y + 20);
     }
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
+    doc.setFontSize(12);
     text(NAVY);
-    doc.text("The Club at Ibis", textX, y + 12);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    text(MUTED);
-    doc.text("Architectural Review Board", textX, y + 26);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    text(NAVY);
-    doc.text("ARCHITECTURAL REQUEST RECORD", PAGE_W - MARGIN, y + 12, { align: "right" });
+    doc.text("ARCHITECTURAL REQUEST", PAGE_W - MARGIN, y + 16, { align: "right" });
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     text(MUTED);
-    doc.text(`Reference: ${clean(input.reference)}`, PAGE_W - MARGIN, y + 26, { align: "right" });
+    doc.text("Architectural Review Board", PAGE_W - MARGIN, y + 30, { align: "right" });
+    doc.text(`Reference: ${clean(input.reference)}`, PAGE_W - MARGIN, y + 44, { align: "right" });
 
-    y += 44;
+    y += logoH + 10;
     fill(NAVY);
     doc.rect(MARGIN, y, CONTENT_W, 2, "F");
-    y += 18;
+    y += 20;
   }
 
   function runningHeader() {
+    let textX = MARGIN;
+    if (mark) {
+      const h = 22;
+      const w = (mark.w / mark.h) * h;
+      doc.addImage(mark.data, "PNG", MARGIN, 16, w, h);
+      textX = MARGIN + w + 8;
+    }
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     text(NAVY);
-    doc.text("The Club at Ibis  |  Architectural Review Board", MARGIN, 34);
+    doc.text("The Club at Ibis  |  Architectural Review Board", textX, 31);
     doc.setFont("helvetica", "normal");
     text(MUTED);
-    doc.text(`Reference: ${clean(input.reference)}`, PAGE_W - MARGIN, 34, { align: "right" });
+    doc.text(`Reference: ${clean(input.reference)}`, PAGE_W - MARGIN, 31, { align: "right" });
     fill(NAVY);
     doc.rect(MARGIN, 42, CONTENT_W, 1, "F");
   }
@@ -288,21 +290,11 @@ export async function buildRequestPdf(input: RequestPdfInput): Promise<Blob> {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     text(INK);
-    for (const line of wrap(input.categoryName || "Architectural Request", CONTENT_W - 140)) {
+    for (const line of wrap(input.categoryName || "Architectural Request", CONTENT_W)) {
       doc.text(line, MARGIN, y + 6);
       y += 22;
     }
-    // status: a plain bordered label, top right of the title
-    const label = `STATUS: ${clean(input.statusLabel).toUpperCase()}`;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    const w = doc.getTextWidth(label) + 18;
-    draw(NAVY);
-    doc.setLineWidth(0.9);
-    doc.rect(PAGE_W - MARGIN - w, y - 22, w, 20, "S");
-    text(NAVY);
-    doc.text(label, PAGE_W - MARGIN - w + 9, y - 9);
-    y += 8;
+    y += 6;
   }
 
   function sectionHeader(title: string, withRows = true) {

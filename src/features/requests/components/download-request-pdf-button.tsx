@@ -5,7 +5,6 @@ import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
-import { STATUS_LABEL } from "@/lib/domain";
 import { downloadRequestPdf, type RequestPdfInput, type RequestPdfRow, type RequestPdfSection } from "@/lib/request-pdf";
 import { getAdminFileDownloadUrl } from "@/features/requests/api/requests.service";
 
@@ -24,12 +23,6 @@ function date(value?: string | null): string {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 }
 
-function money(value: unknown): string {
-  if (value === null || value === undefined || value === "") return "";
-  const n = Number(value);
-  return Number.isNaN(n) ? "" : `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 /** Only rows that have something to say; the form's own fields are kept even when empty. */
 function present(rows: RequestPdfRow[]): RequestPdfRow[] {
   return rows.filter((r) => r.value && r.value.trim());
@@ -40,12 +33,10 @@ export function DownloadRequestPdfButton({
   request,
   residentName,
   residentIdNumber,
-  reviewerName,
 }: {
   request: RequestRecord;
   residentName?: string;
   residentIdNumber?: string;
-  reviewerName?: string;
 }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -65,13 +56,7 @@ export function DownloadRequestPdfButton({
       };
       const toRow = (f: (typeof answers)[number]): RequestPdfRow => {
         const value = asText(request.fieldValues?.[f.id]);
-        const review = request.itemReviews?.[f.id];
-        return {
-          label: f.label,
-          value,
-          wide: f.type === "textarea" || value.length > 48 || value.includes("\n"),
-          note: review?.state === "flagged" ? review.reason : null,
-        };
+        return { label: f.label, value, wide: f.type === "textarea" || value.length > 48 || value.includes("\n") };
       };
 
       const sections: RequestPdfSection[] = [
@@ -80,10 +65,7 @@ export function DownloadRequestPdfButton({
           rows: present([
             { label: "Reference number", value: request.code },
             { label: "Category", value: request.categoryName },
-            { label: "Status", value: STATUS_LABEL[request.status] ?? request.status },
             { label: "Date submitted", value: date(request.submittedAt) },
-            { label: "Last updated", value: date(request.updatedAt) },
-            { label: "Review started", value: date(request.review?.startedAt) },
           ]),
         },
         {
@@ -95,52 +77,22 @@ export function DownloadRequestPdfButton({
             { label: "Phone", value: request.resident?.phone ?? "" },
           ]),
         },
-        {
-          title: "Review & Decision",
-          rows: present([
-            { label: "Assigned reviewer", value: reviewerName ?? "" },
-            { label: "Decision date", value: date(request.decidedAt) },
-            { label: "Rejection reason", value: request.status === "rejected" ? (request.rejectionReason ?? "") : "", wide: true },
-            { label: "Reviewer feedback and instructions", value: request.status === "changes_required" ? (request.feedback ?? "") : "", wide: true },
-          ]),
-        },
         { title: "Project Information", rows: answers.filter(isCommon).map(toRow) },
         { title: `${request.categoryName || "Category"} Information`, rows: answers.filter((f) => !isCommon(f)).map(toRow) },
-        ...(request.deposit?.required
-          ? [
-              {
-                title: "Deposit & Refund",
-                rows: present([
-                  { label: "Deposit required", value: "Yes" },
-                  { label: "Deposit amount", value: money(request.deposit.amount) },
-                  { label: "Deposit status", value: request.deposit.status === "received" ? "Received" : "Pending" },
-                  { label: "Deposit received on", value: date(request.deposit.receivedAt) },
-                  {
-                    label: "Refund outcome",
-                    value: request.refund?.outcome === "refunded" ? "Refunded" : request.refund?.outcome === "no_refund" ? "No refund" : "",
-                  },
-                  { label: "Refund date", value: request.refund?.outcome === "refunded" ? date(request.refund.refundDate || request.refund.date) : "" },
-                ]),
-              },
-            ]
-          : []),
       ];
 
       const input: RequestPdfInput = {
         reference: request.code,
         categoryName: request.categoryName,
-        statusLabel: STATUS_LABEL[request.status] ?? request.status,
         sections,
-        documents: fileFields.flatMap((f) => {
-          const review = request.itemReviews?.[f.id];
-          return (request.uploads?.[f.id] ?? []).map((file) => ({
+        documents: fileFields.flatMap((f) =>
+          (request.uploads?.[f.id] ?? []).map((file) => ({
             title: f.label,
             fileId: file.id,
             name: file.name,
             mimeType: file.mimeType,
-            note: review?.state === "flagged" ? review.reason : null,
-          }));
-        }),
+          }))
+        ),
         getFileUrl: async (fileId) => {
           const { url } = await getAdminFileDownloadUrl(request.id, fileId);
           return url;
