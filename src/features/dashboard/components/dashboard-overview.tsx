@@ -208,9 +208,9 @@ export default function DashboardOverview() {
         <div className="flex items-end justify-between">
           <div>
             <h2 id="status-heading" className="font-heading text-xl font-medium text-foreground">
-              Request Status Overview
+              Recent System Activity
             </h2>
-            <p className="text-xs text-muted-foreground">Select a status to open the filtered request list.</p>
+            <p className="text-xs text-muted-foreground">Recent account, category, routing and security changes.</p>
           </div>
           <Link href="/requests" className="text-sm font-medium text-primary hover:underline dark:text-amber-300">
             View all {total}
