@@ -47,6 +47,7 @@ function toCategory(raw: any): Category {
     name: raw.name ?? "",
     description: raw.description ?? "",
     status: raw.status ?? "active",
+    hoaApprovalRequired: raw.hoaApprovalRequired ?? raw.currentForm?.hoaApprovalRequired ?? false,
     currentVersion,
     version: currentVersion,
     fields,
@@ -86,6 +87,7 @@ function toVersion(raw: any): CategoryVersion {
     version: raw.version,
     name: raw.name ?? "",
     description: raw.description ?? "",
+    hoaApprovalRequired: raw.hoaApprovalRequired ?? false,
     fields: raw.fields ? raw.fields.map(toField) : [],
     note: raw.note ?? null,
     changes: raw.changes ?? [],
@@ -163,6 +165,7 @@ export async function createCategory(payload: CategoryDraftPayload): Promise<Cat
   const body = {
     name: payload.name.trim(),
     description: payload.description.trim(),
+    hoaApprovalRequired: payload.hoaApprovalRequired,
     note: payload.note?.trim() || undefined,
     fields: payload.fields.map((f) => ({
       label: f.label.trim(),
@@ -187,6 +190,7 @@ export async function updateCategory(categoryId: string, payload: CategoryDraftP
     expectedVersion: payload.expectedVersion,
     name: payload.name.trim(),
     description: payload.description.trim(),
+    hoaApprovalRequired: payload.hoaApprovalRequired,
     note: payload.note?.trim() || undefined,
     fields: payload.fields.map((f) => ({
       id: f.id || undefined, // Send existing UUID if present; backend assigns UUID if omitted

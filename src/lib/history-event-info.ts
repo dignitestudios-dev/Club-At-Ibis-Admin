@@ -132,6 +132,15 @@ export function describeEvent(type: string, details: Details, audience: "staff" 
     case "completion_email_retry_requested":
       return { title: "Email retry requested", lines: [{ text: "A new delivery attempt was queued." }] };
 
+    case "permit_marked_in_use":
+      return { title: "Permit marked in use", lines: [{ text: "The assigned reviewer recorded the permit as in use. Validity is unchanged." }] };
+
+    case "permit_reminder_sent":
+      return { title: "Permit reminder sent", lines: [{ text: "The assigned reviewer was reminded about this permit." }] };
+
+    case "permit_expired":
+      return { title: "Permit expired", lines: [{ text: "The one-year permit validity ended.", tone: "warn" }] };
+
     case "withdrawn": {
       const lines: EventLine[] = [];
       if (stage(d.previousStatus)) lines.push({ text: `Withdrawn while ${stage(d.previousStatus)}.` });

@@ -1,5 +1,8 @@
 import {
   Ban,
+  BellRing,
+  ShieldCheck,
+  TimerOff,
   Banknote,
   Eye,
   CheckCheck,
@@ -60,6 +63,9 @@ const EVENT_CONFIG: Record<HistoryEventType, { icon: LucideIcon; label: string; 
   completion_email_sent: { icon: MailCheck, label: "Completion email sent", node: "bg-emerald-600 text-white" },
   completion_email_failed: { icon: MailWarning, label: "Completion email failed", node: "bg-rose-600 text-white" },
   completion_email_retry_requested: { icon: RefreshCw, label: "Email retry requested", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" },
+  permit_marked_in_use: { icon: ShieldCheck, label: "Permit marked in use", node: "bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300" },
+  permit_reminder_sent: { icon: BellRing, label: "Permit reminder sent", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" },
+  permit_expired: { icon: TimerOff, label: "Permit expired", node: "bg-rose-600 text-white" },
   refund_outcome_recorded: { icon: HandCoins, label: "Refund outcome recorded", node: "bg-emerald-600 text-white" },
   refund_outcome_corrected: { icon: PenLine, label: "Refund outcome corrected", node: "bg-amber-500 text-white" },
 };

@@ -99,7 +99,8 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
     revisions: raw.revisions || [],
     previousSubmissions: raw.previousSubmissions || [],
     hoaApproved: !!(raw.hoaConfirmed ?? raw.hoaApproved),
-    hoaConfirmedAt: raw.hoaConfirmedAt || raw.createdAt || new Date().toISOString(),
+    hoaConfirmedAt: raw.hoaConfirmedAt || undefined,
+    hoaApprovalRequired: raw.form?.hoaApprovalRequired ?? !!(raw.hoaConfirmed ?? raw.hoaApproved),
     submittedAt: raw.submittedAt || raw.createdAt || new Date().toISOString(),
     updatedAt: raw.updatedAt || new Date().toISOString(),
     // The decision (approve/reject) lives under `raw.decision`, not at the

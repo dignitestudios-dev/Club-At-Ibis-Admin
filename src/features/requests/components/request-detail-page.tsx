@@ -45,6 +45,7 @@ import { DepositChip, RefundChip } from "@/features/requests/components/request-
 import { useCategories, useRequest, useResidents, useReviewers } from "@/hooks/use-admin-data";
 import { IN_FLIGHT, REFUND_LABEL, currentSubmissionNumber, earlierSubmissions, feedbackForSubmission, residentFullName } from "@/lib/domain";
 import { formatDate, formatDateTime, formatFileSize } from "@/utils/format";
+import { PermitCard } from "@/features/requests/components/permit-card";
 import { cn } from "@/utils/cn";
 
 function ReviewState({ review }: { review?: ItemReview }) {
@@ -517,19 +518,22 @@ export default function RequestDetailPage({ id }: { id: string }) {
             </CardContent>
           </Card>
 
-          <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-            <CardContent className="flex items-start gap-3 pt-1">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
-                <CheckCircle2 className="size-4" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-foreground">HOA approval confirmed</p>
-                <p className="text-xs text-muted-foreground">
-                  Resident checked “I have HOA Approval” at submission · {formatDateTime(req.hoaConfirmedAt)}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {req.hoaApprovalRequired && (
+            <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
+              <CardContent className="flex items-start gap-3 pt-1">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+                  <CheckCircle2 className="size-4" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">HOA approval confirmed</p>
+                  <p className="text-xs text-muted-foreground">
+                    Resident checked “I have HOA Approval” at submission
+                    {req.hoaConfirmedAt ? <> · {formatDateTime(req.hoaConfirmedAt)}</> : null}. The HOA Approval Confirmation Letter is in Documents.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Submission History: everything about earlier rounds lives here,
@@ -573,6 +577,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
         {/* Decisions & deposit */}
         <TabsContent value="decisions" className="space-y-5 pt-4">
+          {req.completion?.permit && <PermitCard permit={req.completion.permit} />}
           {req.approvalLetter && (
             <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
               <CardHeader className="border-b border-border/70 pb-3">

@@ -153,10 +153,11 @@ function toDraft(fields: CategoryField[]): DraftField[] {
 }
 
 /** Stable string of everything the user can edit: used to detect unsaved changes. */
-function snapshot(name: string, description: string, fields: DraftField[]) {
+function snapshot(name: string, description: string, fields: DraftField[], hoaRequired: boolean) {
   return JSON.stringify({
     name: name.trim(),
     description: description.trim(),
+    hoaRequired,
     fields: fields.map(({ key: _key, order: _order, ...f }) => ({
       ...f,
       label: f.label.trim(),
@@ -706,6 +707,7 @@ function BuilderForm({
   const [name, setName] = useState(existing?.name ?? "");
   const [description, setDescription] = useState(existing?.description ?? "");
   const [note, setNote] = useState("");
+  const [hoaRequired, setHoaRequired] = useState(existing?.hoaApprovalRequired ?? false);
   const [fields, setFields] = useState<DraftField[]>(() =>
     toDraft(existing?.fields ?? existing?.currentForm?.fields ?? [])
   );
@@ -722,10 +724,11 @@ function BuilderForm({
     snapshot(
       existing?.name ?? "",
       existing?.description ?? "",
-      toDraft(existing?.fields ?? existing?.currentForm?.fields ?? [])
+      toDraft(existing?.fields ?? existing?.currentForm?.fields ?? []),
+      existing?.hoaApprovalRequired ?? false
     )
   );
-  const dirty = useMemo(() => snapshot(name, description, fields) !== initial.current, [name, description, fields]);
+  const dirty = useMemo(() => snapshot(name, description, fields, hoaRequired) !== initial.current, [name, description, fields, hoaRequired]);
   const guard = useUnsavedChanges(dirty);
   const saving = create.isPending || update.isPending;
 
@@ -953,6 +956,7 @@ function BuilderForm({
     const payload: CategoryDraftPayload = {
       name: name.trim(),
       description: description.trim(),
+      hoaApprovalRequired: hoaRequired,
       note: note.trim() || undefined,
       expectedVersion: editing ? currentVer : undefined,
       fields: fields.map(({ key: _key, ...f }, i) => ({
@@ -981,7 +985,8 @@ function BuilderForm({
             setName(updated.name);
             setDescription(updated.description ?? "");
             setNote("");
-            initial.current = snapshot(updated.name, updated.description ?? "", updatedDraft);
+            setHoaRequired(updated.hoaApprovalRequired ?? hoaRequired);
+            initial.current = snapshot(updated.name, updated.description ?? "", updatedDraft, updated.hoaApprovalRequired ?? hoaRequired);
             onSaved?.(updated);
           },
           onError: (e: any) => {
@@ -1126,6 +1131,18 @@ function BuilderForm({
               rows={2}
               className="resize-none rounded-none border-0 border-b border-border bg-transparent px-1 text-sm shadow-none focus-visible:border-primary focus-visible:ring-0"
             />
+          </div>
+
+          <div className="flex items-start justify-between gap-4 rounded-xl border border-border/80 bg-muted/30 p-3.5">
+            <div className="min-w-0 space-y-0.5">
+              <label htmlFor="cat-hoa" className="block text-sm font-semibold text-foreground">
+                HOA approval required
+              </label>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                When on, residents must confirm they have HOA approval and upload the HOA approval letter before they can submit. When off, the form has no HOA question or upload. Changing this publishes a new form version; existing requests keep what they submitted.
+              </p>
+            </div>
+            <Switch id="cat-hoa" checked={hoaRequired} onCheckedChange={setHoaRequired} disabled={saving} aria-label="HOA approval required" />
           </div>
 
           {editing && (

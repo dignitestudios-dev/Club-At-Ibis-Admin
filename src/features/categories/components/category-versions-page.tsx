@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Eye, FilePlus2, FileText, GitCommitVertical, History, Minus, Pencil, Plus, RotateCcw, ScrollText, Tag } from "lucide-react";
+import { ArrowLeft, Eye, FilePlus2, FileText, GitCommitVertical, History, Minus, Pencil, Plus, RotateCcw, ScrollText, ShieldCheck, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -256,6 +256,14 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
               </div>
             </CardHeader>
             <CardContent className="space-y-5 pt-5">
+              <p className="flex items-center gap-2 text-sm text-foreground">
+                <ShieldCheck className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <span className="font-medium">HOA approval:</span>
+                <span className={selected.hoaApprovalRequired ? "font-semibold text-amber-800 dark:text-amber-300" : "text-muted-foreground"}>
+                  {selected.hoaApprovalRequired ? "Required (confirmation and letter upload)" : "Not required"}
+                </span>
+              </p>
+
               {selected.note && (
                 <p className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 px-3.5 py-2.5 text-sm text-foreground">
                   <Tag className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />

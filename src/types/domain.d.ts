@@ -139,6 +139,8 @@ interface CategoryVersion {
   version: number;
   name: string;
   description: string;
+  /** Whether residents must confirm HOA approval and upload the HOA letter on this form version. */
+  hoaApprovalRequired?: boolean;
   fields: CategoryField[];
   createdAt: string;
   createdBy: CategoryActor | string;
@@ -171,6 +173,8 @@ interface Category {
   name: string;
   description: string;
   status: CategoryStatus;
+  /** Whether the current form version requires HOA approval evidence from the resident. */
+  hoaApprovalRequired?: boolean;
   fields: CategoryField[];
   /** Incremented on every saved edit. New requests snapshot the version. */
   currentVersion: number;
@@ -206,6 +210,8 @@ interface VersionComparison {
 interface CategoryDraftPayload {
   name: string;
   description: string;
+  /** Required by the API on every create and update. */
+  hoaApprovalRequired: boolean;
   fields: Array<Omit<CategoryField, "id" | "order"> & { id?: string; order?: number }>;
   /** Optional note stored with the new version. */
   note?: string;
@@ -266,6 +272,9 @@ type HistoryEventType =
   | "completion_email_sent"
   | "completion_email_failed"
   | "completion_email_retry_requested"
+  | "permit_marked_in_use"
+  | "permit_reminder_sent"
+  | "permit_expired"
   | "refund_outcome_recorded"
   | "refund_outcome_corrected";
 
@@ -360,11 +369,26 @@ interface CompletionEmailRecord {
   lastErrorMessage?: string | null;
 }
 
+type PermitStatus = "active" | "in_use" | "expired";
+
+/** The one-year permit issued when a request is completed (staff view). */
+interface RequestPermit {
+  status: PermitStatus;
+  issuedAt: string;
+  expiresAt: string;
+  usedAt?: string | null;
+  usedBy?: { id?: string; actorId?: string; name?: string; displayName?: string } | string | null;
+  /** Reminders sent so far, out of 3 (at 3, 6 and 9 months). */
+  reminderCount?: number;
+  nextReminderAt?: string | null;
+}
+
 interface RequestCompletion {
   completedAt: string | null;
   completedBy?: { id?: string; actorId?: string; name?: string; email?: string; displayName?: string } | null;
   finalApprovalLetter?: AttachedFile | null;
   email?: CompletionEmailRecord | null;
+  permit?: RequestPermit | null;
 }
 
 interface RequestWithdrawal {
@@ -455,7 +479,10 @@ interface RequestRecord {
   revisions: RequestRevision[];
   previousSubmissions?: Array<Record<string, unknown>>;
   hoaApproved: boolean;
-  hoaConfirmedAt: string;
+  /** Null when the category did not require HOA approval. */
+  hoaConfirmedAt?: string;
+  /** The category form version this request was submitted under required HOA approval + letter. */
+  hoaApprovalRequired: boolean;
   submittedAt: string;
   updatedAt: string;
   decidedAt?: string;
