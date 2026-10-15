@@ -207,7 +207,7 @@ export default function ActivityPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
         title="System Activity"
-        description="An audit trail of administrative changes. Every entry records the actual Super Admin who performed it."
+        description="A complete record of administrative activity in the system. Each entry shows the change that was made, when it happened, and the Super Admin who made changes."
         actions={
           <Button
             variant="outline"

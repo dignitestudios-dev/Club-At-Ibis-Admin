@@ -31,7 +31,7 @@ export default function NotificationsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Notifications"
-        description="Oversight alerts for new submissions, resubmissions, request updates and items that need attention."
+        description="View updates about new requests, reviews, approvals, resubmissions, and other request activity."
         actions={
           <div className="flex items-center gap-2">
             <Button

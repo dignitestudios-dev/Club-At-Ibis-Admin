@@ -73,7 +73,7 @@ export default function DashboardOverview() {
   const attention: AttentionItem[] = [
     {
       key: "unassigned",
-      label: "Waiting in intake",
+      label: "Unassigned Requests",
       count: attentionData?.waitingInIntake ?? 0,
       icon: Inbox,
       hint: "Not yet taken or assigned by a default reviewer",
@@ -83,30 +83,30 @@ export default function DashboardOverview() {
     },
     {
       key: "resubmitted",
-      label: "Resubmitted",
+      label: "Resubmitted for Review",
       count: attentionData?.resubmitted ?? 0,
       icon: Repeat2,
-      hint: "Corrections awaiting the assigned reviewer",
+      hint: "Updated requests ready for review.",
       href: "/requests?status=resubmitted",
       bar: "bg-purple-500",
       tile: "bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800",
     },
     {
       key: "approved",
-      label: "Approved, not completed",
+      label: "Approved, Action Pending",
       count: attentionData?.approvedNotCompleted ?? 0,
       icon: ClipboardCheck,
-      hint: "Deposit or final letter still outstanding",
+      hint: "Waiting on deposit or final letter",
       href: "/requests?status=approved",
       bar: "bg-emerald-500",
       tile: "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800",
     },
     {
       key: "refunds",
-      label: "Refunds awaiting action",
+      label: "Refunds to Process",
       count: attentionData?.refundsAwaitingAction ?? 0,
       icon: Undo2,
-      hint: "Withdrawn with a received deposit",
+      hint: "Refunds ready for processing",
       href: "/requests?refund=awaiting",
       bar: "bg-amber-500",
       tile: "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
@@ -130,13 +130,13 @@ export default function DashboardOverview() {
             {greeting()}, {user?.firstName ?? "Administrator"}
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            A live view of every request across the Architectural Review Board.
+            Here are all the requests under the Architectural Review Board.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Button variant="outline" nativeButton={false} render={<Link href="/requests" />}>
             <FileText className="size-4" />
-            All Requests &amp; Export
+            All Requests
           </Button>
           <Button nativeButton={false} render={<Link href="/categories/new" />} className="shadow-xs">
             <LayoutTemplate className="size-4" />
@@ -150,9 +150,9 @@ export default function DashboardOverview() {
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 id="attention-heading" className="font-heading text-xl font-medium text-foreground">
-              Needs Attention
+              Action Required
             </h2>
-            <p className="text-xs text-muted-foreground">Pending work stays here until the reviewer or resident resolves it.</p>
+            <p className="text-xs text-muted-foreground">Active pending requests that need your attention.</p>
           </div>
           <span
             className={cn(
@@ -208,7 +208,7 @@ export default function DashboardOverview() {
         <div className="flex items-end justify-between">
           <div>
             <h2 id="status-heading" className="font-heading text-xl font-medium text-foreground">
-              Requests by Current Status
+              Request Status Overview
             </h2>
             <p className="text-xs text-muted-foreground">Select a status to open the filtered request list.</p>
           </div>
@@ -254,7 +254,7 @@ export default function DashboardOverview() {
         <Card className="shadow-2xs">
           <CardHeader className="border-b border-border/70 pb-3">
             <CardTitle className="font-heading text-lg font-medium">Recent System Activity</CardTitle>
-            <p className="text-xs text-muted-foreground">Account, category, routing and security changes</p>
+            <p className="text-xs text-muted-foreground">Recent account, category, routing and security changes.</p>
             <CardAction>
               <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/activity" />}>
                 Full Log

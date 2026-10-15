@@ -126,7 +126,7 @@ export default function AssignmentsPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
         title="Assignments"
-        description="Route requests to reviewers. Assign anything waiting in the default reviewers' intake, or reassign a request that is already in progress."
+        description="Send unassigned requests to reviewers or update existing assignments when needed."
         actions={
           <Button
             variant="outline"

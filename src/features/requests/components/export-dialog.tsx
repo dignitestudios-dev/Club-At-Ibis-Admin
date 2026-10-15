@@ -16,10 +16,10 @@ import { useToast } from "@/hooks/use-toast";
 import { downloadRequestsCsv } from "@/lib/csv-export";
 
 const INCLUDED = [
-  "Request details: reference, resident name and ID, category, property address and lot number",
-  "Processing: current status, assigned reviewer, and the assigned, review-started, decision, completed and withdrawn dates",
-  "Deposit requirement, amount and status, and the refund outcome and date",
-  "Every information field from each request's saved form, with its original label and value",
+  "Request details: reference, category, resident, property, lot, contractor",
+  "Every configured information field for the matching categories",
+  "Status, assigned reviewer, submitted / decision / completed / withdrawn dates",
+  "Deposit, refund outcome, approval-letter and email-result tracking fields",
 ];
 
 export function ExportDialog({
@@ -72,7 +72,7 @@ export function ExportDialog({
           </div>
           <DialogTitle className="font-heading text-xl font-medium">Export Requests to CSV</DialogTitle>
           <DialogDescription>
-            Exports <span className="font-semibold text-foreground">every request matching the current search and filters</span> ({total} now), not just the current page.
+            Exports all <span className="font-semibold text-foreground">{total}</span> matching rows from all pages of the current results.
           </DialogDescription>
         </DialogHeader>
 
@@ -91,7 +91,7 @@ export function ExportDialog({
           </ul>
           <p className="flex items-start gap-2 rounded-xl border border-amber-300/70 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200">
             <FolderLock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            Uploaded documents and file links are not included.
+            Documents remain in the system; only file names are exported.
           </p>
           {problem && (
             <p role="alert" className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-xs font-medium text-destructive">
