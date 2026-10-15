@@ -87,8 +87,8 @@ export interface RequestFilters {
   categoryId: string;
   categoryStatus: "all" | CategoryStatus;
   reviewerId: string; // "all" | reviewer id
-  depositStatus: "all" | "not_required" | "required" | "received" | "partially_refunded" | "fully_refunded" | "retained";
-  refund: "all" | "refunded" | "no_refund";
+  depositStatus: "all" | "not_required" | "pending" | "received";
+  refund: "all" | "awaiting_refund_action" | "refunded" | "no_refund";
   from: string; // yyyy-mm-dd
   to: string;
 }

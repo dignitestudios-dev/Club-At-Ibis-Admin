@@ -1,5 +1,6 @@
 "use client";
 
+import { ErrorState } from "@/components/shared/error-state";
 import Link from "next/link";
 import { format } from "date-fns";
 import {
@@ -62,7 +63,7 @@ interface AttentionItem {
 
 export default function DashboardOverview() {
   const user = useCurrentUser();
-  const { data, isLoading } = useAdminDashboard();
+  const { data, isLoading, isError, isFetching, refetch } = useAdminDashboard();
 
   const attentionData = data?.attention;
   const statusCounts = data?.requests.statusCounts ?? {};
@@ -113,6 +114,11 @@ export default function DashboardOverview() {
   ];
 
   const attentionTotal = attentionData?.total ?? attention.reduce((s, a) => s + a.count, 0);
+
+  // A failed load must never look like zero counts: show the error with a retry instead.
+  if (isError && !data) {
+    return <ErrorState title="We couldn't load the dashboard" description="The counts and work lists could not be loaded. Try again." onRetry={() => void refetch()} retrying={isFetching} />;
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -210,6 +216,11 @@ export default function DashboardOverview() {
             View all {total}
           </Link>
         </div>
+        {!isLoading && total === 0 && (
+          <p className="rounded-xl border border-dashed border-border/80 bg-card px-4 py-3 text-sm text-muted-foreground">
+            No requests yet. Counts and work lists will fill in as residents submit requests.
+          </p>
+        )}
         {isLoading ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {Array.from({ length: 9 }).map((_, i) => (

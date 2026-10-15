@@ -26,6 +26,7 @@ export function RequestMiniTable({
   showReviewer = false,
   showResident = true,
   empty = "No requests to show.",
+  server,
 }: {
   requests: RequestRecord[];
   residents: Resident[];
@@ -33,6 +34,8 @@ export function RequestMiniTable({
   showReviewer?: boolean;
   showResident?: boolean;
   empty?: string;
+  /** When the list is paginated by the API, the table shows `requests` as given and pages through the server. */
+  server?: { page: number; pageSize: number; total: number; onPageChange: (page: number) => void; onPageSizeChange: (size: number) => void };
 }) {
   const router = useRouter();
   const [pageSize, setPageSize] = usePageSize();
@@ -46,8 +49,8 @@ export function RequestMiniTable({
   }
 
   const pages = Math.max(1, Math.ceil(requests.length / pageSize));
-  const safePage = Math.min(page, pages);
-  const rows = requests.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const safePage = server ? server.page : Math.min(page, pages);
+  const rows = server ? requests : requests.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <div>
@@ -125,10 +128,14 @@ export function RequestMiniTable({
       <div className="border-t border-border/70 px-5 py-3">
         <Pagination
           page={safePage}
-          pageSize={pageSize}
-          total={requests.length}
-          onPageChange={setPage}
+          pageSize={server ? server.pageSize : pageSize}
+          total={server ? server.total : requests.length}
+          onPageChange={server ? server.onPageChange : setPage}
           onPageSizeChange={(n) => {
+            if (server) {
+              server.onPageSizeChange(n);
+              return;
+            }
             setPageSize(n);
             setPage(1);
           }}

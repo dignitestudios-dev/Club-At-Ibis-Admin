@@ -1,5 +1,6 @@
 "use client";
 
+import { Highlight } from "@/components/shared/highlight";
 import { useState } from "react";
 import Link from "next/link";
 import { Info, MailPlus, Plus, RefreshCw, RotateCcw, Route, UserCog, UserX, Users } from "lucide-react";
@@ -207,13 +208,13 @@ export default function ReviewersPage() {
                       <Link href={`/reviewers/${rev.id}`} className="group flex items-center gap-3 min-w-0" title={`${rev.name} (${rev.email})`}>
                         <PersonAvatar name={rev.name} className="size-9 shrink-0" />
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium text-foreground group-hover:underline">{rev.name}</span>
-                          <span className="block truncate text-xs text-muted-foreground">{rev.email}</span>
+                          <span className="block truncate text-sm font-medium text-foreground group-hover:underline"><Highlight text={rev.name} query={search} /></span>
+                          <span className="block truncate text-xs text-muted-foreground"><Highlight text={rev.email} query={search} /></span>
                         </span>
                       </Link>
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground max-w-[130px] truncate" title={rev.employeeNumber}>{rev.employeeNumber}</TableCell>
-                    <TableCell className="text-sm max-w-[180px] truncate" title={rev.designation}>{rev.designation}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground max-w-[130px] truncate" title={rev.employeeNumber}><Highlight text={rev.employeeNumber} query={search} /></TableCell>
+                    <TableCell className="text-sm max-w-[180px] truncate" title={rev.designation}><Highlight text={rev.designation} query={search} /></TableCell>
                     <TableCell className="max-w-[190px]">
                       <div className="flex items-center gap-2.5">
                         <Switch

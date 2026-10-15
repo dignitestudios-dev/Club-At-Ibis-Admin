@@ -1,5 +1,6 @@
 "use client";
 
+import { Highlight } from "@/components/shared/highlight";
 import { ProcessingChip, hasProcessingState, isRefundPending } from "@/components/shared/processing-chip";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -8,6 +9,10 @@ import { format } from "date-fns";
 import { ChevronRight, Download, FileSearch, Filter, RefreshCw, RotateCcw, SlidersHorizontal, UserRoundPlus } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ErrorState } from "@/components/shared/error-state";
+import { ClearFiltersLink, FilterSidebar, FiltersButton } from "@/components/shared/filter-sidebar";
+import { DateRangeFilter } from "@/components/shared/date-range-filter";
+import { usableRange, validateDateRange } from "@/lib/date-range";
 import { FilterSelect } from "@/components/shared/filter-select";
 import { FilterCombobox } from "@/components/shared/filter-combobox";
 import { FilterPills } from "@/components/shared/pill-tabs";
@@ -71,17 +76,18 @@ export default function RequestsListPage() {
       categoryId: url.category !== "all" ? url.category : undefined,
       categoryStatus: url.categoryStatus === "active" || url.categoryStatus === "archived" ? url.categoryStatus : undefined,
       assignedReviewerId: url.reviewer !== "all" ? url.reviewer : undefined,
-      depositStatus: ["not_required", "required", "received", "partially_refunded", "fully_refunded", "retained"].includes(url.deposit)
+      depositStatus: ["not_required", "pending", "received"].includes(url.deposit)
         ? url.deposit
         : undefined,
-      refundOutcome: ["refunded", "no_refund"].includes(url.refund) ? url.refund : undefined,
-      submittedFrom: url.from || undefined,
-      submittedTo: url.to || undefined,
+      refundOutcome: ["awaiting_refund_action", "refunded", "no_refund"].includes(url.refund) ? url.refund : undefined,
+      // An invalid range (start after end) is never sent.
+      submittedFrom: usableRange(url.from, url.to).from,
+      submittedTo: usableRange(url.from, url.to).to,
     }),
     [page, pageSize, search, url]
   );
 
-  const { data: pageData, isLoading, isFetching, refetch } = useRequestsPage(queryParams);
+  const { data: pageData, isLoading, isError, isFetching, refetch } = useRequestsPage(queryParams);
   const { data: residents } = useResidents();
   const { data: categories } = useCategories();
   const { data: reviewers } = useReviewers();
@@ -96,10 +102,10 @@ export default function RequestsListPage() {
       categoryId: url.category,
       categoryStatus: url.categoryStatus === "active" || url.categoryStatus === "archived" ? url.categoryStatus : "all",
       reviewerId: url.reviewer,
-      depositStatus: ["not_required", "required", "received", "partially_refunded", "fully_refunded", "retained"].includes(url.deposit)
+      depositStatus: ["not_required", "pending", "received"].includes(url.deposit)
         ? (url.deposit as RequestFilters["depositStatus"])
         : "all",
-      refund: ["refunded", "no_refund"].includes(url.refund) ? (url.refund as RequestFilters["refund"]) : "all",
+      refund: ["awaiting_refund_action", "refunded", "no_refund"].includes(url.refund) ? (url.refund as RequestFilters["refund"]) : "all",
       from: url.from,
       to: url.to,
     }),
@@ -115,7 +121,6 @@ export default function RequestsListPage() {
   const appliedKey = JSON.stringify(applied);
   useEffect(() => {
     setDraft(applied);
-    if (countActiveFilters(applied) > 0) setShowFilters(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appliedKey]);
 
@@ -198,7 +203,7 @@ export default function RequestsListPage() {
               <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
               <span>Refresh</span>
             </Button>
-            <Button onClick={() => setExportOpen(true)} disabled={isLoading || totalCount === 0}>
+            <Button onClick={() => setExportOpen(true)} disabled={isLoading}>
               <Download className="size-4" />
               Export CSV
               <span className="ml-0.5 rounded-full bg-white/20 px-1.5 text-[10px] font-semibold tabular-nums dark:bg-black/15">
@@ -226,89 +231,81 @@ export default function RequestsListPage() {
             onChange={setSearch}
             placeholder="Search reference, resident name / ID, property address or lot no."
           />
-          <Button variant="outline" onClick={() => setShowFilters((s) => !s)} aria-expanded={showFilters} className="shrink-0">
-            <SlidersHorizontal className="size-4" />
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground tabular-nums">
-                {activeFilterCount}
-              </span>
-            )}
-          </Button>
+          <FiltersButton count={activeFilterCount} onClick={() => { setDraft(applied); setShowFilters(true); }} expanded={showFilters} />
+          {hasAnyFilter && (
+            <div className="flex items-center">
+              <ClearFiltersLink onClick={clearAll} />
+            </div>
+          )}
         </div>
-
-        {showFilters && (
-          <div className="space-y-4 border-t border-border/70 pt-4 animate-in fade-in slide-in-from-top-1 duration-200">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-1.5">
-                <label htmlFor="f-from" className="block text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-                  Submitted from
-                </label>
-                <Input id="f-from" type="date" value={draft.from} onChange={(e) => setDraft({ ...draft, from: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="f-to" className="block text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-                  Submitted to
-                </label>
-                <Input id="f-to" type="date" value={draft.to} onChange={(e) => setDraft({ ...draft, to: e.target.value })} />
-              </div>
-              <FilterSelect
-                label="Request status"
-                value={draft.status}
-                onChange={(status) => setDraft({ ...draft, status })}
-                options={[{ label: "All statuses", value: "all" }, ...STATUS_ORDER.map((s) => ({ label: STATUS_LABEL[s], value: s }))]}
-              />
-              <FilterCombobox label="Category" value={draft.categoryId} onChange={(categoryId) => setDraft({ ...draft, categoryId })} options={categoryOptions} />
-              <FilterSelect
-                label="Category status"
-                value={draft.categoryStatus}
-                onChange={(categoryStatus) => setDraft({ ...draft, categoryStatus })}
-                options={[
-                  { label: "All", value: "all" },
-                  { label: "Active", value: "active" },
-                  { label: "Archived", value: "archived" },
-                ]}
-              />
-              <FilterCombobox label="Assigned reviewer" value={draft.reviewerId} onChange={(reviewerId) => setDraft({ ...draft, reviewerId })} options={reviewerOptions} />
-              <FilterSelect
-                label="Deposit status"
-                value={draft.depositStatus}
-                onChange={(depositStatus) => setDraft({ ...draft, depositStatus })}
-                options={[
-                  { label: "Any deposit status", value: "all" },
-                  { label: "Not required", value: "not_required" },
-                  { label: "Required", value: "required" },
-                  { label: "Received", value: "received" },
-                  { label: "Partially refunded", value: "partially_refunded" },
-                  { label: "Fully refunded", value: "fully_refunded" },
-                  { label: "Retained", value: "retained" },
-                ]}
-              />
-              <FilterSelect
-                label="Refund outcome"
-                value={draft.refund}
-                onChange={(refund) => setDraft({ ...draft, refund })}
-                options={[
-                  { label: "Any refund outcome", value: "all" },
-                  { label: "Refunded", value: "refunded" },
-                  { label: "No refund (-)", value: "no_refund" },
-                ]}
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={() => writeFilters(draft)}>
-                <Filter className="size-4" />
-                Apply filters
-              </Button>
-              <Button variant="ghost" onClick={clearAll}>
-                <RotateCcw className="size-4" />
-                Clear filters
-              </Button>
-              <p className="text-xs text-muted-foreground sm:ml-auto">Filters are kept in the page address, so they survive a refresh.</p>
-            </div>
-          </div>
-        )}
       </div>
+
+      <FilterSidebar
+        open={showFilters}
+        onOpenChange={setShowFilters}
+        footer={
+          <>
+            <Button type="button" variant="link" size="sm" onClick={clearAll} className="h-auto p-0 text-xs">
+              Clear all filters
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                writeFilters(draft);
+                setShowFilters(false);
+              }}
+              disabled={!!validateDateRange(draft.from, draft.to)}
+            >
+              <Filter className="size-4" />
+              Apply filters
+            </Button>
+          </>
+        }
+      >
+      <div className="space-y-5">
+        <DateRangeFilter from={draft.from} to={draft.to} onChange={(r) => setDraft({ ...draft, from: r.from, to: r.to })} idPrefix="admin-submitted" stacked />
+        <FilterSelect
+          label="Request status"
+          value={draft.status}
+          onChange={(status) => setDraft({ ...draft, status })}
+          options={[{ label: "All statuses", value: "all" }, ...STATUS_ORDER.map((s) => ({ label: STATUS_LABEL[s], value: s }))]}
+        />
+        <FilterCombobox label="Category" value={draft.categoryId} onChange={(categoryId) => setDraft({ ...draft, categoryId })} options={categoryOptions} />
+        <FilterSelect
+          label="Category status"
+          value={draft.categoryStatus}
+          onChange={(categoryStatus) => setDraft({ ...draft, categoryStatus })}
+          options={[
+            { label: "All", value: "all" },
+            { label: "Active", value: "active" },
+            { label: "Archived", value: "archived" },
+          ]}
+        />
+        <FilterCombobox label="Assigned reviewer" value={draft.reviewerId} onChange={(reviewerId) => setDraft({ ...draft, reviewerId })} options={reviewerOptions} />
+        <FilterSelect
+          label="Deposit status"
+          value={draft.depositStatus}
+          onChange={(depositStatus) => setDraft({ ...draft, depositStatus })}
+          options={[
+            { label: "Any deposit status", value: "all" },
+            { label: "Not required", value: "not_required" },
+            { label: "Pending", value: "pending" },
+            { label: "Received", value: "received" },
+          ]}
+        />
+        <FilterSelect
+          label="Refund outcome"
+          value={draft.refund}
+          onChange={(refund) => setDraft({ ...draft, refund })}
+          options={[
+            { label: "Any refund outcome", value: "all" },
+            { label: "Awaiting refund action", value: "awaiting_refund_action" },
+            { label: "Refunded", value: "refunded" },
+            { label: "No refund", value: "no_refund" },
+          ]}
+        />
+      </div>
+      </FilterSidebar>
 
       {isLoading ? (
         <div className="space-y-2">
@@ -316,11 +313,13 @@ export default function RequestsListPage() {
             <Skeleton key={i} className="h-14 w-full rounded-xl" />
           ))}
         </div>
+      ) : isError ? (
+        <ErrorState title="We couldn't load the requests" onRetry={() => void refetch()} retrying={isFetching} />
       ) : requests.length === 0 ? (
         <EmptyState
           icon={FileSearch}
           title="No requests match"
-          description="Try adjusting the search or clearing filters. Archived categories remain searchable."
+          description={hasAnyFilter && filterSummary ? `No requests match: ${filterSummary}. Adjust the filters or clear them. Archived categories remain searchable.` : "Try adjusting the search or clearing filters. Archived categories remain searchable."}
           action={
             hasAnyFilter ? (
               <Button variant="outline" onClick={clearAll}>
@@ -394,12 +393,12 @@ export default function RequestsListPage() {
                         className="font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap block truncate"
                         title={req.code}
                       >
-                        {req.code}
+                        <Highlight text={req.code} query={search} />
                       </Link>
                     </TableCell>
                     <TableCell className="w-[180px] min-w-[160px] max-w-[180px]">
                       <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-sm font-medium truncate text-foreground block" title={req.categoryName}>{req.categoryName}</span>
+                        <span className="text-sm font-medium truncate text-foreground block" title={req.categoryName}><Highlight text={req.categoryName} query={search} /></span>
                         {category?.status === "archived" && (
                           <span className="w-fit rounded-full bg-slate-200 px-1.5 text-[9px] font-bold tracking-wider text-slate-700 uppercase dark:bg-slate-700 dark:text-slate-200">
                             Archived
@@ -408,12 +407,12 @@ export default function RequestsListPage() {
                       </div>
                     </TableCell>
                     <TableCell className="w-[170px] min-w-[150px] max-w-[170px]">
-                      <div className="text-sm font-medium truncate block" title={`${residentFullName(resident)} (${resident?.residentIdNumber || ''})`}>{residentFullName(resident)}</div>
-                      <div className="text-[11px] text-muted-foreground truncate block">{resident?.residentIdNumber}</div>
+                      <div className="text-sm font-medium truncate block" title={`${residentFullName(resident)} (${resident?.residentIdNumber || ''})`}><Highlight text={residentFullName(resident)} query={search} /></div>
+                      <div className="text-[11px] text-muted-foreground truncate block"><Highlight text={resident?.residentIdNumber} query={search} /></div>
                     </TableCell>
                     <TableCell className="w-[190px] min-w-[160px] max-w-[190px]">
-                      <div className="truncate text-sm block" title={`${propAddress} (Lot: ${propLot})`}>{propAddress}</div>
-                      <div className="text-[11px] text-muted-foreground truncate block">{propLot}</div>
+                      <div className="truncate text-sm block" title={`${propAddress} (Lot: ${propLot})`}><Highlight text={propAddress} query={search} /></div>
+                      <div className="text-[11px] text-muted-foreground truncate block"><Highlight text={propLot} query={search} /></div>
                     </TableCell>
                     <TableCell className="w-[130px] min-w-[120px] max-w-[130px] text-sm whitespace-nowrap text-muted-foreground truncate" title={format(new Date(req.submittedAt), "PPP")}>{format(new Date(req.submittedAt), "MMM d, yyyy")}</TableCell>
                     <TableCell className="min-w-[170px]">
@@ -458,13 +457,7 @@ export default function RequestsListPage() {
         </TableFrame>
       )}
 
-      <ExportDialog
-        open={exportOpen}
-        onOpenChange={setExportOpen}
-        requests={requests}
-        context={{ residents: residents ?? [], categories: categories ?? [], reviewers: reviewers ?? [] }}
-        filterSummary={filterSummary}
-      />
+      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} total={totalCount} filters={queryParams} filterSummary={filterSummary} />
 
       <AssignReviewerDialog
         request={assigning}

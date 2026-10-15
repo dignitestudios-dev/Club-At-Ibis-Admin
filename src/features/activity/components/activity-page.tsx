@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { format, isToday, isYesterday } from "date-fns";
-import { Download, KeyRound, LayoutTemplate, RefreshCw, Route, ScrollText, UserCog, type LucideIcon } from "lucide-react";
+import { Download, FileText, KeyRound, LayoutTemplate, RefreshCw, Route, ScrollText, UserCog, type LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ErrorState } from "@/components/shared/error-state";
 import { FilterPills } from "@/components/shared/pill-tabs";
 import { Pagination } from "@/components/shared/pagination";
 import { Button } from "@/components/ui/button";
@@ -16,10 +17,10 @@ import { useUrlParams } from "@/hooks/use-url-params";
 import { formatDateTime } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
-export type ActivityType = "all" | "accounts" | "routing" | "categories" | "security";
+export type ActivityType = "all" | "accounts" | "routing" | "requests" | "categories" | "security";
 
 export const ACTIVITY_META: Record<
-  "accounts" | "routing" | "categories" | "security",
+  "accounts" | "routing" | "requests" | "categories" | "security",
   { label: string; icon: LucideIcon; tone: string }
 > = {
   accounts: {
@@ -31,6 +32,11 @@ export const ACTIVITY_META: Record<
     label: "Routing",
     icon: Route,
     tone: "bg-purple-50 dark:bg-purple-950/40 border-purple-200/70 dark:border-purple-800/60 text-purple-700 dark:text-purple-300",
+  },
+  requests: {
+    label: "Requests",
+    icon: FileText,
+    tone: "bg-amber-50 dark:bg-amber-950/40 border-amber-200/70 dark:border-amber-800/60 text-amber-700 dark:text-amber-300",
   },
   categories: {
     label: "Categories",
@@ -48,6 +54,7 @@ export function getActivityMeta(typeOrCategory?: string) {
   const norm = (typeOrCategory || "").toLowerCase();
   if (norm === "accounts" || norm === "account") return ACTIVITY_META.accounts;
   if (norm === "routing") return ACTIVITY_META.routing;
+  if (norm === "requests" || norm === "request") return ACTIVITY_META.requests;
   if (norm === "categories" || norm === "category") return ACTIVITY_META.categories;
   if (norm === "security") return ACTIVITY_META.security;
   if (norm === "export" || norm === "exports") {
@@ -166,6 +173,7 @@ const TYPE_OPTIONS: { value: ActivityType; label: string }[] = [
   { value: "all", label: "All activity" },
   { value: "accounts", label: "Accounts" },
   { value: "routing", label: "Routing" },
+  { value: "requests", label: "Requests" },
   { value: "categories", label: "Categories" },
   { value: "security", label: "Security" },
 ];
@@ -186,7 +194,7 @@ export default function ActivityPage() {
   const page = Math.max(1, Number(values.page) || 1);
   const [pageSize, setPageSize] = useState(() => Math.max(10, Number(values.limit) || 50));
 
-  const { data: pageResult, isLoading, isFetching, refetch } = useActivitiesPage({
+  const { data: pageResult, isLoading, isError, isFetching, refetch } = useActivitiesPage({
     type: category !== "all" ? category : undefined,
     page,
     limit: pageSize,
@@ -240,6 +248,8 @@ export default function ActivityPage() {
             <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
         </div>
+      ) : isError ? (
+        <ErrorState title="We couldn't load the activity log" onRetry={() => void refetch()} retrying={isFetching} />
       ) : rawActivities.length === 0 ? (
         <EmptyState icon={ScrollText} title="No activity found" description="No activity recorded for this category yet." />
       ) : (

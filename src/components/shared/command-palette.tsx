@@ -17,6 +17,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { Highlight } from "@/components/shared/highlight";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useCategories, useRequests, useResidents, useReviewers } from "@/hooks/use-admin-data";
 import { residentFullName } from "@/lib/domain";
@@ -185,8 +186,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                     <Icon className="size-4 text-primary dark:text-amber-300" aria-hidden="true" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{item.label}</span>
-                    {item.hint && <span className="block truncate text-xs text-muted-foreground">{item.hint}</span>}
+                    <span className="block truncate font-medium"><Highlight text={item.label} query={query} /></span>
+                    {item.hint && <span className="block truncate text-xs text-muted-foreground"><Highlight text={item.hint} query={query} /></span>}
                   </span>
                   {i === active && <CornerDownLeft className="size-3.5 text-muted-foreground" aria-hidden="true" />}
                 </button>

@@ -206,6 +206,8 @@ export interface RequestsQueryParams {
   assignedReviewerId?: string;
   depositStatus?: string;
   refundOutcome?: string;
+  /** A resident's account id: lists only that resident's requests. */
+  residentId?: string;
 }
 
 export interface PaginatedRequestsResponse {
@@ -232,6 +234,7 @@ function cleanRequestParams(params?: RequestsQueryParams): Record<string, any> {
   if (params.assignedReviewerId && params.assignedReviewerId !== "all") clean.assignedReviewerId = params.assignedReviewerId;
   if (params.depositStatus && params.depositStatus !== "all") clean.depositStatus = params.depositStatus;
   if (params.refundOutcome && params.refundOutcome !== "all") clean.refundOutcome = params.refundOutcome;
+  if (params.residentId) clean.residentId = params.residentId;
   return clean;
 }
 

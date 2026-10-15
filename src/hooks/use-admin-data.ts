@@ -230,7 +230,7 @@ export function useAssignRequest() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (payload: AssignPayload) => assignRequest(payload),
-    onSuccess: () => invalidate(keys.requests, keys.activity, keys.notifications),
+    onSuccess: () => invalidate(keys.requests, keys.activity, keys.notifications, ["dashboard"]),
   });
 }
 

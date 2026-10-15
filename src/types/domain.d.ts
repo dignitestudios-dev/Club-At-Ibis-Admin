@@ -494,11 +494,12 @@ interface AdminNotification {
   createdAt: string;
 }
 
-type ActivityType = "all" | "accounts" | "routing" | "categories" | "security";
+type ActivityType = "all" | "accounts" | "routing" | "requests" | "categories" | "security";
 
 type ActivityCategory =
   | "accounts"
   | "routing"
+  | "requests"
   | "categories"
   | "security"
   | "account"

@@ -1,5 +1,6 @@
 "use client";
 
+import { Highlight } from "@/components/shared/highlight";
 import { ProcessingChip, isRefundPending } from "@/components/shared/processing-chip";
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -315,17 +316,17 @@ export default function AssignmentsPage() {
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="min-w-0">
                           <Link href={`/requests/${req.id}`} onClick={(e) => e.stopPropagation()} className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap truncate" title={req.code}>
-                            {req.code}
+                            <Highlight text={req.code} query={search} />
                           </Link>
-                          <span className="block truncate text-sm font-medium text-foreground" title={req.categoryName}>{req.categoryName}</span>
+                          <span className="block truncate text-sm font-medium text-foreground" title={req.categoryName}><Highlight text={req.categoryName} query={search} /></span>
                         </span>
                       </div>
                     </TableCell>
                     <TableCell className="w-[180px] min-w-[160px] max-w-[180px] text-sm">
-                      <span className="block truncate" title={resName}>{resName}</span>
+                      <span className="block truncate" title={resName}><Highlight text={resName} query={search} /></span>
                     </TableCell>
                     <TableCell className="w-[200px] min-w-[180px] max-w-[200px]">
-                      <span className="block truncate text-sm text-muted-foreground" title={req.fieldValues.propertyAddress}>{req.fieldValues.propertyAddress}</span>
+                      <span className="block truncate text-sm text-muted-foreground" title={req.fieldValues.propertyAddress}><Highlight text={req.fieldValues.propertyAddress} query={search} /></span>
                     </TableCell>
                     <TableCell className="min-w-[170px]">
                       <div className="flex flex-col items-start gap-1">

@@ -99,8 +99,16 @@ export interface ResidentActivityEntry {
   metadata?: Record<string, unknown>;
 }
 
+export interface ResidentRequestMetrics {
+  totalRequests: number;
+  inProgress: number;
+  completed: number;
+}
+
 export interface ResidentDetail {
   resident: Resident;
+  /** Request counts for this resident, computed by the API. */
+  metrics?: ResidentRequestMetrics;
   /** Up to the most recent account and security activity events for this resident */
   activities: ResidentActivityEntry[];
 }
@@ -123,6 +131,13 @@ export async function getResident(id: string): Promise<ResidentDetail> {
 
   return {
     resident: toResident(rawResident),
+    metrics: data.data.metrics
+      ? {
+          totalRequests: data.data.metrics.totalRequests ?? 0,
+          inProgress: data.data.metrics.inProgress ?? 0,
+          completed: data.data.metrics.completed ?? 0,
+        }
+      : undefined,
     activities: rawActivities.map((a) => ({
       id: a._id,
       eventType: a.eventType,

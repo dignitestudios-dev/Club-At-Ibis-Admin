@@ -1,5 +1,6 @@
 "use client";
 
+import { Highlight } from "@/components/shared/highlight";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -263,10 +264,10 @@ export default function CategoriesPage() {
                   <div className="mt-4 flex-1 space-y-1.5">
                     <h3 className="font-heading text-lg font-medium text-foreground">
                       <Link href={`/categories/${cat.id}`} className="transition-colors hover:text-primary break-all">
-                        {cat.name}
+                        <Highlight text={cat.name} query={search} />
                       </Link>
                     </h3>
-                    <p className="line-clamp-2 text-sm text-muted-foreground">{cat.description || "No description."}</p>
+                    <p className="line-clamp-2 text-sm text-muted-foreground">{cat.description ? <Highlight text={cat.description} query={search} /> : "No description."}</p>
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">

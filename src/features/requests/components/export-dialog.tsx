@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { format } from "date-fns";
-import { CheckCircle2, Download, FileSpreadsheet, FolderLock } from "lucide-react";
+import { AlertCircle, CheckCircle2, Download, FileSpreadsheet, FolderLock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,49 +13,58 @@ import {
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
-import { useRecordExport } from "@/hooks/use-admin-data";
-import { buildRequestsCsv, downloadCsv } from "@/lib/domain";
+import { downloadRequestsCsv } from "@/lib/csv-export";
 
 const INCLUDED = [
-  "Request details: reference, category, resident, property, lot, contractor",
-  "Every configured information field for the matching categories",
-  "Status, assigned reviewer, submitted / decision / completed / withdrawn dates",
-  "Deposit, refund outcome, approval-letter and email-result tracking fields",
+  "Request details: reference, resident name and ID, category, property address and lot number",
+  "Processing: current status, assigned reviewer, and the assigned, review-started, decision, completed and withdrawn dates",
+  "Deposit requirement, amount and status, and the refund outcome and date",
+  "Every information field from each request's saved form, with its original label and value",
 ];
 
 export function ExportDialog({
   open,
   onOpenChange,
-  requests,
-  context,
+  total,
+  filters,
   filterSummary,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Every request matching the current filters (not just the visible page). */
-  requests: RequestRecord[];
-  context: { residents: Resident[]; categories: Category[]; reviewers: PublicReviewer[] };
+  /** Number of requests matching the current filters (the export covers all of them, not just this page). */
+  total: number;
+  /** The list's current filters; the server builds the CSV from them. */
+  filters: object;
   filterSummary: string;
 }) {
   const toast = useToast();
-  const record = useRecordExport();
   const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
 
   async function handleExport() {
     setBusy(true);
-    try {
-      const csv = buildRequestsCsv(requests, context);
-      downloadCsv(`club-at-ibis-requests-${format(new Date(), "yyyyMMdd-HHmm")}.csv`, csv);
-      await record.mutateAsync({ count: requests.length, summary: filterSummary });
-      toast.success("Export ready", `${requests.length} request${requests.length === 1 ? "" : "s"} downloaded as CSV.`);
+    setProblem(null);
+    const outcome = await downloadRequestsCsv("/admin/reports/requests.csv", filters);
+    setBusy(false);
+    if (outcome.ok) {
+      toast.success("Export ready", `The CSV of all matching requests was downloaded.`);
       onOpenChange(false);
-    } finally {
-      setBusy(false);
+      return;
     }
+    // No file was created: say why, and keep the dialog open so the export can be retried.
+    setProblem(outcome.message);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!busy) {
+          setProblem(null);
+          onOpenChange(o);
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
@@ -64,7 +72,7 @@ export function ExportDialog({
           </div>
           <DialogTitle className="font-heading text-xl font-medium">Export Requests to CSV</DialogTitle>
           <DialogDescription>
-            Exports <span className="font-semibold text-foreground">all {requests.length} matching row{requests.length === 1 ? "" : "s"}</span> across all pages (not just the current view).
+            Exports <span className="font-semibold text-foreground">every request matching the current search and filters</span> ({total} now), not just the current page.
           </DialogDescription>
         </DialogHeader>
 
@@ -83,17 +91,23 @@ export function ExportDialog({
           </ul>
           <p className="flex items-start gap-2 rounded-xl border border-amber-300/70 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200">
             <FolderLock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            Uploaded documents are not embedded; they remain in the system with file names listed.
+            Uploaded documents and file links are not included.
           </p>
+          {problem && (
+            <p role="alert" className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-xs font-medium text-destructive">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              {problem}
+            </p>
+          )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             Cancel
           </Button>
-          <Button onClick={handleExport} disabled={busy || requests.length === 0}>
+          <Button onClick={handleExport} disabled={busy}>
             {busy ? <Spinner className="size-4" /> : <Download className="size-4" />}
-            Download {requests.length} row{requests.length === 1 ? "" : "s"}
+            {problem ? "Try again" : "Download CSV"}
           </Button>
         </DialogFooter>
       </DialogContent>

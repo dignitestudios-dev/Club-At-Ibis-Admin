@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ErrorState } from "@/components/shared/error-state";
+import { RequestMiniTable } from "@/features/requests/components/request-mini-table";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { StatCard } from "@/components/shared/stat-card";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -30,7 +32,7 @@ import { ResidentStatusChip } from "@/features/residents/components/resident-sta
 import { useToast } from "@/hooks/use-toast";
 import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
 import { SendResetDialog } from "@/features/password-reset/components/send-reset-dialog";
-import { useResident, useSetResidentActive } from "@/hooks/use-admin-data";
+import { useRequestsPage, useResident, useSetResidentActive } from "@/hooks/use-admin-data";
 import { activityActorHref } from "@/features/activity/components/activity-page";
 import { type ResidentActivityEntry } from "@/features/residents/api/residents.service";
 import { residentFullName } from "@/lib/domain";
@@ -78,7 +80,17 @@ function formatRole(role?: string) {
 }
 
 export default function ResidentDetailPage({ id }: { id: string }) {
-  const { data, isLoading } = useResident(id);
+  const { data, isLoading, isError, isFetching, refetch } = useResident(id);
+  // The resident's own requests, paged by the API (`residentId` filter on the admin request list).
+  const [requestPage, setRequestPage] = useState(1);
+  const [requestPageSize, setRequestPageSize] = useState(10);
+  const {
+    data: requestsData,
+    isLoading: requestsLoading,
+    isError: requestsError,
+    isFetching: requestsFetching,
+    refetch: refetchRequests,
+  } = useRequestsPage({ residentId: id, page: requestPage, limit: requestPageSize });
   const [resetOpen, setResetOpen] = useState(false);
   const [toggleOpen, setToggleOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -97,6 +109,20 @@ export default function ResidentDetailPage({ id }: { id: string }) {
         <div className="grid gap-5 lg:grid-cols-3">
           <Skeleton className="h-64 rounded-2xl lg:col-span-1" />
           <Skeleton className="h-64 rounded-2xl lg:col-span-2" />
+        </div>
+      </div>
+    );
+  }
+
+  // A failed load (network, server) is not the same as "no such resident": offer a retry.
+  if (isError && !data) {
+    return (
+      <div className="space-y-4">
+        <ErrorState title="We couldn't load this resident" onRetry={() => void refetch()} retrying={isFetching} />
+        <div className="text-center">
+          <Link href="/residents" className="text-sm font-medium text-primary hover:underline dark:text-amber-300">
+            Back to residents
+          </Link>
         </div>
       </div>
     );
@@ -163,11 +189,10 @@ export default function ResidentDetailPage({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* Requests aren't wired up to a backend yet, so these are placeholders, not FE-computed numbers. */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Total requests" value="N/A" icon={FileText} accent="navy" />
-        <StatCard label="In progress" value="N/A" icon={Clock} accent="blue" />
-        <StatCard label="Completed" value="N/A" icon={CheckCircle2} accent="emerald" />
+        <StatCard label="Total requests" value={data?.metrics?.totalRequests ?? "–"} icon={FileText} accent="navy" />
+        <StatCard label="In progress" value={data?.metrics?.inProgress ?? "–"} icon={Clock} accent="blue" />
+        <StatCard label="Completed" value={data?.metrics?.completed ?? "–"} icon={CheckCircle2} accent="emerald" />
         <StatCard label="Member since" value={format(new Date(resident.createdAt), "MMM yyyy")} icon={Users} accent="slate" hint={resident.lastLoginAt ? `Seen ${formatRelative(resident.lastLoginAt)}` : undefined} />
       </div>
 
@@ -269,12 +294,38 @@ export default function ResidentDetailPage({ id }: { id: string }) {
           <CardTitle className="font-heading text-lg font-medium">Submitted Requests</CardTitle>
           <p className="text-xs text-muted-foreground">All architectural review submissions from this resident.</p>
         </CardHeader>
-        <CardContent>
-          <EmptyState
-            icon={FileText}
-            title="Not Available Yet"
-            description="Requests aren't wired up to a backend yet, so this resident's requests can't be shown here."
-          />
+        <CardContent className="p-0">
+          {requestsLoading ? (
+            <div className="space-y-2 p-5">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : requestsError ? (
+            <div className="p-5">
+              <ErrorState title="We couldn't load this resident's requests" onRetry={() => void refetchRequests()} retrying={requestsFetching} />
+            </div>
+          ) : (requestsData?.requests.length ?? 0) === 0 ? (
+            <div className="p-5">
+              <EmptyState icon={FileText} title="No requests yet" description="This resident hasn't submitted any requests." />
+            </div>
+          ) : (
+            <RequestMiniTable
+              requests={requestsData?.requests ?? []}
+              residents={[resident]}
+              showResident={false}
+              server={{
+                page: requestPage,
+                pageSize: requestPageSize,
+                total: requestsData?.pagination.total ?? 0,
+                onPageChange: setRequestPage,
+                onPageSizeChange: (n) => {
+                  setRequestPageSize(n);
+                  setRequestPage(1);
+                },
+              }}
+            />
+          )}
         </CardContent>
       </Card>
 

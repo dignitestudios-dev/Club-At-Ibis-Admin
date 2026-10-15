@@ -1,10 +1,12 @@
 "use client";
 
+import { Highlight } from "@/components/shared/highlight";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, LockKeyhole, MoreHorizontal, Power, RefreshCw, RotateCcw, UserCheck, UserX, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { FilterSelect } from "@/components/shared/filter-select";
 import { Pagination } from "@/components/shared/pagination";
@@ -38,7 +40,7 @@ export default function ResidentsPage() {
 
   // Genuinely server-paginated: page/limit/search/status go to the API as-is, so
   // what's requested always matches what's on screen.
-  const { data: pageResult, isLoading, isFetching, refetch } = useResidentsPage({
+  const { data: pageResult, isLoading, isError, isFetching, refetch } = useResidentsPage({
     page,
     limit: pageSize,
     search,
@@ -155,6 +157,8 @@ export default function ResidentsPage() {
             <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
         </div>
+      ) : isError ? (
+        <ErrorState title="We couldn't load the residents" onRetry={() => void refetch()} retrying={isFetching} />
       ) : visible.length === 0 ? (
         <EmptyState icon={Users} title="No Residents Found" description="Try a different name, resident ID or email." />
       ) : (
@@ -193,12 +197,12 @@ export default function ResidentsPage() {
                       <div className="flex items-center gap-3 min-w-0" title={`${name} (${res.email})`}>
                         <PersonAvatar name={name} className="size-9 shrink-0" />
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium text-foreground">{name}</span>
-                          <span className="block truncate text-xs text-muted-foreground">{res.email}</span>
+                          <span className="block truncate text-sm font-medium text-foreground"><Highlight text={name} query={search} /></span>
+                          <span className="block truncate text-xs text-muted-foreground"><Highlight text={res.email} query={search} /></span>
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground max-w-[140px] truncate" title={res.residentIdNumber}>{res.residentIdNumber}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground max-w-[140px] truncate" title={res.residentIdNumber}><Highlight text={res.residentIdNumber} query={search} /></TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[160px] truncate" title={`Joined: ${formatDate(res.createdAt)}${res.lastLoginAt ? `, Seen: ${formatRelative(res.lastLoginAt)}` : ''}`}>
                       {formatDate(res.createdAt)}
                       {res.lastLoginAt && <span className="block text-[11px] truncate">Seen {formatRelative(res.lastLoginAt)}</span>}
