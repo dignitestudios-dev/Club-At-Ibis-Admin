@@ -1,6 +1,7 @@
 "use client";
 
 import { ExpandableText } from "@/components/shared/expandable-text";
+import { BackButton } from "@/components/shared/back-button";
 import { WithdrawnNotice } from "@/components/shared/withdrawn-notice";
 import { useState } from "react";
 import Link from "next/link";
@@ -170,10 +171,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
       <div className="space-y-4">
-        <Link href="/requests" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          All requests
-        </Link>
+        <BackButton fallbackHref="/requests" className="-ml-2" />
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-2">

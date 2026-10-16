@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { BackButton } from "@/components/shared/back-button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -1022,10 +1023,7 @@ function BuilderForm({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in duration-500">
-      <Link href="/categories" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        Categories &amp; forms
-      </Link>
+      <BackButton fallbackHref="/categories" className="-ml-2" />
 
       {/* Sticky action bar (kept clear of the top bar) */}
       <div className="sticky top-[4.5rem] z-20 flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/95 px-4 py-3 shadow-sm backdrop-blur">

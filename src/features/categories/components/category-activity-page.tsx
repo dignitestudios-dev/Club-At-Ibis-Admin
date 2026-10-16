@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { BackButton } from "@/components/shared/back-button";
 import Link from "next/link";
 import {
   Archive,
@@ -137,13 +138,7 @@ export default function CategoryActivityPage({ id }: { id: string }) {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Back Link */}
-      <Link
-        href="/categories"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        Categories &amp; forms
-      </Link>
+      <BackButton fallbackHref="/categories" className="-ml-2" />
 
       {/* Header action bar */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

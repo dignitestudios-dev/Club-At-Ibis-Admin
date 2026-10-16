@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BackButton } from "@/components/shared/back-button";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Clock, KeyRound, LockKeyhole, Mail, MailPlus, Pencil, Power, Route, ScrollText, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,10 +59,7 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <Link href="/reviewers" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        All reviewers
-      </Link>
+      <BackButton fallbackHref="/reviewers" className="-ml-2" />
 
       {/* Profile header */}
       <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">

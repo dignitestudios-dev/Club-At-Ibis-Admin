@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BackButton } from "@/components/shared/back-button";
 import Link from "next/link";
 import { format } from "date-fns";
 import {
@@ -149,10 +150,7 @@ export default function ResidentDetailPage({ id }: { id: string }) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <Link href="/residents" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        All residents
-      </Link>
+      <BackButton fallbackHref="/residents" className="-ml-2" />
 
       <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
         <span aria-hidden="true" className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-primary to-slate-700 dark:from-amber-400 dark:to-amber-600" />

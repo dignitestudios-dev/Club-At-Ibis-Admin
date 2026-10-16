@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { BackButton } from "@/components/shared/back-button";
 import Link from "next/link";
 import { ArrowLeft, Eye, FilePlus2, FileText, GitCommitVertical, History, Minus, Pencil, Plus, RotateCcw, ScrollText, ShieldCheck, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -142,10 +143,7 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <Link href="/categories" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        Categories &amp; forms
-      </Link>
+      <BackButton fallbackHref="/categories" className="-ml-2" />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">

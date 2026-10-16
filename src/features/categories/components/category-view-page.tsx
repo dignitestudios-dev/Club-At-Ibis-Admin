@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { BackButton } from "@/components/shared/back-button";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -85,13 +86,7 @@ export default function CategoryViewPage({ id }: { id: string }) {
     <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in duration-500">
       {/* Top action bar with back link, version selector, and edit links */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 pb-3">
-        <Link
-          href="/categories"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Back to categories
-        </Link>
+        <BackButton fallbackHref="/categories" className="-ml-2" />
 
         <div className="flex flex-wrap items-center gap-2">
           {versions.length > 1 && (
