@@ -258,9 +258,9 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
             <CardContent className="space-y-5 pt-5">
               <p className="flex items-center gap-2 text-sm text-foreground">
                 <ShieldCheck className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <span className="font-medium">HOA approval:</span>
+                <span className="font-medium">HOA letter:</span>
                 <span className={selected.hoaApprovalRequired ? "font-semibold text-amber-800 dark:text-amber-300" : "text-muted-foreground"}>
-                  {selected.hoaApprovalRequired ? "Required (confirmation and letter upload)" : "Not required"}
+                  {selected.hoaApprovalRequired ? "Required" : "Not required"}
                 </span>
               </p>
 

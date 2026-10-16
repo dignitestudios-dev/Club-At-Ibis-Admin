@@ -270,7 +270,7 @@ export default function CategoriesPage() {
                     <p className="line-clamp-2 text-sm text-muted-foreground">{cat.description ? <Highlight text={cat.description} query={search} /> : "No description."}</p>
                     {cat.hoaApprovalRequired && (
                       <span className="inline-flex items-center rounded-full border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-800 uppercase dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-                        HOA approval required
+                        HOA letter required
                       </span>
                     )}
                   </div>

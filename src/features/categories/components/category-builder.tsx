@@ -1136,13 +1136,13 @@ function BuilderForm({
           <div className="flex items-start justify-between gap-4 rounded-xl border border-border/80 bg-muted/30 p-3.5">
             <div className="min-w-0 space-y-0.5">
               <label htmlFor="cat-hoa" className="block text-sm font-semibold text-foreground">
-                HOA approval required
+                HOA letter required
               </label>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                When on, residents must confirm they have HOA approval and upload the HOA approval letter before they can submit. When off, the form has no HOA question or upload. Changing this publishes a new form version; existing requests keep what they submitted.
+                Residents always confirm they have HOA approval. When on, they must also upload the HOA approval confirmation letter before they can submit. When off, no letter is asked for. Changing this publishes a new form version; existing requests keep what they submitted.
               </p>
             </div>
-            <Switch id="cat-hoa" checked={hoaRequired} onCheckedChange={setHoaRequired} disabled={saving} aria-label="HOA approval required" />
+            <Switch id="cat-hoa" checked={hoaRequired} onCheckedChange={setHoaRequired} disabled={saving} aria-label="HOA letter required" />
           </div>
 
           {editing && (

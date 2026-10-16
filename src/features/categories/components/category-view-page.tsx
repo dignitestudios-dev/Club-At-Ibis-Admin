@@ -446,8 +446,7 @@ function ResidentWizardView({
               )}
             </div>
 
-            {/* HOA approval: only part of the resident form when this category requires it (disabled in view mode) */}
-            {hoaApprovalRequired && (
+            {/* HOA approval checkbox is always part of the resident form; the letter upload only when the category requires it (disabled in view mode) */}
             <div className="space-y-2 pt-1" role="group" aria-labelledby="hoa-approval-title">
               <div
                 className="group relative flex items-start gap-3.5 sm:gap-4 rounded-2xl border border-border/90 bg-muted/20 p-4.5 sm:p-5 select-none"
@@ -475,9 +474,11 @@ function ResidentWizardView({
                     I have HOA Approval for this project.
                   </p>
 
-                  <p className="text-xs font-medium text-foreground/80">
-                    Residents also upload the "HOA Approval Confirmation Letter" in the Documents step.
-                  </p>
+                  {hoaApprovalRequired && (
+                    <p className="text-xs font-medium text-foreground/80">
+                      When they tick the HOA box, residents also upload the "HOA Approval Confirmation Letter" here.
+                    </p>
+                  )}
 
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     The Club at Ibis Architectural Review Board requires prior written HOA approval from your sub-association before processing this request.
@@ -494,7 +495,6 @@ function ResidentWizardView({
                 </div>
               </div>
             </div>
-            )}
           </div>
         )}
 
