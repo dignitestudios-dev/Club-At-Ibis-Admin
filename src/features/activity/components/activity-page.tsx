@@ -186,6 +186,7 @@ export default function ActivityPage() {
   const category: ActivityType =
     categoryParam === "accounts" ||
     categoryParam === "routing" ||
+    categoryParam === "requests" ||
     categoryParam === "categories" ||
     categoryParam === "security"
       ? categoryParam

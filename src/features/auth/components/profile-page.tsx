@@ -1,46 +1,22 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, ScrollText, ShieldCheck, UserRound } from "lucide-react";
+import { Mail, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { PersonAvatar } from "@/components/shared/person-avatar";
-import { EmptyState } from "@/components/shared/empty-state";
-import { SegmentedTabs } from "@/components/shared/pill-tabs";
 import { RequiredMark } from "@/components/shared/required-mark";
 import { PasswordInput } from "@/components/shared/password-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
-import { ActivityList } from "@/features/activity/components/activity-page";
 import { useChangePasswordMutation } from "@/features/auth/api/auth.mutations";
 import { changePasswordSchema } from "@/features/auth/schemas/auth.schema";
-import { useActivity } from "@/hooks/use-admin-data";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useLogout } from "@/hooks/use-logout";
 import { useToast } from "@/hooks/use-toast";
-import { useUrlParams } from "@/hooks/use-url-params";
-
-type Tab = "account" | "activity";
-
-/** Account-management actions shown on the profile Activity tab. */
-const ACCOUNT_ACTIVITY_TYPES = new Set([
-  "resident_activated",
-  "resident_deactivated",
-  "reviewer_login_enabled",
-  "reviewer_login_disabled",
-  "password_reset_sent",
-  "password_changed",
-  "reviewer_invitation_resent",
-  "request_assigned",
-  "reviewer_created",
-  "reviewer_updated",
-  "default_reviewer_enabled",
-  "default_reviewer_disabled",
-  "default_reviewer_replaced",
-]);
 
 function ChangePasswordForm({ userId }: { userId: string }) {
   const toast = useToast();
@@ -129,28 +105,12 @@ function ChangePasswordForm({ userId }: { userId: string }) {
 
 export default function ProfilePage() {
   const user = useCurrentUser();
-  const { data: activity } = useActivity();
-  const { values, set } = useUrlParams({ tab: "account" });
-  const tab: Tab = values.tab === "activity" ? "activity" : "account";
-
-  const mine = useMemo(
-    () =>
-      (activity ?? []).filter((a) => {
-        const isMe =
-          (a.actor?.id && a.actor.id === user?.id) ||
-          a.actor?.name === `${user?.firstName} ${user?.lastName}` ||
-          (user?.role === "SUPER_ADMIN" && (a.actor?.role === "SUPER_ADMIN" || a.actor?.role === "super_admin"));
-        return isMe;
-      }),
-    [activity, user]
-  );
-
   if (!user) return null;
   const name = `${user.firstName} ${user.lastName}`;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <PageHeader title="My Profile" description="Your Super Admin account, password and account-management history." />
+      <PageHeader title="My Profile" description="Your Super Admin account details." />
 
       <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
         <span aria-hidden="true" className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-brand-gold to-amber-600" />
@@ -166,18 +126,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <SegmentedTabs
-        label="Profile sections"
-        value={tab}
-        onChange={(v) => set({ tab: v })}
-        options={[
-          { value: "account", label: "Account", icon: UserRound },
-          { value: "activity", label: "Activity", icon: ScrollText, count: mine.length },
-        ]}
-      />
-
-      {tab === "account" && (
-        <div className="space-y-6 animate-in fade-in duration-300">
+      <div className="space-y-6 animate-in fade-in duration-300">
         <Card className="shadow-2xs">
           <CardHeader className="border-b border-border/70 pb-3">
             <CardTitle className="font-heading text-lg font-medium">Account Details</CardTitle>
@@ -209,21 +158,7 @@ export default function ProfilePage() {
             <ChangePasswordForm userId={user.id} />
           </CardContent>
         </Card> */}
-        </div>
-      )}
-
-      {tab === "activity" && (
-        <div className="space-y-4 animate-in fade-in duration-300">
-          <p className="text-sm text-muted-foreground">
-            Account changes you made: activating or deactivating residents and reviewers, password-reset links, reviewer creation and updates, and default-reviewer changes.
-          </p>
-          {mine.length === 0 ? (
-            <EmptyState icon={ScrollText} title="No Activity Yet" description="Account-management actions you perform will be listed here." />
-          ) : (
-            <ActivityList entries={mine} />
-          )}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

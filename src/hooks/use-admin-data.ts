@@ -7,7 +7,7 @@ import { getCategories, getCategoriesPage, getCategory, getCommonForm, getCatego
 import { getRequests, getRequestsPage, getRequestById, recordExport, type RequestsQueryParams } from "@/features/requests/api/requests.service";
 import { assignRequest, type AssignPayload } from "@/features/requests/api/assignments.service";
 import { getActivity, getActivitiesPage } from "@/features/activity/api/activity.service";
-import { getNotifications, markAllNotificationsRead, markNotificationRead } from "@/features/notifications/api/notifications.service";
+import { getNotificationMeta, getNotifications, markAllNotificationsRead, markNotificationRead } from "@/features/notifications/api/notifications.service";
 import { sendPasswordReset, setUserPassword, type SendResetPayload, type SetPasswordPayload } from "@/features/password-reset/api/password-reset.service";
 
 export const keys = {
@@ -102,6 +102,8 @@ export const useActivity = (params?: ActivityQueryParams) =>
   });
 export const useNotifications = () =>
   useQuery({ queryKey: keys.notifications, queryFn: () => getNotifications() });
+export const useNotificationMeta = () =>
+  useQuery({ queryKey: [...keys.notifications, "meta"] as const, queryFn: getNotificationMeta, staleTime: 15 * 1000 });
 
 /* ----------------------------- mutations ----------------------------- */
 

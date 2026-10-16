@@ -7,7 +7,7 @@ import { FilterPills } from "@/components/shared/pill-tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NotificationItem } from "@/features/notifications/components/notification-item";
-import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from "@/hooks/use-admin-data";
+import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotificationMeta, useNotifications } from "@/hooks/use-admin-data";
 import { useUrlParams } from "@/hooks/use-url-params";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/utils/cn";
@@ -17,13 +17,16 @@ type Filter = "all" | "unread" | "attention";
 export default function NotificationsPage() {
   const toast = useToast();
   const { data, isLoading, isFetching, refetch } = useNotifications();
+  const { data: meta } = useNotificationMeta();
   const markRead = useMarkNotificationRead();
   const markAll = useMarkAllNotificationsRead();
   const { values, set } = useUrlParams({ filter: "all" });
   const filter: Filter = values.filter === "unread" || values.filter === "attention" ? values.filter : "all";
 
   const all = data ?? [];
-  const unread = all.filter((n) => !n.read).length;
+  // Totals come from the server so they are not capped at the loaded page size.
+  const unread = meta?.unreadCount ?? all.filter((n) => !n.read).length;
+  const total = Math.max(meta?.total ?? 0, all.length);
   const attention = all.filter((n) => n.type === "action_required").length;
   const shown = all.filter((n) => (filter === "unread" ? !n.read : filter === "attention" ? n.type === "action_required" : true));
 
@@ -78,7 +81,7 @@ export default function NotificationsPage() {
         value={filter}
         onChange={(v) => set({ filter: v })}
         options={[
-          { value: "all", label: "All", icon: Layers, count: all.length },
+          { value: "all", label: "All", icon: Layers, count: total },
           { value: "unread", label: "Unread", icon: Bell, count: unread },
           { value: "attention", label: "Needs attention", icon: AlertTriangle, count: attention },
         ]}

@@ -44,6 +44,20 @@ export async function getNotifications(limit = 100): Promise<AdminNotification[]
   return (list as any[]).map(toAdminNotification);
 }
 
+
+/** Server-side totals across ALL pages (the list itself is capped per request). */
+export async function getNotificationMeta(): Promise<{ total: number; unreadCount: number }> {
+  try {
+    const { data } = await axiosInstance.get("/admin/notifications", { params: { limit: 1 } });
+    return {
+      total: Number(data?.pagination?.total ?? data?.data?.pagination?.total ?? 0) || 0,
+      unreadCount: Number(data?.data?.unreadCount ?? 0) || 0,
+    };
+  } catch {
+    return { total: 0, unreadCount: 0 };
+  }
+}
+
 export async function markNotificationRead(id: string): Promise<void> {
   await axiosInstance.patch(`/admin/notifications/${id}/read`);
 }
