@@ -49,7 +49,9 @@ export function useUrlSearch(paramKey = "q", delay = 1000) {
   const router = useRouter();
   const urlValue = searchParams.get(paramKey) ?? "";
   const [text, setText] = useState(urlValue.trim());
-  const debouncedText = useDebounce(text, delay);
+  const debounced = useDebounce(text, delay);
+  // Clearing applies at once; only typing is debounced.
+  const debouncedText = text.trim() === "" ? "" : debounced;
   const lastWritten = useRef(urlValue.trim());
 
   // Adopt external URL changes (back button, links carrying ?q=).

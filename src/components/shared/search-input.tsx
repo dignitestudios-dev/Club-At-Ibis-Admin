@@ -32,8 +32,13 @@ export function SearchInput({
   const latestOnChange = useRef(onChange);
   latestOnChange.current = onChange;
   const isFirstMount = useRef(true);
+  // True only while the text differs because the user typed (not because the parent set `value`).
+  const userTyped = useRef(false);
 
   useEffect(() => {
+    // The parent changed the value (e.g. "Clear filters"): adopt it and drop any pending typed text,
+    // otherwise the stale debounced text would be emitted back and undo the reset.
+    userTyped.current = false;
     setInternalValue(value);
   }, [value]);
 
@@ -45,13 +50,15 @@ export function SearchInput({
     // Only emit once the debounced value has caught up with what's typed. After
     // a clear, `debouncedValue` still holds the old text for a moment; emitting
     // it then would put the cleared search right back.
-    if (debouncedValue !== internalValue) return;
+    if (!userTyped.current || debouncedValue !== internalValue) return;
     if (debouncedValue !== value) {
       latestOnChange.current(debouncedValue);
     }
+    userTyped.current = false;
   }, [debouncedValue, internalValue, value]);
 
   const handleClear = () => {
+    userTyped.current = false;
     setInternalValue("");
     latestOnChange.current("");
   };
@@ -61,7 +68,10 @@ export function SearchInput({
       <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
       <Input
         value={internalValue}
-        onChange={(e) => setInternalValue(e.target.value)}
+        onChange={(e) => {
+          userTyped.current = true;
+          setInternalValue(e.target.value);
+        }}
         placeholder={placeholder}
         aria-label={ariaLabel ?? placeholder}
         maxLength={100}
