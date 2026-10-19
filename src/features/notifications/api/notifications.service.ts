@@ -38,10 +38,43 @@ function toAdminNotification(raw: any): AdminNotification {
   };
 }
 
+export interface AdminNotificationsPageResult {
+  notifications: AdminNotification[];
+  unreadCount: number;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export async function getNotifications(limit = 100): Promise<AdminNotification[]> {
   const { data } = await axiosInstance.get("/admin/notifications", { params: { limit } });
   const list = data?.data?.notifications || [];
   return (list as any[]).map(toAdminNotification);
+}
+
+export async function getNotificationsPage(params: {
+  page?: number;
+  limit?: number;
+  status?: "all" | "unread" | "read";
+} = {}): Promise<AdminNotificationsPageResult> {
+  const { page = 1, limit = 20, status = "all" } = params;
+  const { data } = await axiosInstance.get("/admin/notifications", {
+    params: { page, limit, status },
+  });
+  const list = data?.data?.notifications || [];
+  return {
+    notifications: (list as any[]).map(toAdminNotification),
+    unreadCount: Number(data?.data?.unreadCount ?? 0) || 0,
+    pagination: {
+      page: Number(data?.pagination?.page ?? page) || page,
+      limit: Number(data?.pagination?.limit ?? limit) || limit,
+      total: Number(data?.pagination?.total ?? 0) || 0,
+      totalPages: Number(data?.pagination?.totalPages ?? 1) || 1,
+    },
+  };
 }
 
 

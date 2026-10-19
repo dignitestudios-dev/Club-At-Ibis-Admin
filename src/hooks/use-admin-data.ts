@@ -1,13 +1,13 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getReviewers, getReviewersPage, getReviewer, createReviewer, updateReviewer, setReceiveNewRequests, setLoginEnabled, resendInvitation } from "@/features/reviewers/api/reviewers.service";
 import { getResidents, getResidentsPage, getResident, setResidentActive } from "@/features/residents/api/residents.service";
 import { getCategories, getCategoriesPage, getCategory, getCommonForm, getCategoryVersions, getCategoryVersion, compareCategoryVersions, createCategory, updateCategory, archiveCategory, restoreCategory, restoreCategoryVersion } from "@/features/categories/api/categories.service";
 import { getRequests, getRequestsPage, getRequestById, recordExport, type RequestsQueryParams } from "@/features/requests/api/requests.service";
 import { assignRequest, type AssignPayload } from "@/features/requests/api/assignments.service";
 import { getActivity, getActivitiesPage } from "@/features/activity/api/activity.service";
-import { getNotificationMeta, getNotifications, markAllNotificationsRead, markNotificationRead } from "@/features/notifications/api/notifications.service";
+import { getNotificationMeta, getNotifications, getNotificationsPage, markAllNotificationsRead, markNotificationRead } from "@/features/notifications/api/notifications.service";
 import { sendPasswordReset, setUserPassword, type SendResetPayload, type SetPasswordPayload } from "@/features/password-reset/api/password-reset.service";
 
 export const keys = {
@@ -95,6 +95,24 @@ export const useActivitiesPage = (params?: ActivityQueryParams) =>
     queryKey: params ? [...keys.activity, "page", params] : [...keys.activity, "page"],
     queryFn: () => getActivitiesPage(params),
   });
+export const useInfiniteActivities = (params?: { type?: ActivityType; limit?: number }) =>
+  useInfiniteQuery({
+    queryKey: params?.type ? [...keys.activity, "infinite", params.type] : [...keys.activity, "infinite"],
+    queryFn: ({ pageParam = 1 }) =>
+      getActivitiesPage({
+        type: params?.type,
+        page: pageParam,
+        limit: params?.limit ?? 20,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination.page < lastPage.pagination.totalPages) {
+        return lastPage.pagination.page + 1;
+      }
+      return undefined;
+    },
+    staleTime: 15 * 1000,
+  });
 export const useActivity = (params?: ActivityQueryParams) =>
   useQuery({
     queryKey: params ? [...keys.activity, params] : keys.activity,
@@ -104,6 +122,19 @@ export const useNotifications = () =>
   useQuery({ queryKey: keys.notifications, queryFn: () => getNotifications() });
 export const useNotificationMeta = () =>
   useQuery({ queryKey: [...keys.notifications, "meta"] as const, queryFn: getNotificationMeta, staleTime: 15 * 1000 });
+export const useInfiniteNotifications = (status: "all" | "unread" | "read" = "all") =>
+  useInfiniteQuery({
+    queryKey: [...keys.notifications, "infinite", status],
+    queryFn: ({ pageParam = 1 }) => getNotificationsPage({ page: pageParam, limit: 20, status }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination.page < lastPage.pagination.totalPages) {
+        return lastPage.pagination.page + 1;
+      }
+      return undefined;
+    },
+    staleTime: 15 * 1000,
+  });
 
 /* ----------------------------- mutations ----------------------------- */
 

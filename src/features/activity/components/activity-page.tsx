@@ -1,17 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { format, isToday, isYesterday } from "date-fns";
-import { Download, FileText, KeyRound, LayoutTemplate, RefreshCw, Route, ScrollText, UserCog, type LucideIcon } from "lucide-react";
+import { Download, FileText, KeyRound, LayoutTemplate, Loader2, RefreshCw, Route, ScrollText, UserCog, type LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { FilterPills } from "@/components/shared/pill-tabs";
-import { Pagination } from "@/components/shared/pagination";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useActivitiesPage } from "@/hooks/use-admin-data";
+import { useInfiniteActivities } from "@/hooks/use-admin-data";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useToast } from "@/hooks/use-toast";
 import { useUrlParams } from "@/hooks/use-url-params";
 import { formatDateTime } from "@/utils/format";
@@ -180,7 +180,7 @@ const TYPE_OPTIONS: { value: ActivityType; label: string }[] = [
 
 export default function ActivityPage() {
   const toast = useToast();
-  const { values, set } = useUrlParams({ type: "all", page: "1", limit: "50" });
+  const { values, set } = useUrlParams({ type: "all" });
 
   const categoryParam = values.type as ActivityType;
   const category: ActivityType =
@@ -192,17 +192,37 @@ export default function ActivityPage() {
       ? categoryParam
       : "all";
 
-  const page = Math.max(1, Number(values.page) || 1);
-  const [pageSize, setPageSize] = useState(() => Math.max(10, Number(values.limit) || 50));
-
-  const { data: pageResult, isLoading, isError, isFetching, refetch } = useActivitiesPage({
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteActivities({
     type: category !== "all" ? category : undefined,
-    page,
-    limit: pageSize,
+    limit: 20,
   });
 
-  const rawActivities = pageResult?.activities ?? [];
-  const total = pageResult?.pagination.total ?? 0;
+  const { sentinelRef } = useInfiniteScroll({
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  });
+
+  const rawActivities = useMemo(() => {
+    const list = data?.pages.flatMap((p) => p.activities) ?? [];
+    const seen = new Set<string>();
+    return list.filter((a) => {
+      if (!a?.id || seen.has(a.id)) return false;
+      seen.add(a.id);
+      return true;
+    });
+  }, [data]);
+
+  const total = data?.pages[0]?.pagination.total ?? rawActivities.length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -226,7 +246,7 @@ export default function ActivityPage() {
             aria-label="Refresh activity log"
             title="Refresh activity log"
           >
-            <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+            <RefreshCw className={cn("size-3.5", isFetching && !isFetchingNextPage && "animate-spin")} />
             <span>Refresh</span>
           </Button>
         }
@@ -235,7 +255,7 @@ export default function ActivityPage() {
       <FilterPills
         label="Activity type"
         value={category}
-        onChange={(v) => set({ type: v, page: "1" })}
+        onChange={(v) => set({ type: v })}
         options={TYPE_OPTIONS.map((opt) => ({
           value: opt.value,
           label: opt.label,
@@ -244,7 +264,7 @@ export default function ActivityPage() {
       />
 
       {isLoading ? (
-        <div className="space-y-3">
+        <div className="space-y-3" aria-busy="true" aria-live="polite">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
@@ -254,18 +274,24 @@ export default function ActivityPage() {
       ) : rawActivities.length === 0 ? (
         <EmptyState icon={ScrollText} title="No activity found" description="No activity recorded for this category yet." />
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6">
           <ActivityList entries={rawActivities} />
-          <Pagination
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={(p) => set({ page: String(p) })}
-            onPageSizeChange={(n) => {
-              setPageSize(n);
-              set({ page: "1", limit: String(n) });
-            }}
-          />
+
+          {/* Infinite Scroll Sentinel */}
+          <div ref={sentinelRef} className="h-4 w-full" aria-hidden="true" />
+
+          {isFetchingNextPage && (
+            <div className="flex items-center justify-center gap-2 py-4 text-xs text-muted-foreground" aria-live="polite">
+              <Loader2 className="size-4 animate-spin text-primary" />
+              <span>Loading more activity...</span>
+            </div>
+          )}
+
+          {!hasNextPage && rawActivities.length > 0 && (
+            <p className="py-4 text-center text-xs text-muted-foreground">
+              You have reached the end of the activity log.
+            </p>
+          )}
         </div>
       )}
     </div>

@@ -1,13 +1,15 @@
 "use client";
 
-import { AlertTriangle, Bell, CheckCheck, Layers, RefreshCw } from "lucide-react";
+import { useMemo } from "react";
+import { AlertTriangle, Bell, CheckCheck, Layers, Loader2, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FilterPills } from "@/components/shared/pill-tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NotificationItem } from "@/features/notifications/components/notification-item";
-import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotificationMeta, useNotifications } from "@/hooks/use-admin-data";
+import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotificationMeta, useInfiniteNotifications } from "@/hooks/use-admin-data";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useUrlParams } from "@/hooks/use-url-params";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/utils/cn";
@@ -16,19 +18,50 @@ type Filter = "all" | "unread" | "attention";
 
 export default function NotificationsPage() {
   const toast = useToast();
-  const { data, isLoading, isFetching, refetch } = useNotifications();
-  const { data: meta } = useNotificationMeta();
-  const markRead = useMarkNotificationRead();
-  const markAll = useMarkAllNotificationsRead();
   const { values, set } = useUrlParams({ filter: "all" });
   const filter: Filter = values.filter === "unread" || values.filter === "attention" ? values.filter : "all";
 
-  const all = data ?? [];
+  // Backend supports status: "all" | "unread" | "read". For attention, we query "all" and filter client-side.
+  const queryStatus = filter === "unread" ? "unread" : "all";
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteNotifications(queryStatus);
+
+  const { data: meta } = useNotificationMeta();
+  const markRead = useMarkNotificationRead();
+  const markAll = useMarkAllNotificationsRead();
+
+  const { sentinelRef } = useInfiniteScroll({
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  });
+
+  const all = useMemo(() => {
+    const rawList = data?.pages.flatMap((page) => page.notifications) ?? [];
+    const seen = new Set<string>();
+    return rawList.filter((n) => {
+      if (!n?.id || seen.has(n.id)) return false;
+      seen.add(n.id);
+      return true;
+    });
+  }, [data]);
+
   // Totals come from the server so they are not capped at the loaded page size.
-  const unread = meta?.unreadCount ?? all.filter((n) => !n.read).length;
-  const total = Math.max(meta?.total ?? 0, all.length);
+  const unread = meta?.unreadCount ?? data?.pages[0]?.unreadCount ?? all.filter((n) => !n.read).length;
+  const total = Math.max(meta?.total ?? 0, data?.pages[0]?.pagination?.total ?? 0, all.length);
   const attention = all.filter((n) => n.type === "action_required").length;
-  const shown = all.filter((n) => (filter === "unread" ? !n.read : filter === "attention" ? n.type === "action_required" : true));
+  const shown = useMemo(() => {
+    if (filter === "unread") return all.filter((n) => !n.read);
+    if (filter === "attention") return all.filter((n) => n.type === "action_required");
+    return all;
+  }, [all, filter]);
 
   return (
     <div className="space-y-6">
@@ -53,7 +86,7 @@ export default function NotificationsPage() {
               aria-label="Refresh notifications"
               title="Refresh notifications"
             >
-              <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+              <RefreshCw className={cn("size-3.5", isFetching && !isFetchingNextPage && "animate-spin")} />
               <span>Refresh</span>
             </Button>
             {unread > 0 && (
@@ -119,6 +152,22 @@ export default function NotificationsPage() {
               }}
             />
           ))}
+
+          {/* Infinite Scroll Sentinel */}
+          <div ref={sentinelRef} className="h-4 w-full" aria-hidden="true" />
+
+          {isFetchingNextPage && (
+            <div className="flex items-center justify-center gap-2 py-4 text-xs text-muted-foreground" aria-live="polite">
+              <Loader2 className="size-4 animate-spin text-primary" />
+              <span>Loading more notifications...</span>
+            </div>
+          )}
+
+          {!hasNextPage && shown.length > 0 && (
+            <p className="py-4 text-center text-xs text-muted-foreground">
+              You have caught up with all notifications.
+            </p>
+          )}
         </div>
       )}
     </div>
