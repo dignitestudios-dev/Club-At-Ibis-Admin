@@ -127,8 +127,6 @@ export function DonutChart({
   const rInnerBase = 58;
   const rOuterBase = 84;
 
-  const gapAngle = visible.length > 1 ? (1.5 * Math.PI) / 180 : 0;
-
   let currentAngle = -Math.PI / 2; // start at 12 o'clock
 
   const arcs = visible.map((s) => {
@@ -138,13 +136,8 @@ export function DonutChart({
     const rOuter = isHovered ? rOuterBase + 3 : rOuterBase;
     const rInner = isHovered ? rInnerBase - 2 : rInnerBase;
 
-    let start = currentAngle;
-    let end = currentAngle + span;
-
-    if (visible.length > 1 && span > gapAngle * 1.2) {
-      start += gapAngle / 2;
-      end -= gapAngle / 2;
-    }
+    const start = currentAngle;
+    const end = currentAngle + span;
 
     const pathData = describeArc(cx, cy, rInner, rOuter, start, end);
     currentAngle += span;
