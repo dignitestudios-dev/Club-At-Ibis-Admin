@@ -41,64 +41,217 @@ function useCountUp(target: number, duration = 1000) {
 /* Donut: segments draw themselves around the ring                     */
 /* ------------------------------------------------------------------ */
 
+function polarToCartesian(cx: number, cy: number, r: number, angleRad: number) {
+  return {
+    x: cx + r * Math.cos(angleRad),
+    y: cy + r * Math.sin(angleRad),
+  };
+}
+
+function describeArc(
+  cx: number,
+  cy: number,
+  rInner: number,
+  rOuter: number,
+  startAngle: number,
+  endAngle: number
+) {
+  const isFull = endAngle - startAngle >= 2 * Math.PI - 0.001;
+  if (isFull) {
+    return [
+      `M ${cx} ${cy - rOuter}`,
+      `A ${rOuter} ${rOuter} 0 1 1 ${cx} ${cy + rOuter}`,
+      `A ${rOuter} ${rOuter} 0 1 1 ${cx} ${cy - rOuter}`,
+      `M ${cx} ${cy - rInner}`,
+      `A ${rInner} ${rInner} 0 1 0 ${cx} ${cy + rInner}`,
+      `A ${rInner} ${rInner} 0 1 0 ${cx} ${cy - rInner}`,
+      "Z",
+    ].join(" ");
+  }
+
+  const largeArc = endAngle - startAngle > Math.PI ? 1 : 0;
+  const p1 = polarToCartesian(cx, cy, rOuter, startAngle);
+  const p2 = polarToCartesian(cx, cy, rOuter, endAngle);
+  const p3 = polarToCartesian(cx, cy, rInner, endAngle);
+  const p4 = polarToCartesian(cx, cy, rInner, startAngle);
+
+  return [
+    `M ${p1.x.toFixed(3)} ${p1.y.toFixed(3)}`,
+    `A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${p2.x.toFixed(3)} ${p2.y.toFixed(3)}`,
+    `L ${p3.x.toFixed(3)} ${p3.y.toFixed(3)}`,
+    `A ${rInner} ${rInner} 0 ${largeArc} 0 ${p4.x.toFixed(3)} ${p4.y.toFixed(3)}`,
+    "Z",
+  ].join(" ");
+}
+
 export interface DonutSegment {
   key: string;
   label: string;
   value: number;
   color: string;
+  href?: string;
 }
 
 export function DonutChart({
   segments,
   centerLabel,
   centerValue,
+  hoveredKey: controlledHoveredKey,
+  onHoverKeyChange,
+  onSegmentClick,
   className,
 }: {
   segments: DonutSegment[];
   centerLabel: string;
   centerValue: number;
+  hoveredKey?: string | null;
+  onHoverKeyChange?: (key: string | null) => void;
+  onSegmentClick?: (segment: DonutSegment) => void;
   className?: string;
 }) {
   const go = useGrow();
   const count = useCountUp(centerValue);
-  const total = segments.reduce((sum, s) => sum + s.value, 0);
-  const radius = 15.9155; // circumference = 100
-  const visible = segments.filter((s) => s.value > 0);
-  const gap = visible.length > 1 ? 0.6 : 0;
+  const [internalHover, setInternalHover] = useState<string | null>(null);
 
-  let offset = 25; // start at 12 o'clock
+  const activeKey = controlledHoveredKey !== undefined ? controlledHoveredKey : internalHover;
+  const handleHover = (key: string | null) => {
+    setInternalHover(key);
+    onHoverKeyChange?.(key);
+  };
+
+  const total = segments.reduce((sum, s) => sum + s.value, 0);
+  const visible = segments.filter((s) => s.value > 0);
+
+  const cx = 100;
+  const cy = 100;
+  const rInnerBase = 58;
+  const rOuterBase = 84;
+
+  const gapAngle = visible.length > 1 ? (1.5 * Math.PI) / 180 : 0;
+
+  let currentAngle = -Math.PI / 2; // start at 12 o'clock
+
+  const arcs = visible.map((s) => {
+    const fraction = total > 0 ? s.value / total : 0;
+    const span = fraction * 2 * Math.PI;
+    const isHovered = activeKey === s.key;
+    const rOuter = isHovered ? rOuterBase + 3 : rOuterBase;
+    const rInner = isHovered ? rInnerBase - 2 : rInnerBase;
+
+    let start = currentAngle;
+    let end = currentAngle + span;
+
+    if (visible.length > 1 && span > gapAngle * 1.2) {
+      start += gapAngle / 2;
+      end -= gapAngle / 2;
+    }
+
+    const pathData = describeArc(cx, cy, rInner, rOuter, start, end);
+    currentAngle += span;
+
+    return {
+      segment: s,
+      pathData,
+      isHovered,
+      pct: fraction * 100,
+    };
+  });
+
+  const activeSegment = segments.find((s) => s.key === activeKey);
+  const activePct =
+    activeSegment && total > 0
+      ? ((activeSegment.value / total) * 100).toFixed(1)
+      : null;
+
   return (
-    <div className={cn("relative aspect-square w-full max-w-[220px]", className)}>
-      <svg viewBox="0 0 42 42" className="size-full" role="img" aria-label={`${centerLabel}: ${centerValue}`}>
-        <circle cx="21" cy="21" r={radius} fill="none" className="stroke-muted" strokeWidth="5" />
-        {total > 0 &&
-          visible.map((s, i) => {
-            const pct = (s.value / total) * 100;
-            const len = Math.max(pct - gap, 0);
-            const el = (
-              <circle
-                key={s.key}
-                cx="21"
-                cy="21"
-                r={radius}
-                fill="none"
-                stroke={s.color}
-                strokeWidth="5"
-                strokeLinecap="butt"
-                strokeDasharray={`${go ? len : 0} 100`}
-                strokeDashoffset={offset}
-                style={{ transition: `stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 110}ms` }}
+    <div
+      className={cn("relative aspect-square w-full max-w-[220px]", className)}
+      onMouseLeave={() => handleHover(null)}
+    >
+      {/* Interactive hover tooltip displaying status name, request count, and percentage */}
+      {activeSegment && activeSegment.value > 0 && (
+        <div
+          role="tooltip"
+          className="pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 z-20 min-w-36 rounded-xl border border-border/80 bg-popover/95 px-3 py-2 text-xs shadow-lg backdrop-blur-xs animate-in fade-in zoom-in-95 duration-150"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className="size-2.5 shrink-0 rounded-sm"
+              style={{ backgroundColor: activeSegment.color }}
+            />
+            <span className="font-semibold text-foreground truncate">
+              {activeSegment.label}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between gap-3 text-muted-foreground">
+            <span>Requests</span>
+            <span className="font-bold tabular-nums text-foreground">
+              {activeSegment.value} ({activePct}%)
+            </span>
+          </div>
+        </div>
+      )}
+
+      <svg
+        viewBox="0 0 200 200"
+        className="size-full overflow-visible"
+        role="img"
+        aria-label={`${centerLabel}: ${centerValue}`}
+      >
+        {/* Background track ring when total is 0 or empty */}
+        {total === 0 && (
+          <path
+            d={describeArc(cx, cy, rInnerBase, rOuterBase, 0, 2 * Math.PI)}
+            className="fill-muted/40 stroke-border/40"
+          />
+        )}
+
+        <g
+          style={{
+            transformOrigin: `${cx}px ${cy}px`,
+            transform: go ? "scale(1)" : "scale(0.88)",
+            opacity: go ? 1 : 0,
+            transition: "transform 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 500ms ease",
+          }}
+        >
+          {arcs.map(({ segment, pathData, isHovered }) => {
+            const isDimmed = activeKey !== null && activeKey !== undefined && !isHovered;
+            return (
+              <path
+                key={segment.key}
+                d={pathData}
+                fill={segment.color}
+                opacity={isDimmed ? 0.45 : 1}
+                cursor="pointer"
+                onMouseEnter={() => handleHover(segment.key)}
+                onClick={() => onSegmentClick?.(segment)}
+                className="transition-all duration-200"
+                style={{
+                  filter: isHovered
+                    ? `drop-shadow(0 3px 8px ${segment.color}55)`
+                    : undefined,
+                }}
               >
-                <title>{`${s.label}: ${s.value}`}</title>
-              </circle>
+                <title>{`${segment.label}: ${segment.value}`}</title>
+              </path>
             );
-            offset -= pct;
-            return el;
           })}
+        </g>
       </svg>
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-heading text-3xl font-semibold tabular-nums text-foreground">{count}</span>
-        <span className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">{centerLabel}</span>
+
+      {/* Center Label & Value */}
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
+        <span className="font-heading text-3xl font-semibold tabular-nums text-foreground transition-all duration-200">
+          {activeSegment && activeSegment.value > 0 ? activeSegment.value : count}
+        </span>
+        <span
+          className="text-[10px] font-semibold tracking-wider uppercase truncate max-w-[110px] transition-colors duration-200"
+          style={{
+            color: activeSegment && activeSegment.value > 0 ? activeSegment.color : undefined,
+          }}
+        >
+          {activeSegment && activeSegment.value > 0 ? activeSegment.label : centerLabel}
+        </span>
       </div>
     </div>
   );
