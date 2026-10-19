@@ -945,7 +945,36 @@ function BuilderForm({
     });
     setErrors(next);
     const firstBad = fields.find((f) => next.fields[f.key]);
-    if (firstBad) setActiveKey(firstBad.key);
+    if (next.name) {
+      requestAnimationFrame(() => {
+        const nameEl = document.getElementById("cat-name");
+        nameEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+        nameEl?.focus();
+      });
+    } else if (firstBad) {
+      const targetTab = firstBad.type === "file" ? "documents" : "fields";
+      if (builderTab !== targetTab) {
+        setBuilderTab(targetTab);
+      }
+      setActiveKey(firstBad.key);
+      setTimeout(() => {
+        const fieldEl = document.getElementById(`label-${firstBad.key}`);
+        if (isChoiceType(firstBad.type)) {
+          const cardEl = fieldEl?.closest("li");
+          const inputs = Array.from(cardEl?.querySelectorAll<HTMLInputElement>('input[data-option-input="true"]') || []);
+          const emptyOpt = inputs.find((input) => !input.value.trim());
+          if (emptyOpt) {
+            emptyOpt.scrollIntoView({ behavior: "smooth", block: "center" });
+            emptyOpt.focus();
+            return;
+          }
+        }
+        if (fieldEl) {
+          fieldEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          fieldEl.focus();
+        }
+      }, 100);
+    }
     return !next.name && !firstBad;
   }
 

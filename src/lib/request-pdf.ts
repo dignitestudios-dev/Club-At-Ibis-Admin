@@ -150,6 +150,23 @@ async function loadUploadedImage(url: string): Promise<{ data: string; w: number
   }
 }
 
+/** Downloads an uploaded PDF document as an ArrayBuffer. */
+async function loadUploadedPdf(url: string): Promise<ArrayBuffer | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.arrayBuffer();
+  } catch {
+    return null;
+  }
+}
+
+interface AttachedPdfInfo {
+  buffer: ArrayBuffer;
+  pageCount: number;
+  title: string;
+}
+
 /** Runs `worker` over `items` with at most `limit` in flight, keeping the results in order. */
 async function pool<T, R>(items: T[], limit: number, worker: (item: T, index: number) => Promise<R>): Promise<R[]> {
   const results = new Array<R>(items.length);
@@ -171,16 +188,36 @@ export async function buildRequestPdf(input: RequestPdfInput): Promise<Blob> {
   progress("Preparing…");
   const [logo, mark] = await Promise.all([loadStatic("/brand/club-at-ibis-logo.png"), loadStatic("/brand/ibis-mark-navy.png")]);
 
-  // Download every uploaded image up front (a few at a time) so layout can use the real sizes.
-  const images = await pool(input.documents, 3, async (d, i) => {
-    if (fileKind(d) !== "image") return null;
-    progress(`Loading documents (${i + 1} of ${input.documents.length})…`);
-    try {
-      return await loadUploadedImage(await input.getFileUrl(d.fileId));
-    } catch {
-      return null;
-    }
-  });
+  // Download uploaded images and PDFs up front (a few at a time) so layout can use the real sizes and page counts.
+  const [images, attachedPdfs] = await Promise.all([
+    pool(input.documents, 3, async (d, i) => {
+      if (fileKind(d) !== "image") return null;
+      progress(`Loading documents (${i + 1} of ${input.documents.length})…`);
+      try {
+        return await loadUploadedImage(await input.getFileUrl(d.fileId));
+      } catch {
+        return null;
+      }
+    }),
+    pool<RequestPdfDocument, AttachedPdfInfo | null>(input.documents, 3, async (d, i) => {
+      if (fileKind(d) !== "pdf") return null;
+      progress(`Loading attached PDF documents (${i + 1} of ${input.documents.length})…`);
+      try {
+        const url = await input.getFileUrl(d.fileId);
+        const buffer = await loadUploadedPdf(url);
+        if (!buffer) return null;
+        const { PDFDocument } = await import("pdf-lib");
+        const loaded = await PDFDocument.load(buffer, { ignoreEncryption: true });
+        return {
+          buffer,
+          pageCount: loaded.getPageCount(),
+          title: d.title,
+        };
+      } catch {
+        return null;
+      }
+    }),
+  ]);
 
   progress("Building PDF…");
   const doc = new jsPDF({ unit: "pt", format: "letter", compress: true });
@@ -471,6 +508,7 @@ export async function buildRequestPdf(input: RequestPdfInput): Promise<Blob> {
     groups.forEach((g, gi) => {
       g.items.forEach(({ d, i }, k) => {
         const image = images[i];
+        const attachedPdf = attachedPdfs[i];
         const kind = fileKind(d);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10.5);
@@ -530,7 +568,9 @@ export async function buildRequestPdf(input: RequestPdfInput): Promise<Blob> {
             kind === "image"
               ? "Image on file. It could not be loaded into this copy; it is available in the portal."
               : kind === "pdf"
-                ? "PDF document on file. Its pages are not reproduced in this copy; it is available in the portal."
+                ? attachedPdf
+                  ? `PDF document attached (${attachedPdf.pageCount} page${attachedPdf.pageCount === 1 ? "" : "s"}). Appended to this document.`
+                  : "PDF document on file. It could not be loaded into this copy; it is available in the portal."
                 : "Document on file. It is available in the portal.";
           wrap(message, CONTENT_W - CELL_PAD * 4).forEach((l, li) => doc.text(l, MARGIN + CELL_PAD * 2, by + 18 + li * 12));
           by += placeholderH + CELL_PAD;
@@ -566,7 +606,39 @@ export async function buildRequestPdf(input: RequestPdfInput): Promise<Blob> {
     footer(p, pages);
   }
 
-  return doc.output("blob");
+  const baseBlob = doc.output("blob");
+  const hasPdfsToMerge = attachedPdfs.some((p) => p !== null);
+  if (!hasPdfsToMerge) {
+    return baseBlob;
+  }
+
+  progress("Merging attached PDF documents…");
+  try {
+    const { PDFDocument } = await import("pdf-lib");
+    const baseBytes = await baseBlob.arrayBuffer();
+    const mergedDoc = await PDFDocument.load(baseBytes);
+
+    for (let i = 0; i < input.documents.length; i++) {
+      const attached = attachedPdfs[i];
+      if (!attached) continue;
+      try {
+        const docToMerge = await PDFDocument.load(attached.buffer, { ignoreEncryption: true });
+        const pageIndices = docToMerge.getPageIndices();
+        const copiedPages = await mergedDoc.copyPages(docToMerge, pageIndices);
+        for (const page of copiedPages) {
+          mergedDoc.addPage(page);
+        }
+      } catch (mergeErr) {
+        console.error(`Failed to merge PDF attachment "${attached.title}":`, mergeErr);
+      }
+    }
+
+    const mergedBytes = await mergedDoc.save();
+    return new Blob([mergedBytes as unknown as BlobPart], { type: "application/pdf" });
+  } catch (err) {
+    console.error("Failed to merge PDF documents, returning base PDF:", err);
+    return baseBlob;
+  }
 }
 
 
