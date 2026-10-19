@@ -422,7 +422,7 @@ export default function RequestsListPage() {
                       {reviewer ? (
                         <div className="flex items-center gap-2 min-w-0" title={reviewer.name}>
                           <PersonAvatar name={reviewer.name} className="size-6 shrink-0" fallbackClassName="text-[9px]" />
-                          <span className="text-sm truncate block">{reviewer.name}</span>
+                          <span className="text-sm truncate block"><Highlight text={reviewer.name} query={search} /></span>
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground italic">Unassigned</span>

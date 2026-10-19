@@ -13,6 +13,7 @@ interface ReviewerApiUser {
   isDefaultReviewer: boolean;
   createdAt: string;
   lastLoginAt: string | null;
+  activeRequests?: number;
 }
 
 function toPublicReviewer(u: ReviewerApiUser): PublicReviewer {
@@ -41,6 +42,7 @@ function toPublicReviewer(u: ReviewerApiUser): PublicReviewer {
     inviteStatus: u.credentialStatus === "SET" ? "active" : "invited",
     createdAt: u.createdAt,
     lastLoginAt: u.lastLoginAt ?? undefined,
+    activeRequests: typeof u.activeRequests === "number" ? u.activeRequests : 0,
   };
 }
 

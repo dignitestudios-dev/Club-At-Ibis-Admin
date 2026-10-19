@@ -1,6 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
 import { InvitationSentDialog } from "@/features/reviewers/components/reviewer-form-sheet";
@@ -21,6 +34,7 @@ export function useReviewerActions({ defaultReviewersCount }: { defaultReviewers
   const [resentTo, setResentTo] = useState<{ name: string; email: string } | null>(null);
   const [resetTarget, setResetTarget] = useState<ResetTarget | null>(null);
   const [confirmLogin, setConfirmLogin] = useState<PublicReviewer | null>(null);
+  const [blockedDeactivation, setBlockedDeactivation] = useState<PublicReviewer | null>(null);
 
   function toggleReceive(rev: PublicReviewer, enabled: boolean) {
     setReceive.mutate(
@@ -40,6 +54,12 @@ export function useReviewerActions({ defaultReviewersCount }: { defaultReviewers
   }
 
   function requestLoginChange(rev: PublicReviewer) {
+    // If the reviewer is currently active (login enabled) and has active assigned requests,
+    // prevent deactivation and display a modal asking the admin to reassign those requests first.
+    if (rev.loginEnabled && (rev.activeRequests ?? 0) > 0) {
+      setBlockedDeactivation(rev);
+      return;
+    }
     setConfirmLogin(rev);
   }
 
@@ -90,6 +110,41 @@ export function useReviewerActions({ defaultReviewersCount }: { defaultReviewers
           setConfirmLogin(null);
         }}
       />
+
+      {/* Blocked deactivation warning modal when reviewer has active assigned requests */}
+      <AlertDialog open={!!blockedDeactivation} onOpenChange={(o) => !o && setBlockedDeactivation(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader className="items-center text-center">
+            <AlertDialogMedia className="bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+              <AlertTriangle className="size-5" />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-center">Cannot Deactivate Reviewer</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2 text-center">
+              <span>
+                <strong>{blockedDeactivation?.name}</strong> currently has{" "}
+                <strong>
+                  {blockedDeactivation?.activeRequests} active request
+                  {blockedDeactivation?.activeRequests === 1 ? "" : "s"}
+                </strong>{" "}
+                assigned.
+              </span>
+              <span className="block text-muted-foreground">
+                Please reassign these requests to another reviewer before deactivating this account. Reviewers with active requests cannot be deactivated.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+            <Link
+              href={`/assignments?search=${encodeURIComponent(blockedDeactivation?.name ?? "")}`}
+              onClick={() => setBlockedDeactivation(null)}
+              className={buttonVariants({ variant: "default" })}
+            >
+              Reassign Requests
+            </Link>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <SendResetDialog target={resetTarget} onOpenChange={(o) => !o && setResetTarget(null)} />
       <SetPasswordDialog target={passwordTarget} onOpenChange={(o) => !o && setPasswordTarget(null)} />

@@ -62,6 +62,7 @@ interface Reviewer {
   inviteStatus: "invited" | "active";
   createdAt: string;
   lastLoginAt?: string;
+  activeRequests?: number;
 }
 
 type PublicReviewer = Omit<Reviewer, "password">;

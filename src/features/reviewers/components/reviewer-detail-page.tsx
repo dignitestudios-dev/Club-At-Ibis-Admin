@@ -127,9 +127,8 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* Requests aren't wired up to a backend yet, so these are placeholders, not FE-computed numbers. */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Active requests" value="N/A" icon={Clock} accent="blue" />
+        <StatCard label="Active requests" value={reviewer.activeRequests ?? 0} icon={Clock} accent="blue" />
         <StatCard label="Completed" value="N/A" icon={CheckCircle2} accent="emerald" />
         <StatCard label="Total Handled" value="N/A" icon={UserCog} accent="navy" />
         <StatCard label="Incoming List" value="N/A" icon={Route} accent="gold" />

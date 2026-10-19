@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { AlertTriangle, Info } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,6 +10,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
@@ -22,6 +25,7 @@ export function ConfirmDialog({
   destructive = false,
   onConfirm,
   loading = false,
+  icon,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,16 +36,30 @@ export function ConfirmDialog({
   destructive?: boolean;
   onConfirm: () => void;
   loading?: boolean;
+  icon?: ReactNode;
 }) {
+  const renderedMedia = icon !== undefined ? (
+    icon ? <AlertDialogMedia>{icon}</AlertDialogMedia> : null
+  ) : destructive ? (
+    <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20">
+      <AlertTriangle className="size-5" />
+    </AlertDialogMedia>
+  ) : (
+    <AlertDialogMedia className="bg-primary/10 text-primary dark:bg-primary/20">
+      <Info className="size-5" />
+    </AlertDialogMedia>
+  );
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+        <AlertDialogHeader className="items-center text-center">
+          {renderedMedia}
+          <AlertDialogTitle className="text-center">{title}</AlertDialogTitle>
+          <AlertDialogDescription className="text-center">{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
+          <AlertDialogCancel disabled={loading}>{cancelLabel}</AlertDialogCancel>
           <AlertDialogAction
             variant={destructive ? "destructive" : "default"}
             disabled={loading}

@@ -188,6 +188,7 @@ export default function ReviewersPage() {
                 <TableHead className="pl-4 max-w-[240px]">Reviewer</TableHead>
                 <TableHead className="max-w-[130px]">Employee no.</TableHead>
                 <TableHead className="max-w-[180px]">Designation</TableHead>
+                <TableHead className="max-w-[130px]">Active requests</TableHead>
                 <TableHead className="max-w-[190px]">Receive new requests</TableHead>
                 <TableHead className="min-w-[170px]">Status</TableHead>
                 <TableHead className="w-12 pr-4 text-right">
@@ -215,6 +216,20 @@ export default function ReviewersPage() {
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground max-w-[130px] truncate" title={rev.employeeNumber}><Highlight text={rev.employeeNumber} query={search} /></TableCell>
                     <TableCell className="text-sm max-w-[180px] truncate" title={rev.designation}><Highlight text={rev.designation} query={search} /></TableCell>
+                    <TableCell className="max-w-[130px]">
+                      {(rev.activeRequests ?? 0) > 0 ? (
+                        <Link
+                          href={`/assignments?search=${encodeURIComponent(rev.name)}`}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-600 hover:bg-blue-500/20 transition-colors dark:bg-blue-500/20 dark:text-blue-400"
+                          title={`View ${rev.activeRequests} active assigned request${rev.activeRequests === 1 ? "" : "s"}`}
+                        >
+                          <span className="size-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                          {rev.activeRequests} active
+                        </Link>
+                      ) : (
+                        <span className="text-xs text-muted-foreground pl-1">0</span>
+                      )}
+                    </TableCell>
                     <TableCell className="max-w-[190px]">
                       <div className="flex items-center gap-2.5">
                         <Switch
