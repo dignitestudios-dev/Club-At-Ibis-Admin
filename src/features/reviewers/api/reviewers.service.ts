@@ -149,8 +149,16 @@ export interface ReviewerActivityEntry {
   occurredAt: string;
 }
 
+export interface ReviewerRequestMetrics {
+  activeRequests: number;
+  completed: number;
+  totalHandled: number;
+  incomingList: number;
+}
+
 export interface ReviewerDetail {
   reviewer: PublicReviewer;
+  metrics: ReviewerRequestMetrics;
   /** Up to the 5 most recent admin-visible account events for this reviewer (the backend doesn't expose more). */
   activities: ReviewerActivityEntry[];
 }
@@ -166,8 +174,15 @@ interface ReviewerActivityApiEntry {
 /** The single-reviewer endpoint (used by the reviewer detail page instead of fetching everyone and filtering). */
 export async function getReviewer(id: string): Promise<ReviewerDetail> {
   const { data } = await axiosInstance.get(`/admin/reviewers/${id}`);
+  const rawMetrics = data.data?.metrics;
   return {
     reviewer: toPublicReviewer(data.data.reviewer),
+    metrics: {
+      activeRequests: typeof rawMetrics?.activeRequests === "number" ? rawMetrics.activeRequests : (data.data.reviewer?.activeRequests ?? 0),
+      completed: typeof rawMetrics?.completed === "number" ? rawMetrics.completed : 0,
+      totalHandled: typeof rawMetrics?.totalHandled === "number" ? rawMetrics.totalHandled : 0,
+      incomingList: typeof rawMetrics?.incomingList === "number" ? rawMetrics.incomingList : 0,
+    },
     activities: (data.data.activities as ReviewerActivityApiEntry[]).map((a) => ({
       id: a._id,
       category: a.category,

@@ -93,47 +93,49 @@ export function RequestJourney({ request }: { request: RequestRecord }) {
           </span>
         )}
       </div>
-      <ol className="grid grid-cols-2 gap-y-4 sm:grid-cols-4 lg:grid-cols-7">
-        {steps.map((step, i) => (
-          <li key={step.key} className="relative flex flex-col items-center gap-1.5 text-center">
-            {i < steps.length - 1 && (
+      <div className="overflow-x-auto pb-1 -mx-1 px-1 custom-scrollbar">
+        <ol className="flex items-start min-w-[560px] sm:min-w-[620px] lg:min-w-0">
+          {steps.map((step, i) => (
+            <li key={step.key} className="relative flex-1 flex flex-col items-center gap-1.5 text-center min-w-[76px]">
+              {i < steps.length - 1 && (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "absolute top-4 left-1/2 h-0.5 w-full block -z-0",
+                    step.state === "done" ? "bg-emerald-500" : "bg-border"
+                  )}
+                />
+              )}
               <span
-                aria-hidden="true"
                 className={cn(
-                  "absolute top-4 left-1/2 hidden h-0.5 w-full lg:block",
-                  step.state === "done" ? "bg-emerald-500" : "bg-border"
+                  "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors",
+                  step.state === "done" && "border-emerald-500 bg-emerald-500 text-white",
+                  step.state === "current" && "border-primary bg-card text-primary ring-4 ring-primary/15 dark:border-amber-400 dark:text-amber-300 dark:ring-amber-400/20",
+                  step.state === "todo" && "border-border bg-card text-muted-foreground",
+                  step.state === "skipped" && "border-dashed border-border bg-muted text-muted-foreground",
+                  // Fully opaque in both themes — a translucent fill here lets
+                  // the connector line behind the circle show through it.
+                  step.state === "stopped" && "border-rose-400 bg-rose-50 text-rose-600 dark:border-rose-400 dark:bg-rose-100 dark:text-rose-700"
                 )}
-              />
-            )}
-            <span
-              className={cn(
-                "relative z-10 flex size-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors",
-                step.state === "done" && "border-emerald-500 bg-emerald-500 text-white",
-                step.state === "current" && "border-primary bg-card text-primary ring-4 ring-primary/15 dark:border-amber-400 dark:text-amber-300 dark:ring-amber-400/20",
-                step.state === "todo" && "border-border bg-card text-muted-foreground",
-                step.state === "skipped" && "border-dashed border-border bg-muted text-muted-foreground",
-                // Fully opaque in both themes — a translucent fill here lets
-                // the connector line behind the circle show through it.
-                step.state === "stopped" && "border-rose-400 bg-rose-50 text-rose-600 dark:border-rose-400 dark:bg-rose-100 dark:text-rose-700"
-              )}
-            >
-              {step.state === "done" ? (
-                <Check className="size-4" aria-hidden="true" />
-              ) : step.state === "skipped" ? (
-                <Minus className="size-4" aria-hidden="true" />
-              ) : step.state === "stopped" ? (
-                <X className="size-4" aria-hidden="true" />
-              ) : (
-                i + 1
-              )}
-            </span>
-            <span className={cn("text-xs font-semibold", step.state === "todo" || step.state === "skipped" ? "text-muted-foreground" : "text-foreground")}>
-              {step.label}
-            </span>
-            {step.detail && <span className="-mt-1 text-[10px] text-muted-foreground">{step.detail}</span>}
-          </li>
-        ))}
-      </ol>
+              >
+                {step.state === "done" ? (
+                  <Check className="size-4" aria-hidden="true" />
+                ) : step.state === "skipped" ? (
+                  <Minus className="size-4" aria-hidden="true" />
+                ) : step.state === "stopped" ? (
+                  <X className="size-4" aria-hidden="true" />
+                ) : (
+                  i + 1
+                )}
+              </span>
+              <span className={cn("text-xs font-semibold leading-tight", step.state === "todo" || step.state === "skipped" ? "text-muted-foreground" : "text-foreground")}>
+                {step.label}
+              </span>
+              {step.detail && <span className="-mt-0.5 text-[10px] text-muted-foreground">{step.detail}</span>}
+            </li>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 }

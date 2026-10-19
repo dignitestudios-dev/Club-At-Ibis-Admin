@@ -52,7 +52,7 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
     );
   }
 
-  const { reviewer, activities } = data;
+  const { reviewer, metrics, activities } = data;
   const receivePending = actions.pendingReceiveId === reviewer.id;
   const resendPending = actions.pendingResendId === reviewer.id;
   const loginPending = actions.pendingLoginId === reviewer.id;
@@ -128,10 +128,10 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Active requests" value={reviewer.activeRequests ?? 0} icon={Clock} accent="blue" />
-        <StatCard label="Completed" value="N/A" icon={CheckCircle2} accent="emerald" />
-        <StatCard label="Total Handled" value="N/A" icon={UserCog} accent="navy" />
-        <StatCard label="Incoming List" value="N/A" icon={Route} accent="gold" />
+        <StatCard label="Active requests" value={metrics?.activeRequests ?? reviewer.activeRequests ?? 0} icon={Clock} accent="blue" />
+        <StatCard label="Completed" value={metrics?.completed ?? 0} icon={CheckCircle2} accent="emerald" />
+        <StatCard label="Total Handled" value={metrics?.totalHandled ?? 0} icon={UserCog} accent="navy" />
+        <StatCard label="Incoming List" value={metrics?.incomingList ?? 0} icon={Route} accent="gold" />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
