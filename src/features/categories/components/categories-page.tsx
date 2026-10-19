@@ -38,7 +38,7 @@ export default function CategoriesPage() {
   const toast = useToast();
   const [pageSize, setPageSize] = usePageSize(CATEGORY_PAGE_SIZE_OPTIONS, 12, "caia.categories-page-size");
   const [search, setSearch] = useUrlSearch("q");
-  const { values, set } = useUrlParams({ tab: "active", page: "1" });
+  const { values, set, resetAll } = useUrlParams({ tab: "active", page: "1" });
 
   const page = Math.max(1, Number(values.page) || 1);
   const tab: "active" | "archived" = values.tab === "archived" ? "archived" : "active";
@@ -177,10 +177,7 @@ export default function CategoriesPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setSearch("");
-                  set({ page: "1" });
-                }}
+                onClick={() => resetAll({ tab })}
               >
                 Clear search
               </Button>

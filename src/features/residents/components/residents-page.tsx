@@ -33,7 +33,7 @@ export default function ResidentsPage() {
   const router = useRouter();
   const toast = useToast();
   const [search, setSearch] = useUrlSearch("q");
-  const { values, set } = useUrlParams({ page: "1", status: "all" });
+  const { values, set, resetAll } = useUrlParams({ page: "1", status: "all" });
   const [pageSize, setPageSize] = usePageSize();
   const page = Math.max(1, Number(values.page) || 1);
   const status = values.status || "all";
@@ -139,10 +139,7 @@ export default function ResidentsPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              setSearch("");
-              set({ status: "all", page: "1" });
-            }}
+            onClick={() => resetAll()}
             className="text-xs text-muted-foreground hover:text-foreground h-9 px-2.5"
           >
             <RotateCcw className="size-3.5 mr-1" />
@@ -160,7 +157,19 @@ export default function ResidentsPage() {
       ) : isError ? (
         <ErrorState title="We couldn't load the residents" onRetry={() => void refetch()} retrying={isFetching} />
       ) : visible.length === 0 ? (
-        <EmptyState icon={Users} title="No Residents Found" description="Try a different name, resident ID or email." />
+        <EmptyState
+          icon={Users}
+          title="No Residents Found"
+          description={hasFilters ? "No residents match the selected filters or search query." : "Try a different name, resident ID or email."}
+          action={
+            hasFilters ? (
+              <Button variant="outline" size="sm" onClick={() => resetAll()}>
+                <RotateCcw className="size-3.5 mr-1" />
+                Reset Filters
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <TableFrame
           footer={

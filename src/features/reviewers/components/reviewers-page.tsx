@@ -31,7 +31,7 @@ export default function ReviewersPage() {
   const toast = useToast();
   const [pageSize, setPageSize] = usePageSize();
   const [search, setSearch] = useUrlSearch("q");
-  const { values, set } = useUrlParams({ page: "1", status: "all", defaultReviewer: "all" });
+  const { values, set, resetAll } = useUrlParams({ page: "1", status: "all", defaultReviewer: "all" });
   const page = Math.max(1, Number(values.page) || 1);
   const status = values.status || "all";
   const defaultReviewer = values.defaultReviewer || "all";
@@ -142,10 +142,7 @@ export default function ReviewersPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                setSearch("");
-                set({ status: "all", defaultReviewer: "all", page: "1" });
-              }}
+              onClick={() => resetAll()}
               className="text-xs text-muted-foreground hover:text-foreground h-9 px-2.5"
             >
               <RotateCcw className="size-3.5 mr-1" />
@@ -166,7 +163,19 @@ export default function ReviewersPage() {
           ))}
         </div>
       ) : visible.length === 0 ? (
-        <EmptyState icon={UserCog} title="No reviewers found" description="Try a different search, or add a new reviewer account." />
+        <EmptyState
+          icon={UserCog}
+          title="No reviewers found"
+          description={hasFilters ? "No reviewers match the selected filters or search query." : "Try a different search, or add a new reviewer account."}
+          action={
+            hasFilters ? (
+              <Button variant="outline" size="sm" onClick={() => resetAll()}>
+                <RotateCcw className="size-3.5 mr-1" />
+                Reset Filters
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <TableFrame
           footer={

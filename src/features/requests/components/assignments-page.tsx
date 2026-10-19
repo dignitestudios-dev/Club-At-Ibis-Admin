@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { ChevronRight, Inbox, ListChecks, RefreshCw, Route, UserRoundCheck, UserRoundPlus, Users } from "lucide-react";
+import { ChevronRight, Inbox, ListChecks, RefreshCw, RotateCcw, Route, UserRoundCheck, UserRoundPlus, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Pagination } from "@/components/shared/pagination";
@@ -37,7 +37,7 @@ const ASSIGNED_STATUSES = "assigned,under_review,changes_required,resubmitted,ap
 export default function AssignmentsPage() {
   const router = useRouter();
   const toast = useToast();
-  const { values, set } = useUrlParams({ tab: "intake", page: "1" });
+  const { values, set, resetAll } = useUrlParams({ tab: "intake", page: "1" });
   const tab: "intake" | "assigned" = values.tab === "assigned" ? values.tab : "intake";
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
@@ -158,8 +158,22 @@ export default function AssignmentsPage() {
       ) : rows.length === 0 ? (
         <EmptyState
           icon={tab === "intake" ? Inbox : UserRoundCheck}
-          title={tab === "intake" ? "Intake is empty" : "Nothing assigned"}
-          description={tab === "intake" ? "Every new request has an owner. New submissions will appear here until a reviewer is assigned." : "No in-progress requests match."}
+          title={q ? "No matching requests found" : tab === "intake" ? "Intake is empty" : "Nothing assigned"}
+          description={
+            q
+              ? "Try adjusting your search criteria or clear the search."
+              : tab === "intake"
+              ? "Every new request has an owner. New submissions will appear here until a reviewer is assigned."
+              : "No in-progress requests match."
+          }
+          action={
+            q ? (
+              <Button variant="outline" size="sm" onClick={() => resetAll({ tab })}>
+                <RotateCcw className="size-3.5 mr-1" />
+                Clear search
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
         <TableFrame

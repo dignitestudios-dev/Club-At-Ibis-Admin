@@ -61,7 +61,7 @@ const URL_DEFAULTS = {
 export default function RequestsListPage() {
   const router = useRouter();
   const toast = useToast();
-  const { values: url, set: setUrl } = useUrlParams(URL_DEFAULTS);
+  const { values: url, set: setUrl, resetAll } = useUrlParams(URL_DEFAULTS);
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
 
@@ -139,9 +139,8 @@ export default function RequestsListPage() {
   }
 
   function clearAll() {
-    setSearch("");
     setDraft(DEFAULT_FILTERS);
-    setUrl({ ...URL_DEFAULTS });
+    resetAll();
   }
 
   const residentById = useMemo(() => new Map((residents ?? []).map((r) => [r.id, r])), [residents]);
