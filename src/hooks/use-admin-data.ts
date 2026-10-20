@@ -95,12 +95,23 @@ export const useActivitiesPage = (params?: ActivityQueryParams) =>
     queryKey: params ? [...keys.activity, "page", params] : [...keys.activity, "page"],
     queryFn: () => getActivitiesPage(params),
   });
-export const useInfiniteActivities = (params?: { type?: ActivityType; limit?: number }) =>
+export const useInfiniteActivities = (params?: {
+  type?: ActivityType;
+  occurredFrom?: string;
+  occurredTo?: string;
+  reviewerId?: string;
+  residentId?: string;
+  limit?: number;
+}) =>
   useInfiniteQuery({
-    queryKey: params?.type ? [...keys.activity, "infinite", params.type] : [...keys.activity, "infinite"],
+    queryKey: [...keys.activity, 'infinite', params ?? {}],
     queryFn: ({ pageParam = 1 }) =>
       getActivitiesPage({
         type: params?.type,
+        occurredFrom: params?.occurredFrom,
+        occurredTo: params?.occurredTo,
+        reviewerId: params?.reviewerId,
+        residentId: params?.residentId,
         page: pageParam,
         limit: params?.limit ?? 20,
       }),

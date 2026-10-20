@@ -17,6 +17,8 @@ export function FilterCombobox<T extends string>({
   options,
   placeholder,
   className,
+  triggerClassName,
+  hideLabel = false,
 }: {
   label: string;
   value: T;
@@ -24,6 +26,8 @@ export function FilterCombobox<T extends string>({
   options: FilterOption<T>[];
   placeholder?: string;
   className?: string;
+  triggerClassName?: string;
+  hideLabel?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -72,7 +76,14 @@ export function FilterCombobox<T extends string>({
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <span className="block text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">{label}</span>
+      <span
+        className={cn(
+          "block text-[10px] font-semibold tracking-wider text-muted-foreground uppercase",
+          hideLabel && "sr-only"
+        )}
+      >
+        {label}
+      </span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           render={
@@ -80,7 +91,10 @@ export function FilterCombobox<T extends string>({
               type="button"
               aria-label={label}
               aria-haspopup="listbox"
-              className="flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-input bg-white px-3 text-sm shadow-xs transition-colors outline-none select-none hover:border-foreground/40 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-card"
+              className={cn(
+                "flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-input bg-white px-3 text-sm shadow-xs transition-colors outline-none select-none hover:border-foreground/40 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-card",
+                triggerClassName
+              )}
             />
           }
         >

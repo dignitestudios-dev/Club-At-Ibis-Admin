@@ -3,17 +3,39 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { format, isToday, isYesterday } from "date-fns";
-import { Download, FileText, KeyRound, LayoutTemplate, Loader2, RefreshCw, Route, ScrollText, UserCog, type LucideIcon } from "lucide-react";
+import {
+  AlertCircle,
+  Calendar,
+  Download,
+  FileText,
+  KeyRound,
+  LayoutTemplate,
+  Loader2,
+  RefreshCw,
+  Route,
+  ScrollText,
+  UserCog,
+  type LucideIcon,
+} from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { FilterPills } from "@/components/shared/pill-tabs";
+import { ClearFiltersLink } from "@/components/shared/filter-sidebar";
+import { FilterCombobox } from "@/components/shared/filter-combobox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useInfiniteActivities } from "@/hooks/use-admin-data";
+import {
+  useInfiniteActivities,
+  useResidents,
+  useReviewers,
+} from "@/hooks/use-admin-data";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useToast } from "@/hooks/use-toast";
 import { useUrlParams } from "@/hooks/use-url-params";
+import { getTodayDateString, usableRange, validateDateRange } from "@/lib/date-range";
+import { residentFullName } from "@/lib/domain";
 import { formatDateTime } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
@@ -180,7 +202,13 @@ const TYPE_OPTIONS: { value: ActivityType; label: string }[] = [
 
 export default function ActivityPage() {
   const toast = useToast();
-  const { values, set } = useUrlParams({ type: "all" });
+  const { values, set, resetAll } = useUrlParams({
+    type: "all",
+    from: "",
+    to: "",
+    reviewer: "all",
+    resident: "all",
+  });
 
   const categoryParam = values.type as ActivityType;
   const category: ActivityType =
@@ -191,6 +219,24 @@ export default function ActivityPage() {
     categoryParam === "security"
       ? categoryParam
       : "all";
+
+  const { data: reviewers } = useReviewers();
+  const { data: residents } = useResidents();
+
+  const reviewerById = useMemo(() => new Map((reviewers ?? []).map((r) => [r.id, r])), [reviewers]);
+  const residentById = useMemo(() => new Map((residents ?? []).map((r) => [r.id, r])), [residents]);
+
+  const from = values.from || "";
+  const to = values.to || "";
+  const reviewerId = values.reviewer || "all";
+  const residentId = values.resident || "all";
+
+  const today = getTodayDateString();
+  const maxToDate = today;
+  const maxFromDate = to || today;
+
+  const dateError = validateDateRange(from, to);
+  const range = usableRange(from, to);
 
   const {
     data,
@@ -203,6 +249,10 @@ export default function ActivityPage() {
     refetch,
   } = useInfiniteActivities({
     type: category !== "all" ? category : undefined,
+    occurredFrom: range.from,
+    occurredTo: range.to,
+    reviewerId: reviewerId !== "all" ? reviewerId : undefined,
+    residentId: residentId !== "all" ? residentId : undefined,
     limit: 20,
   });
 
@@ -223,6 +273,45 @@ export default function ActivityPage() {
   }, [data]);
 
   const total = data?.pages[0]?.pagination.total ?? rawActivities.length;
+
+  const reviewerOptions = useMemo(
+    () => [
+      { label: "All Reviewers", value: "all" },
+      ...(reviewers ?? [])
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((r) => ({ label: r.name, value: r.id })),
+    ],
+    [reviewers]
+  );
+
+  const residentOptions = useMemo(
+    () => [
+      { label: "All Residents", value: "all" },
+      ...(residents ?? [])
+        .slice()
+        .sort((a, b) => residentFullName(a).localeCompare(residentFullName(b)))
+        .map((r) => {
+          const name = residentFullName(r);
+          const label = r.residentIdNumber ? `${name} (${r.residentIdNumber})` : name;
+          return { label, value: r.id };
+        }),
+    ],
+    [residents]
+  );
+
+  const hasFilterValues = Boolean(from || to || reviewerId !== "all" || residentId !== "all");
+  const hasAnyFilter = hasFilterValues || category !== "all";
+
+  function clearAllFilters() {
+    resetAll({
+      type: "all",
+      from: "",
+      to: "",
+      reviewer: "all",
+      resident: "all",
+    });
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -252,16 +341,97 @@ export default function ActivityPage() {
         }
       />
 
-      <FilterPills
-        label="Activity type"
-        value={category}
-        onChange={(v) => set({ type: v })}
-        options={TYPE_OPTIONS.map((opt) => ({
-          value: opt.value,
-          label: opt.label,
-          count: category === opt.value ? total : undefined,
-        }))}
-      />
+      {/* Sticky Bar for Tabs & Filters at Top of Page */}
+      <div className="sticky top-14 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-background/95 backdrop-blur-md border-b border-border/80 shadow-2xs space-y-3">
+        {/* Activity Category Tabs */}
+        <FilterPills
+          label="Activity type"
+          value={category}
+          onChange={(v) => set({ type: v })}
+          options={TYPE_OPTIONS.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+            count: category === opt.value ? total : undefined,
+          }))}
+          className="border-b-0 pb-0"
+        />
+
+        {/* Top Filter Controls */}
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
+          {/* Date Range: Occurred From / To */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-lg border border-input bg-white dark:bg-card px-2.5 shadow-xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+              <Calendar className="size-3.5 shrink-0 text-muted-foreground mr-1.5" aria-hidden="true" />
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/80">From:</span>
+                <Input
+                  type="date"
+                  value={from}
+                  max={maxFromDate}
+                  onChange={(e) => set({ from: e.target.value })}
+                  aria-label="Occurred from date"
+                  aria-invalid={!!dateError}
+                  className="h-9 w-32 border-0 bg-transparent px-1 text-xs shadow-none focus-visible:ring-0"
+                />
+              </div>
+              <span className="text-muted-foreground/60 px-1">—</span>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/80">To:</span>
+                <Input
+                  type="date"
+                  value={to}
+                  min={from || undefined}
+                  max={maxToDate}
+                  onChange={(e) => set({ to: e.target.value })}
+                  aria-label="Occurred to date"
+                  aria-invalid={!!dateError}
+                  className="h-9 w-32 border-0 bg-transparent px-1 text-xs shadow-none focus-visible:ring-0"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Reviewer Dropdown */}
+          <div className="w-full sm:w-52">
+            <FilterCombobox
+              label="Reviewer"
+              hideLabel
+              value={reviewerId}
+              onChange={(nextReviewerId) => set({ reviewer: nextReviewerId })}
+              options={reviewerOptions}
+              placeholder="All Reviewers"
+              className="space-y-0"
+            />
+          </div>
+
+          {/* Resident Dropdown */}
+          <div className="w-full sm:w-56">
+            <FilterCombobox
+              label="Resident"
+              hideLabel
+              value={residentId}
+              onChange={(nextResidentId) => set({ resident: nextResidentId })}
+              options={residentOptions}
+              placeholder="All Residents"
+              className="space-y-0"
+            />
+          </div>
+
+          {/* Clear Filters Link */}
+          {hasAnyFilter && (
+            <div className="flex items-center pl-1">
+              <ClearFiltersLink onClick={clearAllFilters} />
+            </div>
+          )}
+        </div>
+
+        {dateError && (
+          <p role="alert" className="flex items-center gap-1.5 text-xs font-medium text-destructive pt-0.5">
+            <AlertCircle className="size-3.5 shrink-0" aria-hidden="true" />
+            {dateError}
+          </p>
+        )}
+      </div>
 
       {isLoading ? (
         <div className="space-y-3" aria-busy="true" aria-live="polite">
@@ -272,7 +442,22 @@ export default function ActivityPage() {
       ) : isError ? (
         <ErrorState title="We couldn't load the activity log" onRetry={() => void refetch()} retrying={isFetching} />
       ) : rawActivities.length === 0 ? (
-        <EmptyState icon={ScrollText} title="No activity found" description="No activity recorded for this category yet." />
+        <EmptyState
+          icon={ScrollText}
+          title="No activity found"
+          description={
+            hasAnyFilter
+              ? "No activity matches the current filters. Try resetting or adjusting your filter criteria."
+              : "No activity recorded for this category yet."
+          }
+          action={
+            hasAnyFilter ? (
+              <Button variant="outline" onClick={clearAllFilters}>
+                Clear filters
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="space-y-6">
           <ActivityList entries={rawActivities} />

@@ -4,7 +4,11 @@ import axiosInstance from "@/lib/axios";
 export async function getActivitiesPage(params?: ActivityQueryParams): Promise<ActivityPageResponse> {
   const { data } = await axiosInstance.get("/admin/activities", {
     params: {
-      type: params?.type && params.type !== "all" ? params.type : undefined,
+      type: params?.type && params.type !== 'all' ? params.type : undefined,
+      occurredFrom: params?.occurredFrom || undefined,
+      occurredTo: params?.occurredTo || undefined,
+      reviewerId: params?.reviewerId && params.reviewerId !== 'all' ? params.reviewerId : undefined,
+      residentId: params?.residentId && params.residentId !== 'all' ? params.residentId : undefined,
       page: params?.page ?? 1,
       limit: params?.limit ?? 20,
     },

@@ -562,6 +562,10 @@ interface ActivityLogEntry {
 
 interface ActivityQueryParams {
   type?: ActivityType;
+  occurredFrom?: string;
+  occurredTo?: string;
+  reviewerId?: string;
+  residentId?: string;
   page?: number;
   limit?: number;
 }

@@ -1,7 +1,19 @@
 /** Helpers for the submitted-date filters (the API takes `submittedFrom` / `submittedTo` as YYYY-MM-DD). */
 
-/** Returns an error message when the range is invalid (start after end), otherwise null. */
-export function validateDateRange(from?: string, to?: string): string | null {
+/** Returns today's date formatted as YYYY-MM-DD in local time. */
+export function getTodayDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** Returns an error message when the range is invalid (start after end, or future end date), otherwise null. */
+export function validateDateRange(from?: string, to?: string, allowFuture = false): string | null {
+  const today = getTodayDateString();
+  if (!allowFuture && to && to > today) return "The end date cannot be in the future.";
+  if (!allowFuture && from && from > today) return "The start date cannot be in the future.";
   if (from && to && from > to) return "The start date must be on or before the end date.";
   return null;
 }
