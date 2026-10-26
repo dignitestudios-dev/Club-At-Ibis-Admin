@@ -783,7 +783,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                       <Mail className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                       <div>
                         <p className="font-semibold">Emailed to resident</p>
-                        <p className="text-[11px] text-muted-foreground">{req.letterEmail ? formatDateTime(req.letterEmail.at) : "Sent on completion"}</p>
+                        <p className="text-[11px] text-muted-foreground">{req.letterEmail ? formatDateTime(req.letterEmail.at) : "Sent when the letter is uploaded"}</p>
                       </div>
                     </div>
                   )}

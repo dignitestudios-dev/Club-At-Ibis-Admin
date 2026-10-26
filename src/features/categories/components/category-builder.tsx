@@ -145,6 +145,8 @@ export function CategoryBuilderSkeleton({ editing = false }: { editing?: boolean
 }
 
 interface DraftField extends CategoryField {
+  /** Draft-only: the admin deselected every file type; blocked at save. */
+  noTypes?: boolean;
   /** Stable React key that survives reordering. */
   key: string;
 }
@@ -317,45 +319,51 @@ function OptionsEditor({ field, onChange, disabled = false }: { field: DraftFiel
   );
 }
 
-function FileConfig({ field, onPatch, disabled = false }: { field: DraftField; onPatch: (p: Partial<CategoryField>) => void; disabled?: boolean }) {
-  const any = !field.accept || field.accept.length === 0;
-  const accept = field.accept ?? [];
+function FileConfig({ field, onPatch, disabled = false }: { field: DraftField; onPatch: (p: Partial<DraftField>) => void; disabled?: boolean }) {
+  const groupIds = FILE_GROUPS.map((g) => g.id);
+  // `accept: []` stored on the field means "all types"; `noTypes` is the draft-only state where the admin
+  // has deselected everything (blocked at save with a validation error).
+  const selected = field.noTypes ? [] : field.accept && field.accept.length > 0 ? field.accept : groupIds;
+  const allOn = selected.length === groupIds.length;
+  function setSelected(next: string[]) {
+    if (next.length === groupIds.length) onPatch({ accept: [], noTypes: false });
+    else if (next.length === 0) onPatch({ accept: [], noTypes: true });
+    else onPatch({ accept: next, noTypes: false });
+  }
   return (
     <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-3.5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-foreground">Accepted file types</p>
-          <p className="text-xs text-muted-foreground">{any ? "All allowed formats (Images, PDF, Word) are accepted." : "Only the selected formats can be uploaded."}</p>
+          <p className="text-xs text-muted-foreground">{allOn ? "All allowed formats (Images, PDF, Word) are accepted." : selected.length === 0 ? "No file type selected yet." : "Only the selected formats can be uploaded."}</p>
         </div>
         <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground">
-          <Switch checked={any} disabled={disabled} onCheckedChange={(v) => onPatch({ accept: v ? [] : ["images", "pdf", "word"] })} aria-label="Accept all allowed file types" />
+          <Switch checked={allOn} disabled={disabled} onCheckedChange={(v) => setSelected(v ? groupIds : [])} aria-label="Accept all allowed file types" />
           All types
         </label>
       </div>
-      {!any && (
-        <div className="grid gap-2 sm:grid-cols-3">
-          {FILE_GROUPS.map((g) => {
-            const on = accept.includes(g.id);
-            return (
-              <label
-                key={g.id}
-                className={cn(
-                  "flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors",
-                  on ? "border-primary bg-primary/5 dark:border-amber-400 dark:bg-amber-400/5" : "border-border bg-card hover:border-foreground/30",
-                  disabled && "opacity-60 cursor-not-allowed"
-                )}
-              >
-                <Checkbox checked={on} disabled={disabled} onCheckedChange={(v) => onPatch({ accept: v ? [...accept, g.id] : accept.filter((x) => x !== g.id) })} aria-label={g.label} />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-foreground">{g.label}</span>
-                  <span className="block text-[11px] text-muted-foreground">{g.detail}</span>
-                </span>
-              </label>
-            );
-          })}
-        </div>
-      )}
-      <p className="text-[11px] text-muted-foreground">Maximum file size: 30MB per file. Enforced on the resident&apos;s upload form.</p>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {FILE_GROUPS.map((g) => {
+          const on = selected.includes(g.id);
+          return (
+            <label
+              key={g.id}
+              className={cn(
+                "flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors",
+                on ? "border-primary bg-primary/5 dark:border-amber-400 dark:bg-amber-400/5" : "border-border bg-card hover:border-foreground/30",
+                disabled && "opacity-60 cursor-not-allowed"
+              )}
+            >
+              <Checkbox checked={on} disabled={disabled} onCheckedChange={(v) => setSelected(v ? [...selected, g.id] : selected.filter((x) => x !== g.id))} aria-label={g.label} />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">{g.label}</span>
+                <span className="block text-[11px] text-muted-foreground">{g.detail}</span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-muted-foreground">Maximum file size: 100MB per file. Enforced on the resident&apos;s upload form.</p>
     </div>
   );
 }
@@ -385,7 +393,7 @@ function FieldPreview({ field }: { field: DraftField }) {
   if (field.type === "file") {
     return (
       <p className="text-xs text-muted-foreground">
-        Upload · {describeAccept(field.accept)} · one file · max 30MB
+        Upload · {describeAccept(field.accept)} · one file · max 100MB
       </p>
     );
   }
@@ -429,7 +437,7 @@ function FieldCard({
   /** Field types this card's "Field type" selector may switch to. Omit (or a single-item list) hides the selector — used for document fields, which are always "file". */
   typeOptions: FieldTypeMeta[];
   onActivate: () => void;
-  onPatch: (p: Partial<CategoryField>) => void;
+  onPatch: (p: Partial<DraftField>) => void;
   onChangeType: (t: CategoryFieldType) => void;
   onDuplicate: () => void;
   onRemove: () => void;
@@ -935,6 +943,7 @@ function BuilderForm({
       else if (label.length > 60) next.fields[f.key] = "Field label cannot exceed 60 characters.";
       else if (commonLabels.includes(label)) next.fields[f.key] = "Field label conflicts with a standard form question.";
       else if (seen.has(label)) next.fields[f.key] = "Field labels must be unique within a form.";
+      else if (f.type === "file" && f.noTypes) next.fields[f.key] = "At least one file type should be selected.";
       else if (isChoiceType(f.type)) {
         const opts = (f.options ?? []).map((o) => o.trim());
         if (opts.length === 0 || opts.some((o) => !o)) next.fields[f.key] = "Every option needs a value. Please fill in or remove empty options.";

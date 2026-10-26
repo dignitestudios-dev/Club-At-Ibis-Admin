@@ -720,7 +720,7 @@ function DisabledFieldRenderer({ field }: { field: CategoryField }) {
                   <span>Click to upload</span> or drag and drop
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {describeAccept(field.accept)} · max 30MB per file
+                  {describeAccept(field.accept)} · max 100MB per file
                 </p>
               </div>
             </div>

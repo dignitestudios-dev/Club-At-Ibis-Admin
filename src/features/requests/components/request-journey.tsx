@@ -93,7 +93,7 @@ export function RequestJourney({ request }: { request: RequestRecord }) {
           </span>
         )}
       </div>
-      <div className="overflow-x-auto pb-1 -mx-1 px-1 custom-scrollbar">
+      <div className="overflow-x-auto pt-2 pb-2 -mx-1 px-1 custom-scrollbar">
         <ol className="flex items-start min-w-[560px] sm:min-w-[620px] lg:min-w-0">
           {steps.map((step, i) => (
             <li key={step.key} className="relative flex-1 flex flex-col items-center gap-1.5 text-center min-w-[76px]">
