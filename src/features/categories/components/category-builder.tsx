@@ -35,7 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { RequiredMark } from "@/components/shared/required-mark";
 import { FIELD_TYPE_BY_ID, FILE_GROUPS, NON_FILE_FIELD_TYPES, describeAccept, isChoiceType, type FieldTypeMeta } from "@/features/categories/components/field-types";
-import { useCategories, useCategory, useCommonForm, useCreateCategory, useRequests, useUpdateCategory } from "@/hooks/use-admin-data";
+import { useCategories, useCategory, useCommonForm, useCreateCategory, useRequestsPage, useUpdateCategory } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { cn } from "@/utils/cn";
@@ -177,7 +177,7 @@ export default function CategoryBuilder({ categoryId }: { categoryId?: string })
   const { data: categories } = useCategories();
   const { data: categoryData, isLoading: isCategoryLoading } = useCategory(categoryId ?? "");
   const { data: commonFormData, isLoading: isCommonLoading } = useCommonForm();
-  const { data: requests } = useRequests();
+  const { data: categoryRequests } = useRequestsPage({ categoryId: categoryId ?? "", page: 1, limit: 1 }, { enabled: !!categoryId });
   const create = useCreateCategory();
   const update = useUpdateCategory();
 
@@ -201,7 +201,7 @@ export default function CategoryBuilder({ categoryId }: { categoryId?: string })
       key={existing?.id ? `${existing.id}-v${existing.currentVersion ?? existing.version ?? 1}` : "new"}
       existing={existing}
       commonForm={commonFormData}
-      existingRequestCount={(requests ?? []).filter((r) => r.categoryId === categoryId).length}
+      existingRequestCount={categoryRequests?.pagination.total ?? 0}
       create={create}
       update={update}
       toast={toast}

@@ -17,6 +17,7 @@ import { changePasswordSchema } from "@/features/auth/schemas/auth.schema";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useLogout } from "@/hooks/use-logout";
 import { useToast } from "@/hooks/use-toast";
+import { MasterAccessCard } from "@/features/auth/components/master-access-card";
 
 function ChangePasswordForm({ userId }: { userId: string }) {
   const toast = useToast();
@@ -161,6 +162,7 @@ export default function ProfilePage() {
             </dl>
           </CardContent>
         </Card>
+        <MasterAccessCard />
         {/* Change Password card hidden per request — the API and form are still
             here and working, just not surfaced in the profile UI for now. */}
         {/* <Card className="shadow-2xs">

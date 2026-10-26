@@ -70,7 +70,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
 
     const found: PaletteItem[] = [];
     (requests ?? []).forEach((r) => {
-      const res = residentById.get(r.residentId);
+      const res: any = r.resident ?? residentById.get(r.residentId);
       const hay = `${r.code} ${residentFullName(res)} ${res?.residentIdNumber ?? ""} ${r.fieldValues.propertyAddress} ${r.fieldValues.lotNo} ${r.categoryName}`.toLowerCase();
       if (hay.includes(q)) {
         found.push({

@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { RequiredMark } from "@/components/shared/required-mark";
 import { FIELD_TYPE_BY_ID, describeAccept, isChoiceType } from "@/features/categories/components/field-types";
-import { useCategoryVersions, useCommonForm, useRequests, useRestoreCategoryVersion } from "@/hooks/use-admin-data";
+import { useCategoryVersions, useCommonForm, useAllRequests, useRestoreCategoryVersion } from "@/hooks/use-admin-data";
 import { useToast } from "@/hooks/use-toast";
 import { useUrlParams } from "@/hooks/use-url-params";
 import { fieldDiffStates } from "@/lib/category-diff";
@@ -37,7 +37,7 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
   const toast = useToast();
   const { data: versionData, isLoading: isVersionsLoading } = useCategoryVersions(id);
   const { data: commonFormData, isLoading: isCommonLoading } = useCommonForm();
-  const { data: requests } = useRequests();
+  const { data: requests, isLoading: requestsLoading } = useAllRequests({ categoryId: id });
   const restore = useRestoreCategoryVersion();
   const { values, set } = useUrlParams({ v: "" });
   const [confirming, setConfirming] = useState<number | null>(null);
@@ -214,7 +214,7 @@ export default function CategoryVersionsPage({ id }: { id: string }) {
                         <span className="mt-1 line-clamp-2 block break-words text-xs text-foreground/80">{firstChange}{extraChangesCount > 0 ? ` +${extraChangesCount} more` : ""}</span>
                         <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                           <FileText className="size-3" aria-hidden="true" />
-                          {used} request{used === 1 ? "" : "s"} submitted on this version
+                          {!requestsLoading ? `${used} request${used === 1 ? "" : "s"} submitted on this version` : "Counting requests…"}
                         </span>
                       </span>
                     </button>

@@ -4,7 +4,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { getReviewers, getReviewersPage, getReviewer, createReviewer, updateReviewer, setReceiveNewRequests, setLoginEnabled, resendInvitation } from "@/features/reviewers/api/reviewers.service";
 import { getResidents, getResidentsPage, getResident, setResidentActive } from "@/features/residents/api/residents.service";
 import { getCategories, getCategoriesPage, getCategory, getCommonForm, getCategoryVersions, getCategoryVersion, compareCategoryVersions, createCategory, updateCategory, archiveCategory, restoreCategory, restoreCategoryVersion } from "@/features/categories/api/categories.service";
-import { getRequests, getRequestsPage, getRequestById, recordExport, type RequestsQueryParams } from "@/features/requests/api/requests.service";
+import { getAllRequests, getRequests, getRequestsPage, getRequestById, recordExport, type RequestsQueryParams } from "@/features/requests/api/requests.service";
 import { assignRequest, type AssignPayload } from "@/features/requests/api/assignments.service";
 import { getActivity, getActivitiesPage } from "@/features/activity/api/activity.service";
 import { getNotificationMeta, getNotifications, getNotificationsPage, markAllNotificationsRead, markNotificationRead } from "@/features/notifications/api/notifications.service";
@@ -86,8 +86,14 @@ export const useVersionComparison = (id: string, fromVersion: number, toVersion:
 
 export const useRequests = (params?: RequestsQueryParams) =>
   useQuery({ queryKey: params ? [...keys.requests, params] : keys.requests, queryFn: () => getRequests(params) });
-export const useRequestsPage = (params: RequestsQueryParams) =>
-  useQuery({ queryKey: [...keys.requests, "page", params], queryFn: () => getRequestsPage(params) });
+/** Every request matching `params`, all pages (rows carry their form version, so counts can be made from them). */
+export const useAllRequests = (params?: Omit<RequestsQueryParams, "page" | "limit">) =>
+  useQuery({
+    queryKey: [...keys.requests, "all-pages", params ?? "all"],
+    queryFn: () => getAllRequests(params),
+  });
+export const useRequestsPage = (params: RequestsQueryParams, options?: { enabled?: boolean }) =>
+  useQuery({ queryKey: [...keys.requests, "page", params], queryFn: () => getRequestsPage(params), enabled: options?.enabled ?? true });
 export const useRequest = (id: string) =>
   useQuery({ queryKey: [...keys.requests, id], queryFn: () => getRequestById(id), enabled: !!id });
 export const useActivitiesPage = (params?: ActivityQueryParams) =>

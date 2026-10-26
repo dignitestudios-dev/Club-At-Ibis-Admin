@@ -279,7 +279,7 @@ type HistoryEventType =
   | "refund_outcome_recorded"
   | "refund_outcome_corrected";
 
-type ActorRole = "resident" | "reviewer" | "super_admin" | "system";
+type ActorRole = "resident" | "resident_admin" | "reviewer" | "super_admin" | "system";
 
 interface HistoryEvent {
   id: string;

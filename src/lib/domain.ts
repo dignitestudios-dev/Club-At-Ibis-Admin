@@ -292,7 +292,7 @@ export function buildRequestsCsv(requests: RequestRecord[], ctx: CsvContext): st
   ];
 
   const rows = requests.map((req) => {
-    const resident = residentById.get(req.residentId);
+    const resident = req.resident ?? residentById.get(req.residentId);
     const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
     const cat = categoryById.get(req.categoryId);
     return [

@@ -68,7 +68,7 @@ export function RequestMiniTable({
         </TableHeader>
         <TableBody>
           {rows.map((req) => {
-            const resident = residentById.get(req.residentId);
+            const resident = req.resident ?? residentById.get(req.residentId);
             const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
             const resName = residentFullName(resident);
             return (

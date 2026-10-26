@@ -210,7 +210,7 @@ export default function AssignmentsPage() {
             <TableBody>
               {rows.map((req) => {
                 const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
-                const resName = residentFullName(residentById.get(req.residentId));
+                const resName = residentFullName(req.resident ?? residentById.get(req.residentId));
                 return (
                   <TableRow key={req.id} className={cn("group cursor-pointer", isRefundPending(req) && "bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/15 dark:hover:bg-amber-950/25")} onClick={() => router.push(`/requests/${req.id}`)}>
                     <TableCell className="pl-4 w-[180px] min-w-[180px] max-w-[180px]">

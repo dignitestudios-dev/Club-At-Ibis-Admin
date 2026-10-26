@@ -72,6 +72,7 @@ const EVENT_CONFIG: Record<HistoryEventType, { icon: LucideIcon; label: string; 
 
 const ROLE_LABEL: Record<ActorRole, string> = {
   resident: "Resident",
+  resident_admin: "Admin edit on behalf of resident",
   reviewer: "ARB Reviewer",
   super_admin: "Super Admin",
   system: "System",

@@ -164,7 +164,9 @@ export function toAdminRequestRecord(raw: any): RequestRecord {
         ? "super_admin"
         : roleStr.toLowerCase() === "reviewer"
           ? "reviewer"
-          : roleStr.toLowerCase() === "resident"
+          : roleStr.toLowerCase() === "resident_admin"
+            ? "resident_admin"
+            : roleStr.toLowerCase() === "resident"
             ? "resident"
             : "system";
 
@@ -276,4 +278,18 @@ export async function getAdminFileDownloadUrl(requestId: string, fileId: string)
 
 export async function recordExport(_count: number, _summary: string): Promise<void> {
   // Client-side record export completed
+}
+
+/** Every request matching `params`, fetched page by page (the API caps a page at 100). */
+export async function getAllRequests(params?: Omit<RequestsQueryParams, "page" | "limit">): Promise<RequestRecord[]> {
+  const all: RequestRecord[] = [];
+  let page = 1;
+  let totalPages = 1;
+  do {
+    const result = await getRequestsPage({ ...params, page, limit: 100 });
+    all.push(...result.requests);
+    totalPages = result.pagination.totalPages || 1;
+    page += 1;
+  } while (page <= totalPages);
+  return all;
 }
