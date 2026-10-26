@@ -12,6 +12,7 @@ import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/compo
 import { resetPasswordSchema } from "@/features/auth/schemas/auth.schema";
 import { useResetPasswordMutation } from "@/features/auth/api/auth.mutations";
 import { useToast } from "@/hooks/use-toast";
+import { completePasswordReset } from "@/features/auth/lib/password-reset-notice";
 
 export default function ResetPasswordForm({ token }: { token: string }) {
   const router = useRouter();
@@ -57,8 +58,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
             { token, ...data },
             {
               onSuccess: () => {
-                toast.success("Password updated", "Sign in with your new password.");
-                router.push("/auth/login");
+                completePasswordReset();
               },
               onError: (e: Error) => toast.error(e.message),
             }

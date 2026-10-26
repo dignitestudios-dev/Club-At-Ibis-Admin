@@ -17,7 +17,7 @@ export const PROTECTED_ROUTES = [
   "/profile",
 ];
 
-export const AUTH_PAGES = ["/auth/login", "/auth/forgot-password", "/auth/reset-password"];
+export const AUTH_PAGES = ["/auth/login", "/auth/forgot-password"];
 
 export const AUTH_REDIRECT = "/auth/login";
 export const DEFAULT_REDIRECT = "/dashboard";

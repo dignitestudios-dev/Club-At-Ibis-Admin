@@ -1,5 +1,6 @@
 "use client";
 
+import { consumePasswordResetNotice } from "@/features/auth/lib/password-reset-notice";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -22,6 +23,10 @@ import { DEFAULT_REDIRECT } from "@/config/routes";
 export default function LoginForm() {
   const dispatch = useAppDispatch();
   const toast = useToast();
+  useEffect(() => {
+    if (consumePasswordResetNotice()) toast.success("Password updated", "Your password has been changed. Sign in with your new password.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get("returnUrl");
   const { mutate: login, isPending } = useLoginMutation();
