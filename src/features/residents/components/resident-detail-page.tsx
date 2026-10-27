@@ -36,7 +36,7 @@ import { ResidentStatusChip } from "@/features/residents/components/resident-sta
 import { useToast } from "@/hooks/use-toast";
 import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
 import { SendResetDialog } from "@/features/password-reset/components/send-reset-dialog";
-import { AccessProfileDialog } from "@/features/residents/components/access-profile-dialog";
+import { AccessProfileDialog, accessBlockedReason } from "@/features/residents/components/access-profile-dialog";
 import { useRequestsPage, useResident, useSetResidentActive } from "@/hooks/use-admin-data";
 import { activityActorHref } from "@/features/activity/components/activity-page";
 import { type ResidentActivityEntry } from "@/features/residents/api/residents.service";
@@ -176,7 +176,7 @@ export default function ResidentDetailPage({ id }: { id: string }) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => setAccessOpen(true)} disabled={!resident.active} title={resident.active ? undefined : "Activate the account first"}>
+            <Button onClick={() => setAccessOpen(true)} disabled={!!accessBlockedReason(resident)} title={accessBlockedReason(resident) ?? undefined}>
               <ExternalLink className="size-4" />
               Access This Profile
             </Button>

@@ -6,6 +6,18 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { openResidentAccess } from "@/features/auth/api/master-access";
 import { useToast } from "@/hooks/use-toast";
 
+/**
+ * Why a resident's account can't be opened with admin access (null when it can). Only fully active accounts
+ * qualify: inactive (disabled) and pending-verification accounts can't sign in, so there is nothing to access.
+ */
+export function accessBlockedReason(resident: { accountStatus?: string; active?: boolean }): string | null {
+  const status = (resident.accountStatus || "").toUpperCase();
+  if (status === "PENDING_EMAIL_VERIFICATION") return "This account is pending email verification";
+  if (resident.active === false || status === "DISABLED") return "This account is inactive. Activate it first";
+  if (status && status !== "ACTIVE") return "Only active accounts can be accessed";
+  return null;
+}
+
 export interface AccessProfileTarget {
   id: string;
   name: string;

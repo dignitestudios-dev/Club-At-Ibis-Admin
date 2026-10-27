@@ -21,7 +21,7 @@ import { TableFrame } from "@/components/shared/table-frame";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ResidentStatusChip } from "@/features/residents/components/resident-status-chip";
 import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
-import { AccessProfileDialog, type AccessProfileTarget } from "@/features/residents/components/access-profile-dialog";
+import { AccessProfileDialog, accessBlockedReason, type AccessProfileTarget } from "@/features/residents/components/access-profile-dialog";
 import { SendResetDialog, type ResetTarget } from "@/features/password-reset/components/send-reset-dialog";
 import { useResidentsPage, useSetResidentActive } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
@@ -234,7 +234,7 @@ export default function ResidentsPage() {
                           <MoreHorizontal />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-52">
-                          <DropdownMenuItem disabled={!res.active} onClick={() => setAccessTarget({ id: res.id, name, email: res.email })}>
+                          <DropdownMenuItem disabled={!!accessBlockedReason(res)} title={accessBlockedReason(res) ?? undefined} onClick={() => setAccessTarget({ id: res.id, name, email: res.email })}>
                             <ExternalLink />
                             Access profile
                           </DropdownMenuItem>
