@@ -72,7 +72,7 @@ const EVENT_CONFIG: Record<HistoryEventType, { icon: LucideIcon; label: string; 
 
 const ROLE_LABEL: Record<ActorRole, string> = {
   resident: "Resident",
-  resident_admin: "Admin edit on behalf of resident",
+  resident_admin: "Admin action on behalf of resident",
   reviewer: "ARB Reviewer",
   super_admin: "Super Admin",
   system: "System",
@@ -202,10 +202,15 @@ export function HistoryTimeline({
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-1.5 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  By <span className="font-semibold text-foreground">{actorName}</span>
-                  <span className="rounded bg-muted px-1.5 py-px text-[10px] font-medium">{roleLabel}</span>
-                </span>
+                {event.actor?.role === "resident_admin" ? (
+                  // Master-password / "Access This Profile" edits: the shared credential can't say who did it, so no name is shown.
+                  <span className="font-semibold text-foreground">{ROLE_LABEL.resident_admin}</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5">
+                    By <span className="font-semibold text-foreground">{actorName}</span>
+                    <span className="rounded bg-muted px-1.5 py-px text-[10px] font-medium">{roleLabel}</span>
+                  </span>
+                )}
                 <span>{formatDateTime(event.createdAt)}</span>
               </div>
             </div>
