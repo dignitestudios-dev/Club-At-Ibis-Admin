@@ -2,7 +2,7 @@ import axios from "axios";
 import { ApiError, fieldNameFromPath } from "./api-error";
 
 const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "https://api.clubatibis.dignitestudios.com/api/v1",
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "https://club-at-ibis-dev-api-dtexdzdcg7ejc7ev.centralus-01.azurewebsites.net/api/v1",
   timeout: 5 * 60 * 1000, // 5 minutes
   headers: { "Content-Type": "application/json" },
 });
