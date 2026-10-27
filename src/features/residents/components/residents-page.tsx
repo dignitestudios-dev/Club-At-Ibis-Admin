@@ -2,8 +2,9 @@
 
 import { Highlight } from "@/components/shared/highlight";
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { KeyRound, LockKeyhole, MoreHorizontal, Power, RefreshCw, RotateCcw, UserCheck, UserX, Users } from "lucide-react";
+import { ExternalLink, KeyRound, LockKeyhole, ShieldCheck, MoreHorizontal, Power, RefreshCw, RotateCcw, UserCheck, UserX, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -20,6 +21,7 @@ import { TableFrame } from "@/components/shared/table-frame";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ResidentStatusChip } from "@/features/residents/components/resident-status-chip";
 import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
+import { AccessProfileDialog, type AccessProfileTarget } from "@/features/residents/components/access-profile-dialog";
 import { SendResetDialog, type ResetTarget } from "@/features/password-reset/components/send-reset-dialog";
 import { useResidentsPage, useSetResidentActive } from "@/hooks/use-admin-data";
 import { usePageSize } from "@/hooks/use-page-size";
@@ -61,6 +63,7 @@ export default function ResidentsPage() {
   const [resetTarget, setResetTarget] = useState<ResetTarget | null>(null);
   const [toggling, setToggling] = useState<Resident | null>(null);
   const [passwordTarget, setPasswordTarget] = useState<ResetTarget | null>(null);
+  const [accessTarget, setAccessTarget] = useState<AccessProfileTarget | null>(null);
 
   function confirmToggle() {
     if (!toggling) return;
@@ -84,25 +87,31 @@ export default function ResidentsPage() {
         title="Resident Records"
         description="Search residents, send password-reset links, and activate or deactivate accounts."
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              try {
-                await refetch();
-                toast.success("Residents refreshed");
-              } catch {
-                toast.error("Failed to refresh residents");
-              }
-            }}
-            disabled={isFetching}
-            className="h-8 gap-1.5"
-            aria-label="Refresh residents"
-            title="Refresh residents"
-          >
-            <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
-            <span>Refresh</span>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" nativeButton={false} render={<Link href="/profile#master-access" />}>
+              <ShieldCheck className="size-3.5" aria-hidden="true" />
+              Master credentials
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await refetch();
+                  toast.success("Residents refreshed");
+                } catch {
+                  toast.error("Failed to refresh residents");
+                }
+              }}
+              disabled={isFetching}
+              className="h-8 gap-1.5"
+              aria-label="Refresh residents"
+              title="Refresh residents"
+            >
+              <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+              <span>Refresh</span>
+            </Button>
+          </div>
         }
       />
 
@@ -225,6 +234,10 @@ export default function ResidentsPage() {
                           <MoreHorizontal />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-52">
+                          <DropdownMenuItem disabled={!res.active} onClick={() => setAccessTarget({ id: res.id, name, email: res.email })}>
+                            <ExternalLink />
+                            Access profile
+                          </DropdownMenuItem>
                           <DropdownMenuItem disabled={!res.active} onClick={() => setResetTarget({ kind: "resident", id: res.id, name, email: res.email })}>
                             <KeyRound />
                             Send Password Reset
@@ -251,6 +264,7 @@ export default function ResidentsPage() {
 
       <SendResetDialog target={resetTarget} onOpenChange={(o) => !o && setResetTarget(null)} />
       <SetPasswordDialog target={passwordTarget} onOpenChange={(o) => !o && setPasswordTarget(null)} />
+      <AccessProfileDialog target={accessTarget} onOpenChange={(o) => !o && setAccessTarget(null)} />
       <ConfirmDialog
         open={!!toggling}
         onOpenChange={(o) => !o && setToggling(null)}

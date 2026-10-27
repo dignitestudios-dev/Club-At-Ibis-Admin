@@ -17,6 +17,7 @@ import {
   Power,
   ScrollText,
   ExternalLink,
+  ShieldEllipsis,
   ShieldCheck,
   UserCheck,
   Users,
@@ -35,7 +36,7 @@ import { ResidentStatusChip } from "@/features/residents/components/resident-sta
 import { useToast } from "@/hooks/use-toast";
 import { SetPasswordDialog } from "@/features/password-reset/components/set-password-dialog";
 import { SendResetDialog } from "@/features/password-reset/components/send-reset-dialog";
-import { openResidentAccess } from "@/features/auth/api/master-access";
+import { AccessProfileDialog } from "@/features/residents/components/access-profile-dialog";
 import { useRequestsPage, useResident, useSetResidentActive } from "@/hooks/use-admin-data";
 import { activityActorHref } from "@/features/activity/components/activity-page";
 import { type ResidentActivityEntry } from "@/features/residents/api/residents.service";
@@ -98,7 +99,7 @@ export default function ResidentDetailPage({ id }: { id: string }) {
   const [resetOpen, setResetOpen] = useState(false);
   const [toggleOpen, setToggleOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
-  const [accessing, setAccessing] = useState(false);
+  const [accessOpen, setAccessOpen] = useState(false);
   const toast = useToast();
   const setActive = useSetResidentActive();
 
@@ -152,19 +153,6 @@ export default function ResidentDetailPage({ id }: { id: string }) {
 
   const name = residentFullName(resident);
 
-  async function accessProfile() {
-    if (accessing) return;
-    setAccessing(true);
-    try {
-      await openResidentAccess(resident!.email);
-      toast.success("Opening the resident portal", `Signing in to ${name}'s account for 15 minutes. Changes are recorded as admin edits.`);
-    } catch (e) {
-      toast.error("Could not open the account", (e as Error).message);
-    } finally {
-      setAccessing(false);
-    }
-  }
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <BackButton fallbackHref="/residents" className="-ml-2" />
@@ -188,9 +176,13 @@ export default function ResidentDetailPage({ id }: { id: string }) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={accessProfile} disabled={!resident.active || accessing} title={resident.active ? undefined : "Activate the account first"}>
-              {accessing ? <Spinner className="size-4" /> : <ExternalLink className="size-4" />}
+            <Button onClick={() => setAccessOpen(true)} disabled={!resident.active} title={resident.active ? undefined : "Activate the account first"}>
+              <ExternalLink className="size-4" />
               Access This Profile
+            </Button>
+            <Button variant="outline" nativeButton={false} render={<Link href="/profile#master-access" />}>
+              <ShieldEllipsis className="size-4" aria-hidden="true" />
+              Master credentials
             </Button>
             <Button variant="outline" onClick={() => setToggleOpen(true)}>
               <Power className="size-4" />
@@ -376,6 +368,11 @@ export default function ResidentDetailPage({ id }: { id: string }) {
       <SetPasswordDialog
         target={passwordOpen ? { kind: "resident", id: resident.id, name, email: resident.email } : null}
         onOpenChange={(o) => !o && setPasswordOpen(false)}
+      />
+
+      <AccessProfileDialog
+        target={accessOpen ? { id: resident.id, name, email: resident.email } : null}
+        onOpenChange={(o) => !o && setAccessOpen(false)}
       />
 
       <SendResetDialog

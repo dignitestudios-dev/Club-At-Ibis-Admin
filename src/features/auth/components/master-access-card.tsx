@@ -198,7 +198,7 @@ export function MasterAccessCard() {
   );
 
   return (
-    <Card className="shadow-2xs">
+    <Card id="master-access" className="scroll-mt-20 shadow-2xs">
       <CardHeader className="border-b border-border/70 pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 font-heading text-lg font-medium">
