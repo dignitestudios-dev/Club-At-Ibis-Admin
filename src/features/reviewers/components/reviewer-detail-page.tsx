@@ -65,11 +65,11 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
       <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
         <span aria-hidden="true" className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-brand-gold to-amber-600" />
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <PersonAvatar name={reviewer.name} className="size-16" fallbackClassName="text-xl" />
-            <div className="space-y-1.5">
-              <h1 className="font-heading text-2xl font-medium text-foreground sm:text-3xl">{reviewer.name}</h1>
-              <p className="text-sm text-muted-foreground truncate">
+          <div className="flex min-w-0 items-center gap-4">
+            <PersonAvatar name={reviewer.name} className="size-16 shrink-0" fallbackClassName="text-xl" />
+            <div className="min-w-0 space-y-1.5">
+              <h1 className="font-heading text-2xl font-medium text-foreground break-words [overflow-wrap:anywhere] sm:text-3xl">{reviewer.name}</h1>
+              <p className="line-clamp-2 text-sm text-muted-foreground break-words [overflow-wrap:anywhere]" title={reviewer.designation || undefined}>
                 {reviewer.designation || "—"} · <span className="font-mono text-xs">{reviewer.employeeNumber}</span>
               </p>
               <div className="flex flex-wrap items-center gap-2">
@@ -84,7 +84,7 @@ export default function ReviewerDetailPage({ id }: { id: string }) {
             </div>
           </div>
 
-          <div className="flex flex-col items-start gap-3 md:items-end">
+          <div className="flex shrink-0 flex-col items-start gap-3 md:items-end">
             <div className="flex items-center gap-2">
               <Button
                 variant={reviewer.loginEnabled ? "outline" : "default"}
