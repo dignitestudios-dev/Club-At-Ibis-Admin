@@ -96,7 +96,6 @@ export function describeEvent(type: string, details: Details, audience: "staff" 
       return {
         file: str(d.fileId) ? { id: str(d.fileId)!, name: str(d.fileName) ?? "Final approval letter", kind: "letter" } : undefined,
         lines: [
-          { text: "The resident can see it once the request is completed." },
           ...(str(d.fileName) ? [{ text: `File: ${str(d.fileName)}${typeof d.version === "number" && d.version > 1 ? ` (version ${d.version})` : ""}` }] : []),
         ],
       };
