@@ -546,7 +546,7 @@ function DisabledFieldRenderer({ field }: { field: CategoryField }) {
             )}
           </FieldLabel>
           <FieldContent>
-            <Textarea id={field.id} placeholder={field.helpText} rows={3} disabled />
+            <Textarea id={field.id} placeholder={field.helpText || `Enter ${field.label.toLowerCase()}`} rows={3} disabled />
           </FieldContent>
         </Field>
       );
