@@ -86,11 +86,32 @@ export function useRateLimit(storageKey: string) {
     return () => clearTimeout(id);
   }, [restored]);
 
-  /** Returns true when the error was a rate limit with a wait time (so the caller can skip its own error toast). */
+  /** Stops and forgets the countdown (the backend is no longer throttling us). */
+  const clear = useCallback(() => {
+    setUntil(null);
+    setRestored(false);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      // ignore
+    }
+  }, [storageKey]);
+
+  /**
+   * Call from a failed request. Returns true when it was a throttle with a wait time (so the caller can skip
+   * its own error toast) and (re)starts the countdown from the backend. When the backend answered with
+   * anything else (wrong password, validation, etc.) the throttle is over, so a running countdown is removed.
+   * A network failure or a 5xx tells us nothing about the throttle, so the countdown keeps running.
+   */
   const handleError = useCallback(
     (error: unknown): boolean => {
       const secs = getRetryAfterSeconds(error);
-      if (secs === null) return false;
+      if (secs === null) {
+        const status = (error as RateLimitError | null)?.statusCode;
+        // A 429 without a usable wait time is still a throttle: leave any running countdown alone.
+        if (typeof status === "number" && status !== 429 && status < 500) clear();
+        return false;
+      }
       const end = Date.now() + secs * 1000;
       setRestored(false);
       setNow(Date.now());
@@ -102,9 +123,9 @@ export function useRateLimit(storageKey: string) {
       }
       return true;
     },
-    [storageKey]
+    [storageKey, clear]
   );
 
   const remaining = until === null ? 0 : Math.max(0, Math.ceil((until - now) / 1000));
-  return { remaining, isLimited: remaining > 0, restored, handleError };
+  return { remaining, isLimited: remaining > 0, restored, handleError, clear };
 }

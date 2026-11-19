@@ -76,6 +76,7 @@ export default function LoginForm() {
     isSubmittingRef.current = true;
     login({ email: data.email.trim(), password: data.password }, {
       onSuccess: ({ token, admin }) => {
+        rateLimit.clear();
         isSubmittingRef.current = false;
         localStorage.removeItem("caia.logged-out");
         localStorage.setItem("auth-token", token);
@@ -87,8 +88,11 @@ export default function LoginForm() {
       },
       onError: (error: Error) => {
         isSubmittingRef.current = false;
-        // Rate limited: start/re-sync the visible countdown from the backend's retryAfterSeconds.
-        if (rateLimit.handleError(error)) return;
+        // Throttled: (re)start the visible countdown from the backend's wait time and show its message.
+        if (rateLimit.handleError(error)) {
+          toast.error(error.message || "Too many attempts. Please try again later.");
+          return;
+        }
         toast.error(error.message || "Unable to sign in.");
       },
       onSettled: () => {
