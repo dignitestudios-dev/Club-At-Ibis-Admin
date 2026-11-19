@@ -18,6 +18,8 @@ import { useLoginMutation } from "@/features/auth/api/auth.mutations";
 import { useAppDispatch } from "@/store";
 import { setUser } from "@/store/slices/auth.slice";
 import { useToast } from "@/hooks/use-toast";
+import { useRateLimit } from "@/hooks/use-rate-limit";
+import { RateLimitNotice } from "@/components/shared/rate-limit-notice";
 import { DEFAULT_REDIRECT } from "@/config/routes";
 
 export default function LoginForm() {
@@ -30,6 +32,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get("returnUrl");
   const { mutate: login, isPending } = useLoginMutation();
+  const rateLimit = useRateLimit("caia.rate-limit.login");
 
   const {
     control,
@@ -84,6 +87,8 @@ export default function LoginForm() {
       },
       onError: (error: Error) => {
         isSubmittingRef.current = false;
+        // Rate limited: start/re-sync the visible countdown from the backend's retryAfterSeconds.
+        if (rateLimit.handleError(error)) return;
         toast.error(error.message || "Unable to sign in.");
       },
       onSettled: () => {
@@ -111,6 +116,8 @@ export default function LoginForm() {
           Manage reviewers, categories and oversee every request in the ARB workflow.
         </p>
       </div>
+
+      <RateLimitNotice remaining={rateLimit.remaining} restored={rateLimit.restored} />
 
       <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate>
         <FieldGroup>
