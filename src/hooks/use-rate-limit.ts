@@ -4,13 +4,29 @@ import { useCallback, useEffect, useState } from "react";
 
 type RateLimitError = Error & { code?: string; statusCode?: number; responseData?: unknown };
 
-/** Pulls `details.retryAfterSeconds` out of a RATE_LIMITED API error (null when it isn't one). */
-export function getRetryAfterSeconds(error: unknown): number | null {
+/**
+ * How long to wait, in seconds, when the login API throttles us. Two shapes exist:
+ * - RATE_LIMITED (HTTP 429): `details.retryAfterSeconds` is a number of seconds.
+ * - AUTHENTICATION_THROTTLED (repeated failed logins): `details.retryAfter` is an ISO date/time to retry at.
+ * Returns null for any other error, or when no usable wait time is present.
+ */
+export function getRetryAfterSeconds(error: unknown, now: number = Date.now()): number | null {
   const e = error as RateLimitError | null;
-  if (!e || (e.code !== "RATE_LIMITED" && e.statusCode !== 429)) return null;
-  const data = e.responseData as { details?: { retryAfterSeconds?: unknown } } | undefined;
+  if (!e) return null;
+  const data = e.responseData as { code?: string; details?: { retryAfterSeconds?: unknown; retryAfter?: unknown } } | undefined;
+  const code = e.code ?? data?.code;
+  const throttled = code === "RATE_LIMITED" || code === "AUTHENTICATION_THROTTLED" || e.statusCode === 429;
+  if (!throttled) return null;
+
   const secs = Number(data?.details?.retryAfterSeconds);
-  return Number.isFinite(secs) && secs > 0 ? Math.ceil(secs) : null;
+  if (Number.isFinite(secs) && secs > 0) return Math.ceil(secs);
+
+  const at = data?.details?.retryAfter;
+  if (typeof at === "string" || typeof at === "number") {
+    const ms = new Date(at).getTime() - now;
+    if (Number.isFinite(ms) && ms > 0) return Math.ceil(ms / 1000);
+  }
+  return null;
 }
 
 const RESTORED_MS = 6000;
