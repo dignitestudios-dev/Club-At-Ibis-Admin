@@ -95,7 +95,7 @@ axiosInstance.interceptors.response.use(
     const message = details?.length
       ? details.map((d: { path: string; message: string }) => `${fieldNameFromPath(d.path)}: ${d.message}`).join("; ")
       : (body?.message ?? error.message);
-    return Promise.reject(new ApiError(message, body?.code, details));
+    return Promise.reject(new ApiError(message, body?.code, details, status, body));
   }
 );
 

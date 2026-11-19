@@ -16,12 +16,17 @@ export interface ApiErrorDetail {
 export class ApiError extends Error {
   code?: string;
   details?: ApiErrorDetail[];
+  /** HTTP status and the raw response body (e.g. RATE_LIMITED carries `details.retryAfterSeconds`). */
+  statusCode?: number;
+  responseData?: unknown;
 
-  constructor(message: string, code?: string, details?: ApiErrorDetail[]) {
+  constructor(message: string, code?: string, details?: ApiErrorDetail[], statusCode?: number, responseData?: unknown) {
     super(message);
     this.name = "ApiError";
     this.code = code;
     this.details = details;
+    this.statusCode = statusCode;
+    this.responseData = responseData;
   }
 }
 
